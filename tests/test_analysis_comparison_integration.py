@@ -66,7 +66,7 @@ assert 'openpyxl' not in sys.modules
                                        cwd=ROOT, capture_output=True, text=True, encoding="utf-8", timeout=60)
             self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
 
-    def project(self, root):
+    def project(self, root, *, ordinary_methods=()):
         fixture = legacy.UserExecutionContractTests()
         primary_code = fixture.make_project(root)
         state = fixture.accept_primary(root, primary_code)
@@ -95,9 +95,13 @@ assert 'openpyxl' not in sys.modules
         for check in entry["analysis_comparison"]["checks"]:
             check["evidence_refs"] = [row for row in check["evidence_refs"] if row["id"].endswith("-4")]
         plan_hash = gate.COMPARISON.plan_sha256(entry["analysis_comparison"])
+        entry["analysis_methods"].extend(ordinary_methods)
         fixture.write_state(root, state)
         config = fixture.config("analysis", "问题一结果深化分析.xlsx")
         config.update(analysis_comparison_protocol_version="1.0.0", analysis_comparison_plan_sha256=plan_hash)
+        if ordinary_methods:
+            config.update(ordinary_experiment_protocol_version="1.0.0",
+                          ordinary_experiments=fixture.ordinary_experiments(ordinary_methods))
         code = root / "问题一求解/问题一结果深化分析.py"
         fixture.write_code(code, config)
         issues, parsed = legacy.CODE.validate_script(root, code, "analysis")
@@ -463,10 +467,8 @@ assert 'openpyxl' not in sys.modules
     def test_mixed_comparison_and_ordinary_pressure_evidence_are_checked_separately(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            fixture, state, _, workbook, primary = self.project(root)
+            fixture, state, _, workbook, primary = self.project(root, ordinary_methods=["参数敏感性", "场景压力测试"])
             entry = state["subproblems"]["Q1"]
-            entry["analysis_methods"].extend(["参数敏感性", "场景压力测试"])
-            fixture.write_state(root, state)
             primary_bytes = primary.read_bytes()
 
             incomplete = fixture.read_state(root)

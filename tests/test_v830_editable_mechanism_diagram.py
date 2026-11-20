@@ -668,6 +668,97 @@ def _prior_reviewed_blocks(relative: str, text: str, blocks, label: str) -> str:
     return "".join(lines)
 
 
+# Exact candidate changes relative to the P4a source. Older projections run on its recovered bytes.
+ORDINARY_EXPERIMENT_BLOCKS = {
+    "core/workbook_schema.yaml": (
+        (
+            '  - 同模型多算法检验', 16,
+            "3521050ad239dcc7d67c3c5346af8f37d7434c830b318d4610092c7664c86277",
+            (
+                '  - 同模型多算法检验\n'
+                '  # Each recognized ordinary method in the current plan requires its own substantive table.\n'
+            ),
+        ),
+    ),
+    "modules/03_result_analysis.md": (
+        (
+            '独立深化入口 是独立可复现程序，不复制主求解主链，不通过改写 主求解入口 实现深化分析。新生成脚本必须只定义一个按执行 Authority 可静态读取的 `RUN_CONFIG`，其中 `stage="analysis"` 并锁定当前数据事实源的 `data_sha256`；user/full-fidelity/no-degradation 政策由 `core/user_execution_contract.yaml` 继承，不在脚本中重复自报。工作簿中的 `code_sha256` 必须对应该深化分析脚本，并继续完整记录 solver/version、stop、platform、fallback 与 no-degradation 等实际运行事实。旧 `FULL_FIDELITY_CONFIG/FULL_RUN_CONFIG` 仅作只读兼容。', 8,
+            "fa6e15591e01d3fdd896e1635f89d36e470da906a64be3bfaa6239da9a1d1414",
+            (
+                '独立深化入口 是独立可复现程序，不复制主求解主链，不通过改写 主求解入口 实现深化分析。新生成脚本必须只定义一个按执行 Authority 可静态读取的 `RUN_CONFIG`，其中 `stage="analysis"` 并锁定当前数据事实源的 `data_sha256`；user/full-fidelity/no-degradation 政策由 `core/user_execution_contract.yaml` 继承，不在脚本中重复自报。工作簿中的 `code_sha256` 必须对应该深化分析脚本，并继续完整记录 solver/version、stop、platform、fallback 与 no-degradation 等实际运行事实。旧 `FULL_FIDELITY_CONFIG/FULL_RUN_CONFIG` 仅作只读兼容。\n'
+                '\n'
+            ),
+        ),
+    ),
+    "scripts/validate_code_delivery.py": (
+        (
+            '    SOURCE_RECEIPT_VERSIONS, is_source_receipt, auxiliary_config_issues, comparison_config_issues,', 3,
+            "fae3b548190ec1b4b2b9dcab519639504fd8365e1cc4e67ebaa3bdd909088eb4",
+            (
+                '    SOURCE_RECEIPT_VERSIONS, is_source_receipt, auxiliary_config_issues, comparison_config_issues,\n'
+                '    primary_quality_config_issues,\n'
+                ')\n'
+            ),
+        ),
+        (
+            '    modern = is_source_receipt(receipt_protocol)', 3,
+            "8071d9cb68cf93d4fab86f720a177d27e74a39733d5c7b03a296834942253e5e",
+            (
+                '    modern = is_source_receipt(receipt_protocol)\n'
+                '    issues.extend(auxiliary_config_issues(config))\n'
+            ),
+        ),
+        (
+            '            issues.append(str(exc))', 9,
+            "c9c09cb7342b88c367ec22187f5dade3b08cc2e319b74173234d82c614783ca4",
+            (
+                '            issues.append(str(exc))\n'
+                '    if stage == "primary":\n'
+            ),
+        ),
+        (
+            '    configuration_issues.extend(scale_issues)', 3,
+            "25f1db8dacfa218e69b452152e25fb9e9b6a675b7473e6695df3f08f9dd41131",
+            (
+                '    configuration_issues.extend(scale_issues)\n'
+                '    if configuration_issues:\n'
+            ),
+        ),
+        (
+            '    observed_state = load_yaml(state_path)', 3,
+            "e0b58ac9849fc3a0080ad6c59d9655882b5561ecb1a28a7e944a99c487bb8272",
+            (
+                '    observed_state = load_yaml(state_path)\n'
+                '    guarded = scale_plan is not None or PRIMARY_QUALITY.binding_present(config) or any(\n'
+                '        CONFORMANCE.present(entry) or COMPARISON.present(entry, config=config)\n'
+            ),
+        ),
+        (
+            '    quality_observed = {"project": {}, "skill": {}}', 21,
+            "37666265bd014848c15edc98b1506bf906e6dc32bb36a0d91ce19bb9dd3ce164",
+            (
+                '    quality_observed = {"project": {}, "skill": {}}\n'
+                '    specification = None\n'
+            ),
+        ),
+        (
+            '        expected_file_hashes=observed["project"] or None,', 3,
+            "05eda83d002ac46c25eedfa65a4a9901f91aaef51c952dff40e12feba6019e59",
+            (
+                '        expected_file_hashes=observed["project"] or None,\n'
+                '        validators=[CONFORMANCE.skill_validator(observed)] if conformance["enabled"] or comparison["enabled"] else (),\n'
+                '    )\n'
+            ),
+        ),
+    ),
+}
+
+
+def p4a_authority_text(relative: str) -> str:
+    text = (ROOT / relative).read_text(encoding="utf-8")
+    return _prior_reviewed_blocks(relative, text, ORDINARY_EXPERIMENT_BLOCKS, "ordinary experiment")
+
+
 # Reconstruct only the approved v10.35.1 ordinary-method schema additions.
 ORDINARY_ANALYSIS_COVERAGE_BLOCKS = {
     "core/workbook_schema.yaml": (
@@ -1209,7 +1300,7 @@ class ContractAndDriftTests(unittest.TestCase):
         # those live bytes before applying the unchanged historical projections;
         # neither the old protected blob hash nor its inverse rules are waived.
         text = (historical_review_text(ROOT) if relative == "modules/06_review_delivery.md"
-                else (ROOT / relative).read_text(encoding="utf-8"))
+                else p4a_authority_text(relative))
         text = prior_primary_quality_binding(relative, prior_execution_scale_binding(relative, text))
         if relative == "core/workbook_schema.yaml":
             # Renderer-neutral handoff wording does not change the workbook
@@ -1439,7 +1530,7 @@ class ContractAndDriftTests(unittest.TestCase):
 
     def test_defensive_writing_inverse_projection_rejects_missing_or_duplicate_blocks(self):
         for relative, replacements in DEFENSIVE_WRITING_AUTHORITY_REWRITES.items():
-            source = (ROOT / relative).read_text(encoding="utf-8")
+            source = p4a_authority_text(relative)
             for current, _ in replacements:
                 for changed in (
                     source.replace(current, "", 1),
@@ -1451,7 +1542,7 @@ class ContractAndDriftTests(unittest.TestCase):
 
     def test_defensive_writing_inverse_projection_preserves_unrelated_changes(self):
         for relative in DEFENSIVE_WRITING_AUTHORITY_REWRITES:
-            source = (ROOT / relative).read_text(encoding="utf-8")
+            source = p4a_authority_text(relative)
             projected = inverse_defensive_writing_changes(relative, source)
             unrelated = "\nunauthorized unrelated authority change\n"
             self.assertEqual(
@@ -1461,7 +1552,7 @@ class ContractAndDriftTests(unittest.TestCase):
 
     def test_ordinary_analysis_coverage_inverse_restores_exact_scale_source(self):
         relative = "core/workbook_schema.yaml"
-        text = (ROOT / relative).read_text(encoding="utf-8")
+        text = p4a_authority_text(relative)
         prior = prior_ordinary_analysis_coverage(relative, text)
         self.assertEqual(hashlib.sha256(prior.encode("utf-8")).hexdigest(),
                          "568d2fa949b04748acf512a9883d7a5bd6c958221675d3548cee2fc88cded095")
@@ -1484,7 +1575,7 @@ class ContractAndDriftTests(unittest.TestCase):
         }
         for relative, expected in source_hashes.items():
             with self.subTest(relative=relative):
-                current = (ROOT / relative).read_text(encoding="utf-8")
+                current = p4a_authority_text(relative)
                 prior = prior_execution_scale_binding(relative, current)
                 self.assertEqual(hashlib.sha256(prior.encode("utf-8")).hexdigest(), expected)
                 extra = "\n# unauthorized separate change\n"
@@ -1508,7 +1599,7 @@ class ContractAndDriftTests(unittest.TestCase):
         }
         for relative, expected in source_hashes.items():
             with self.subTest(relative=relative):
-                current = (ROOT / relative).read_text(encoding="utf-8")
+                current = p4a_authority_text(relative)
                 current = prior_execution_scale_binding(relative, current)
                 prior = prior_primary_quality_binding(relative, current)
                 self.assertEqual(hashlib.sha256(prior.encode("utf-8")).hexdigest(), expected)
@@ -1526,7 +1617,7 @@ class ContractAndDriftTests(unittest.TestCase):
 
     def test_preprocessing_redelivery_inverse_is_exact(self):
         relative = "scripts/validate_code_delivery.py"
-        current = (ROOT / relative).read_text(encoding="utf-8")
+        current = p4a_authority_text(relative)
         source = prior_primary_quality_binding(relative, prior_execution_scale_binding(relative, current))
         predecessor = prior_preprocessing_delivery(source)
         data = predecessor.encode("utf-8")
@@ -1546,7 +1637,7 @@ class ContractAndDriftTests(unittest.TestCase):
             *P6_SOURCE_PROVENANCE_REWRITES.items(),
             *USER_CHECKER_AUTHORITY_REWRITES.items(),
         ):
-            live = (ROOT / relative).read_text(encoding="utf-8")
+            live = p4a_authority_text(relative)
             text = prior_primary_quality_binding(relative, prior_execution_scale_binding(relative, live))
             for current, _ in replacements:
                 for changed in (text.replace(current, "unauthorized replacement\n", 1), text + current):
@@ -1556,7 +1647,7 @@ class ContractAndDriftTests(unittest.TestCase):
 
     def test_checker_inverse_projection_does_not_erase_unrelated_changes(self):
         for relative in set(USER_CHECKER_AUTHORITY_REWRITES) | set(P6_SOURCE_PROVENANCE_REWRITES):
-            current = (ROOT / relative).read_text(encoding="utf-8")
+            current = p4a_authority_text(relative)
             text = prior_primary_quality_binding(relative, prior_execution_scale_binding(relative, current))
             changed = text + "\nunauthorized unrelated change\n"
             projected = inverse_user_checker_changes(relative, text)
@@ -1564,7 +1655,7 @@ class ContractAndDriftTests(unittest.TestCase):
                 inverse_user_checker_changes(relative, changed),
                 projected + "\nunauthorized unrelated change\n",
             )
-            self.assertEqual((ROOT / relative).read_text(encoding="utf-8"), current)
+            self.assertEqual(p4a_authority_text(relative), current)
 
     def test_matlab_ownership_and_conditional_per_question_layout_are_explicit(self):
         output = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))

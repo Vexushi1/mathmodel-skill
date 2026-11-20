@@ -8,6 +8,8 @@
 
 主函数的首条语句是唯一 `RUN_CONFIG = jsondecode('...');`。配置使用可静态读取的 JSON 字面量；不要动态拼接、重赋值或改用外部配置。新主/分析使用回执 1.1，`solver_backend=matlab`。种子、容差、完整求解范围实际由配置驱动。例子的直接求解只支持 `iteration_or_time_limit=direct`；分析必须执行声明的全部场景。
 
+在 `q1_analysis.m` 的静态 `RUN_CONFIG.ordinary_experiments` 中预先登记两项参数敏感性检验。对每个系数，模板记录解及其相对已验收基准的绝对偏离，保留零值，并分别按判据记录支持或拒绝。实例化其他模型时同步更新实验目标、主张、计算与判据。普通实验字段与工作簿要求见 `core/user_execution_contract.yaml` 和 `core/workbook_schema.yaml`。
+
 主求解选用已批准的质量规范绑定时，按 `core/user_execution_contract.yaml` 使用 RUN_CONFIG 与 RUN_RECEIPT 1.3.0，回显质量协议、规范摘要、JSON 路径列表 `data_paths` 和实际采用的 `data_identity_mode`。`主结果质量门` 的数值行写入规范声明的 `单位`，示例的方程残差使用 `1` 表示无量纲。阈值、关系、证据表和单位随实际批准项一起实例化。
 
 启用正式执行规模时使用回执 1.4.0，由实例化者按执行合同冻结 `execution_scale_plan` 及其摘要。原生示例仅支持各自实际执行的精确计划。主求解记录一次实算到 `重复试验结果`，深化记录敏感性扫描的每个真实系数场景到 `场景压力测试`，场景标识由实算系数生成。回执的 `actual_scale_count` 来自记录行数，同时回显计划摘要、实际 JSON 输入路径和身份模式。自适应执行需要题目专属主求解实现，以及绑定数值 PQS 判据的 `执行停止证据`。

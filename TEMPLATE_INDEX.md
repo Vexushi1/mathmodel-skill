@@ -22,6 +22,7 @@
 - `templates/code/starter/evaluation.py`
 - `templates/code/starter/optimization.py`
 - `templates/code/starter/prediction.py`
+- `templates/code/starter/q1_analysis.py`
 - `templates/code/starter/simulation.py`
 - `templates/figure/chart_selection.md`
 - `templates/figure/figure_enhancement_patterns.md`

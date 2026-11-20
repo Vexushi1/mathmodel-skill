@@ -71,6 +71,10 @@ def parse_embedded_config(
         names = ", ".join(name for name, _ in found)
         raise ValueError(messages.multiple.format(names=names))
     if is_source_receipt(found[0][1].get("run_receipt_protocol_version")):
+        mutation_methods = {"update", "setdefault", "pop", "popitem", "clear", "__setitem__", "__delitem__"}
+        if "ordinary_experiments" in found[0][1]:
+            mutation_methods.update({"extend", "append", "remove", "insert", "reverse", "sort"})
+
         def root_name(node: ast.AST) -> str | None:
             while isinstance(node, (ast.Attribute, ast.Subscript)):
                 node = node.value
@@ -86,7 +90,7 @@ def parse_embedded_config(
                 raise ValueError("RUN_CONFIG禁止后续覆盖或删除字段")
             if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
                     and root_name(node.func.value) in CONFIG_NAMES
-                    and node.func.attr in {"update", "setdefault", "pop", "popitem", "clear", "__setitem__", "__delitem__"}):
+                    and node.func.attr in mutation_methods):
                 raise ValueError("RUN_CONFIG禁止后续动态修改")
         for node in ast.walk(declarations[0]):
             if isinstance(node, ast.Dict):

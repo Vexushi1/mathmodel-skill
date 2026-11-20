@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import io
 import importlib.util
 import tempfile
@@ -84,6 +85,9 @@ class UserExecutionContractTests(unittest.TestCase):
             config["primary_quality_protocol_version"] = "1.0.0"
         elif stage == "analysis":
             config["primary_workbook_sha256"] = getattr(self, "primary_workbook_sha", "b" * 64)
+            if getattr(self, "analysis_experiments", None):
+                config.update(ordinary_experiment_protocol_version="1.0.0",
+                              ordinary_experiments=self.analysis_experiments)
         return config
 
     def write_code(self, path: Path, config: dict, marker: int = 0) -> None:
@@ -140,14 +144,23 @@ class UserExecutionContractTests(unittest.TestCase):
         for key, value in self.runtime_items("analysis", code, self.data_hash).items():
             runtime.append([key, value])
         design = book.create_sheet("分析设计")
-        design.append(["风险来源", "分析问题", "方法", "指标", "通过标准"])
-        design.append(["参数", "稳定性", "敏感性", "目标值", "结论保持"])
+        design.append(["风险来源", "分析问题", "方法", "指标", "通过标准", "检验ID"])
         sensitivity = book.create_sheet("参数敏感性")
-        sensitivity.append(["参数", "基准值", "变化值", "结果指标"])
-        sensitivity.append(["p", 1.0, 1.1, 2.0])
+        sensitivity.append(["参数", "基准值", "变化值", "结果指标", "检验ID", "观测状态"])
         summary = book.create_sheet("结论稳定性汇总")
-        summary.append(["核心结论", "分析方法", "稳定范围", "是否保持"])
-        summary.append(["方案A", "敏感性", "0.9--1.1", True])
+        summary.append(["核心结论", "分析方法", "稳定范围", "是否保持", "检验ID", "主张处置", "证据工作表"])
+        experiments = CODE.STAGE_CODE.parse_stage_config(code)[1].get("ordinary_experiments")
+        if experiments:
+            for row in experiments:
+                method, identifier = row["method"], row["id"]
+                design.append(["参数", row["target"], method, "目标值", "结论保持", identifier])
+                summary.append([row["claim"], method, "0.9--1.1", True, identifier, "support", method])
+                if method == "参数敏感性":
+                    sensitivity.append(["p", 1.0, 1.1, 2.0, identifier, "completed"])
+        else:
+            design.append(["参数", "稳定性", "敏感性", "目标值", "结论保持"])
+            sensitivity.append(["p", 1.0, 1.1, 2.0])
+            summary.append(["方案A", "敏感性", "0.9--1.1", True])
         book.save(workbook)
         return workbook
 
@@ -166,6 +179,9 @@ class UserExecutionContractTests(unittest.TestCase):
             items["primary_quality_protocol_version"] = "1.0.0"
         elif stage == "analysis":
             items["primary_workbook_sha256"] = self.primary_workbook_sha
+            declared = CODE.STAGE_CODE.parse_stage_config(code)[1]
+            if "ordinary_experiment_protocol_version" in declared:
+                items["ordinary_experiment_protocol_version"] = declared["ordinary_experiment_protocol_version"]
         return items
 
     def accept_primary(self, root: Path, code: Path) -> dict:
@@ -180,7 +196,16 @@ class UserExecutionContractTests(unittest.TestCase):
         self.write_state(root, state)
         return state
 
-    def make_analysis_code(self, root: Path, marker: int = 0) -> Path:
+    @staticmethod
+    def ordinary_experiments(methods):
+        fixtures = (("参数敏感性", "sensitivity-a", "参数扰动是否改变方案排序", "方案A"),
+                    ("场景压力测试", "stress-a", "需求升高时能否执行", "需求增加可行"))
+        return [{"id": identifier, "method": method, "target": target, "claim": claim}
+                for method, identifier, target, claim in fixtures if method in methods]
+
+    def make_analysis_code(self, root: Path, marker: int = 0, *, experiments=None) -> Path:
+        methods = self.read_state(root)["subproblems"]["Q1"].get("analysis_methods", ())
+        self.analysis_experiments = self.ordinary_experiments(methods) if experiments is None else experiments
         code = root / "问题一求解" / "问题一结果深化分析.py"
         self.write_code(code, self.config("analysis", "问题一结果深化分析.xlsx"), marker)
         return code
@@ -295,8 +320,8 @@ class UserExecutionContractTests(unittest.TestCase):
     @staticmethod
     def add_pressure_evidence(book, record=("stress", "增加需求", 0, False)):
         sheet = book.create_sheet("场景压力测试")
-        sheet.append(["场景", "变化条件", "结果指标", "是否可行"])
-        sheet.append(record)
+        sheet.append(["场景", "变化条件", "结果指标", "是否可行", "检验ID", "观测状态"])
+        sheet.append([*record, "stress-a", "completed"])
 
     def prepare_ordinary_analysis(self, root: Path, methods: list[str]) -> Path:
         primary = self.make_project(root)
@@ -328,6 +353,7 @@ class UserExecutionContractTests(unittest.TestCase):
                     book = openpyxl.load_workbook(workbook)
                     try:
                         book["结论稳定性汇总"]["D2"] = maintained
+                        book["结论稳定性汇总"]["F2"] = "support" if maintained else "reject"
                         if record is not None:
                             self.add_pressure_evidence(book, record)
                         book.save(workbook)
@@ -352,6 +378,263 @@ class UserExecutionContractTests(unittest.TestCase):
                     self.assertEqual(entry["validated_artifact_hashes"]["solution_workbook"],
                                      self.primary_workbook_sha)
                     self.assertNotIn("solution_workbook", entry.get("stale_layers", []))
+
+    def test_returned_experiments_are_reconstructed_from_the_delivered_source(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            primary = self.make_project(root)
+            self.accept_primary(root, primary)
+            self.activate_analysis(root)
+            first, = self.ordinary_experiments(["参数敏感性"])
+            second = {**first, "id": "sensitivity-b", "target": "补贴退出后方案是否可行", "claim": "无补贴时仍可行"}
+            optional = {**first, "id": "explore-c", "required": False}
+            source = self.make_analysis_code(root, experiments=[first, second, optional])
+            issues, config = CODE.validate_script(root, source, "analysis")
+            self.assertEqual(issues, [])
+            CODE.update_state(root, config, source)
+            workbook = self.make_analysis_workbook(root, source)
+            book = openpyxl.load_workbook(workbook)
+            # Multiple observations do not replace a distinct required experiment.
+            book["参数敏感性"].append(["p", 0, 1, False, first["id"], "completed"])
+            book["参数敏感性"]["F4"] = "technical_failure"
+            book["结论稳定性汇总"]["F4"] = None
+            book["结论稳定性汇总"]["D4"] = None
+            book.save(workbook)
+            book.close()
+            state = self.read_state(root)
+            self.assertEqual(RECEIPT.validate_one(root, workbook, state, True), [])
+            accepted = state["subproblems"]["Q1"]["validated_artifact_hashes"]["result_analysis_workbook"]
+            original = workbook.read_bytes()
+            for case in ("deleted", "missing_disposition", "technical_failure", "receipt_marker_removed"):
+                with self.subTest(case=case):
+                    workbook.write_bytes(original)
+                    book = openpyxl.load_workbook(workbook)
+                    if case == "deleted":
+                        for name in ("分析设计", "参数敏感性", "结论稳定性汇总"):
+                            book[name].delete_rows(3)
+                    elif case == "missing_disposition":
+                        book["结论稳定性汇总"]["F3"] = None
+                    elif case == "technical_failure":
+                        book["参数敏感性"]["F3"] = "technical_failure"
+                    else:
+                        runtime = book["运行配置"]
+                        for row in runtime.iter_rows():
+                            if row[0].value == "ordinary_experiment_protocol_version":
+                                runtime.delete_rows(row[0].row)
+                                break
+                    book.save(workbook)
+                    book.close()
+                    self.assertNotEqual(hashlib.sha256(workbook.read_bytes()).hexdigest(), accepted)
+                    issues = RECEIPT.validate_one(root, workbook, state, True)
+                    expected = "ordinary_experiment_protocol_version" if case == "receipt_marker_removed" else second["id"]
+                    self.assertTrue(any(expected in issue for issue in issues), issues)
+                    self.assertEqual(state["subproblems"]["Q1"]["analysis_execution_status"], "rejected")
+                    self.assertEqual(state["subproblems"]["Q1"]["primary_execution_status"], "accepted")
+                    self.assertEqual(state["subproblems"]["Q1"]["validated_artifact_hashes"]["result_analysis_workbook"], accepted)
+
+    def test_posthoc_unadjudicated_row_cannot_pass_or_reject_a_frozen_claim(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            workbook = self.prepare_ordinary_analysis(root, ["参数敏感性"])
+            original = workbook.read_bytes()
+            for identifier, disposition, expected in (
+                ("posthoc", None, "accepted"), (None, None, "accepted"),
+                ("posthoc", "support", "rejected"), ("posthoc", "reject", "rejected"),
+            ):
+                with self.subTest(identifier=identifier, disposition=disposition):
+                    workbook.write_bytes(original)
+                    book = openpyxl.load_workbook(workbook)
+                    book["结论稳定性汇总"].append([
+                        "事后探索", "参数敏感性", "未确定范围", disposition == "support",
+                        identifier, disposition, "参数敏感性",
+                    ])
+                    book.save(workbook)
+                    book.close()
+                    state = self.read_state(root)
+                    issues = RECEIPT.validate_one(root, workbook, state, True)
+                    self.assertEqual(state["subproblems"]["Q1"]["analysis_execution_status"], expected, issues)
+                    self.assertNotIn("存在核心结论未保持", issues)
+                    self.assertEqual(state["subproblems"]["Q1"]["primary_execution_status"], "accepted")
+                    if expected == "rejected":
+                        self.assertTrue(any("posthoc" in issue for issue in issues), issues)
+                    else:
+                        self.assertEqual(issues, [])
+            book = openpyxl.load_workbook(workbook)
+            summary = book["结论稳定性汇总"]
+            summary.delete_rows(2)
+            summary["F2"] = None
+            book.save(workbook)
+            book.close()
+            self.assertEqual(RECEIPT.analysis_passed(workbook, ordinary_experiments=self.analysis_experiments)[:2],
+                             (False, "failed"))
+            state = self.read_state(root)
+            issues = RECEIPT.validate_one(root, workbook, state, True)
+            self.assertTrue(any("sensitivity-a" in issue for issue in issues), issues)
+            self.assertEqual(state["subproblems"]["Q1"]["analysis_execution_status"], "rejected")
+
+    def test_optional_observations_only_overturn_the_same_frozen_required_claim(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self.accept_primary(root, self.make_project(root))
+            self.activate_analysis(root)
+            required, = self.ordinary_experiments(["参数敏感性"])
+            corroboration = {**required, "id": "second-check", "required": False}
+            side_claim = {**corroboration, "id": "extra-scenario", "claim": required["claim"] + "（扩展场景）"}
+            plan = [required, corroboration, side_claim]
+            source = self.make_analysis_code(root, experiments=plan)
+            issues, config = CODE.validate_script(root, source, "analysis")
+            self.assertEqual(issues, [])
+            CODE.update_state(root, config, source)
+            workbook = self.make_analysis_workbook(root, source)
+            original = workbook.read_bytes()
+            for label, summary_edits, failed_observation, expected in (
+                ("side supports", {}, None, "accepted"),
+                ("side modifies", {"D4": False, "F4": "modify"}, None, "accepted"),
+                ("side rejects", {"D4": False, "F4": "reject"}, None, "accepted"),
+                ("shared claim rejected", {"D3": False, "F3": "reject"}, None, "redo_required"),
+                ("required claim rejected", {"D2": False, "F2": "reject"}, None, "redo_required"),
+                ("failed attempt", {"D3": False, "F3": None}, "F3", "accepted"),
+                ("side lacks evidence", {"D4": False, "F4": "reject"}, "F4", "rejected"),
+                ("required evidence missing", {"D3": False, "F3": "reject"}, "F2", "rejected"),
+                ("summary substitutes claim", {"A4": required["claim"], "D4": False, "F4": "reject"}, None, "rejected"),
+            ):
+                with self.subTest(label=label):
+                    book = openpyxl.load_workbook(io.BytesIO(original))
+                    for cell, value in summary_edits.items():
+                        book["结论稳定性汇总"][cell] = value
+                    if failed_observation:
+                        book["参数敏感性"][failed_observation] = "technical_failure"
+                    book.save(workbook)
+                    book.close()
+                    before = workbook.read_bytes()
+                    state = self.read_state(root)
+                    issues = RECEIPT.validate_one(root, workbook, state, True)
+                    entry = state["subproblems"]["Q1"]
+                    self.assertEqual(entry["analysis_execution_status"], expected, issues)
+                    self.assertEqual("存在核心结论未保持" in issues, expected == "redo_required")
+                    self.assertEqual(entry["primary_execution_status"], "accepted")
+                    self.assertEqual(workbook.read_bytes(), before)
+
+            book = openpyxl.load_workbook(io.BytesIO(original))
+            book["结论稳定性汇总"].delete_rows(2)
+            book.save(workbook)
+            book.close()
+            self.assertEqual(RECEIPT.analysis_passed(workbook, ordinary_experiments=plan)[:2], (False, "failed"))
+            state = self.read_state(root)
+            issues = RECEIPT.validate_one(root, workbook, state, True)
+            self.assertTrue(any(required["id"] in issue for issue in issues), issues)
+            self.assertEqual(state["subproblems"]["Q1"]["analysis_execution_status"], "rejected")
+
+    def test_missing_source_cannot_turn_an_optional_failure_into_core_rejection(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self.accept_primary(root, self.make_project(root))
+            self.activate_analysis(root)
+            first, = self.ordinary_experiments(["参数敏感性"])
+            optional = {**first, "id": "explore", "required": False}
+            source = self.make_analysis_code(root, experiments=[first, optional])
+            issues, config = CODE.validate_script(root, source, "analysis")
+            self.assertEqual(issues, [])
+            CODE.update_state(root, config, source)
+            book_path = self.make_analysis_workbook(root, source)
+            book = openpyxl.load_workbook(book_path)
+            book["参数敏感性"]["F3"] = "technical_failure"
+            book["结论稳定性汇总"]["D3"] = False
+            book["结论稳定性汇总"]["F3"] = None
+            book.save(book_path)
+            book.close()
+            state = self.read_state(root)
+            self.assertEqual(RECEIPT.validate_one(root, book_path, state, True), [])
+            before = yaml.safe_dump(state, allow_unicode=True)
+            source.unlink()
+            issues = RECEIPT.validate_one(root, book_path, state, True)
+            self.assertTrue(any("无法判定主张处置" in issue for issue in issues), issues)
+            self.assertNotIn("存在核心结论未保持", issues)
+            self.assertEqual(yaml.safe_dump(state, allow_unicode=True), before)
+
+    def test_static_delivery_rejects_omitted_plan_duplicate_id_and_caller_substitution(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self.accept_primary(root, self.make_project(root))
+            self.activate_analysis(root)
+            row, = self.ordinary_experiments(["参数敏感性"])
+            before = (root / "state/project_state.yaml").read_bytes()
+            for rows, diagnostic in (([], "冻结实验"), ([row, row], "重复检验ID")):
+                source = self.make_analysis_code(root, experiments=rows)
+                issues, config = CODE.validate_script(root, source, "analysis")
+                self.assertTrue(any(diagnostic in issue for issue in issues), issues)
+                with self.assertRaisesRegex(ValueError, diagnostic):
+                    CODE.update_state(root, config, source)
+            source = self.make_analysis_code(root, experiments=[row])
+            _, config = CODE.validate_script(root, source, "analysis")
+            config.pop("ordinary_experiments")
+            config.pop("ordinary_experiment_protocol_version")
+            with self.assertRaisesRegex(ValueError, "源码不一致"):
+                CODE.update_state(root, config, source)
+            source.write_text(source.read_text(encoding="utf-8")
+                              + "\nRUN_CONFIG['ordinary_experiments'].append({'id': 'late'})\n", encoding="utf-8")
+            issues, _ = CODE.validate_script(root, source, "analysis")
+            self.assertTrue(any("动态修改" in issue for issue in issues), issues)
+            self.assertEqual((root / "state/project_state.yaml").read_bytes(), before)
+
+    def test_python_and_matlab_returned_plan_is_bound_to_the_exact_source_bytes(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            plan = self.ordinary_experiments(["参数敏感性", "场景压力测试"])
+            for ext, backend in (("py", "python"), ("m", "matlab")):
+                with self.subTest(backend=backend):
+                    source = root / ("q1_analysis." + ext)
+                    config = {"stage": "analysis", "solver_backend": backend, "run_receipt_protocol_version": "1.1.0",
+                              "ordinary_experiment_protocol_version": "1.0.0", "ordinary_experiments": plan}
+                    body = ("RUN_CONFIG = " + repr(config) if backend == "python" else
+                            "function q1_analysis()\nRUN_CONFIG = jsondecode('" +
+                            json.dumps(config, ensure_ascii=False) + "');\nend")
+                    source.write_text(body, encoding="utf-8")
+                    entry = {"result_analysis_code": source.name, "analysis_code_sha256": hashlib.sha256(source.read_bytes()).hexdigest()}
+                    recovered, issues = RECEIPT.delivered_stage_config(root, {}, entry, "analysis")
+                    self.assertEqual(issues, [])
+                    self.assertEqual(recovered["ordinary_experiments"], plan)
+                    source.write_text(body.replace("stress-a", "other"), encoding="utf-8")
+                    recovered, issues = RECEIPT.delivered_stage_config(root, {}, entry, "analysis")
+                    self.assertIsNone(recovered)
+                    self.assertTrue(any("SHA-256" in detail for detail in issues))
+
+    def test_padded_registered_method_requires_the_source_plan_at_every_entry(self):
+        from project_snapshot import _validate_workbook
+
+        schema = yaml.safe_load((ROOT / "core/workbook_schema.yaml").read_bytes())
+        for method in (" 参数敏感性 ", " parameter_sensitivity "):
+            with self.subTest(method=method), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                # A previously delivered source without an ordinary method had no experiment list.
+                workbook = self.prepare_ordinary_analysis(root, ["历史自定义"])
+                state = self.read_state(root)
+                entry = state["subproblems"]["Q1"]
+                entry["analysis_methods"] = [method]
+                self.write_state(root, state)
+                source = root / entry["result_analysis_code"]
+
+                issues, config = CODE.validate_script(root, source, "analysis")
+                self.assertTrue(any("冻结实验" in issue for issue in issues), issues)
+                with self.assertRaisesRegex(ValueError, "冻结实验"):
+                    CODE.update_state(root, config, source)
+                snapshot = _validate_workbook(workbook, "result_analysis", schema, entry, project_root=root)
+                self.assertTrue(any("冻结实验" in issue for issue in snapshot), snapshot)
+                issues = RECEIPT.validate_one(root, workbook, state, True)
+                self.assertTrue(any("冻结实验" in issue for issue in issues), issues)
+                self.assertEqual(entry["analysis_execution_status"], "rejected")
+                self.assertEqual(entry["primary_execution_status"], "accepted")
+
+                source = self.make_analysis_code(root, experiments=self.ordinary_experiments(["参数敏感性"]))
+                issues, config = CODE.validate_script(root, source, "analysis")
+                self.assertEqual(issues, [])
+                CODE.update_state(root, config, source)
+                workbook = self.make_analysis_workbook(root, source)
+                state = self.read_state(root)
+                entry = state["subproblems"]["Q1"]
+                self.assertEqual(_validate_workbook(workbook, "result_analysis", schema, entry, project_root=root), [])
+                self.assertEqual(RECEIPT.validate_one(root, workbook, state, True), [])
+                self.assertEqual(entry["analysis_execution_status"], "accepted")
 
     def test_unknown_legacy_analysis_method_does_not_invent_a_required_sheet(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -404,7 +687,7 @@ class UserExecutionContractTests(unittest.TestCase):
 
                 self.add_pressure_evidence(book)
                 book.save(workbook)
-                self.assertEqual(RECEIPT.validate_one(root, workbook, state, False), [])
+                self.assertTrue(any("冻结实验" in issue for issue in RECEIPT.validate_one(root, workbook, state, False)))
             finally:
                 book.close()
 
@@ -682,6 +965,7 @@ class UserExecutionContractTests(unittest.TestCase):
             workbook = self.make_analysis_workbook(root, analysis)
             book = openpyxl.load_workbook(workbook)
             book["结论稳定性汇总"]["D2"] = False
+            book["结论稳定性汇总"]["F2"] = "reject"
             book.save(workbook)
             book.close()
             state = self.read_state(root)
@@ -718,6 +1002,7 @@ class UserExecutionContractTests(unittest.TestCase):
             workbook = self.make_analysis_workbook(root, analysis)
             book = openpyxl.load_workbook(workbook)
             book["结论稳定性汇总"]["D2"] = False
+            book["结论稳定性汇总"]["F2"] = "reject"
             book.save(workbook)
             book.close()
             state = self.read_state(root)

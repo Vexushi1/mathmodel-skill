@@ -41,6 +41,10 @@ def instantiate_stage(root, backend, stage, state):
         config["primary_workbook_sha256"] = file_hash(root / entry["solution_workbook"])
         config["solver"] = "analytic_parameter_sweep" if backend == "matlab" else "direct"
         config["iteration_or_time_limit"] = 3 if backend == "matlab" else "direct"
+        if backend == "python":
+            config.update(ordinary_experiment_protocol_version="1.0.0", ordinary_experiments=[
+                {"id": "positive-x", "method": "参数敏感性", "target": "解是否为正", "claim": "解为正值"},
+            ])
         entry.update(result_analysis_status="pending", analysis_methods=["参数敏感性"],
                      result_analysis_requirement_reason="Synthetic coefficient stress test")
     if backend == "matlab":
@@ -109,8 +113,12 @@ def run_smoke(root, backend, matlab_command=None):
                 assert values["解"] == 4, values  # Auxiliary input changes the actual result.
                 primary_bytes = workbook.read_bytes()
             else:
-                values = [row[3] for row in book["参数敏感性"].iter_rows(min_row=2, values_only=True)]
-                assert all(abs(a-b) < 1e-12 for a,b in zip(values, [8/1.5, 4, 8/3]))
+                rows = book["参数敏感性"].iter_rows(values_only=True)
+                headers = next(rows)
+                records = [dict(zip(headers, row)) for row in rows]
+                identifier = stage_code.parse_stage_config(code, backend)[1]["ordinary_experiments"][0]["id"]
+                values = [row["结果指标"] for row in records if row["检验ID"] == identifier]
+                assert len(values) == 3 and all(abs(a-b) < 1e-12 for a,b in zip(values, [8/1.5, 4, 8/3]))
                 assert (root / state["subproblems"]["Q1"]["solution_workbook"]).read_bytes() == primary_bytes
         finally:
             book.close()
