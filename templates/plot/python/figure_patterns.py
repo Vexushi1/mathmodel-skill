@@ -10,7 +10,9 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 import math
+import warnings
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -275,6 +277,17 @@ def export_after_visual_review(fig, path: str | Path, *,
         raise ValueError("Choose PDF/SVG vector or PNG when raster is needed")
     if not isinstance(dpi, int) or not 150 <= dpi <= 600:
         raise ValueError("Raster DPI must be explicitly appropriate to the evidence")
-    fig.savefig(destination, dpi=dpi, bbox_inches="tight",
-                facecolor="white")
+    # The final vector backend can issue a glyph warning or fail after opening its file.
+    with NamedTemporaryFile(dir=destination.parent, prefix=".figure-", suffix=destination.suffix,
+                            delete=False) as temporary:
+        staged = Path(temporary.name)
+    try:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("error", message=r"Glyph \d+ .*missing from .*font")
+            fig.savefig(staged, dpi=dpi, bbox_inches="tight", facecolor="white")
+        if not staged.stat().st_size:
+            raise OSError("No Figure data was exported")
+        staged.replace(destination)
+    finally:
+        staged.unlink(missing_ok=True)
     return destination

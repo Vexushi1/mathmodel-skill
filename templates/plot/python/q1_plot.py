@@ -9,6 +9,7 @@ from __future__ import annotations
 import math
 import numbers
 from pathlib import Path
+import tempfile
 import warnings
 
 import matplotlib.pyplot as plt
@@ -153,11 +154,15 @@ def main() -> None:
         out = (result_dir / EXPORT_FILE).resolve()
         if not out.is_relative_to(result_dir):
             raise ValueError("Figure export must stay inside the question directory")
-        # Draw before opening the destination so an absent glyph preserves an existing export.
-        with warnings.catch_warnings():
+        if not out.suffix:
+            out = out.with_name(out.name.rstrip(".") + "." + fig.canvas.get_default_filetype())
+        # The export backend can fail even after a successful preview.
+        with tempfile.TemporaryDirectory(dir=out.parent) as staging, warnings.catch_warnings():
             warnings.filterwarnings("error", message=r"Glyph \d+ .*missing from .*font")
+            rendered = Path(staging) / out.name
             fig.canvas.draw()
-            fig.savefig(out, bbox_inches="tight")
+            fig.savefig(rendered, bbox_inches="tight")
+            rendered.replace(out)
     plt.show()
 
 

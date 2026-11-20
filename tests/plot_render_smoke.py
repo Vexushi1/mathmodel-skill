@@ -7,6 +7,7 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest import mock
+from urllib.parse import quote
 import warnings
 from xml.etree import ElementTree
 
@@ -28,20 +29,53 @@ def module(name: str):
     return module
 
 
-class PlotRenderingSmoke(unittest.TestCase):
-    def cjk_family(self):
-        font_file = os.environ.get("HSK_TEST_CJK_FONT")
-        if font_file:
-            font_manager.fontManager.addfont(font_file)
-            return font_manager.FontProperties(fname=font_file).get_name()
-        for family in ("Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", "SimHei", "PingFang SC"):
-            try:
-                font_manager.findfont(family, fallback_to_default=False)
-            except ValueError:
-                continue
-            return family
-        self.skipTest("The export check needs a CJK font (HSK_TEST_CJK_FONT)")
+def cjk_family():
+    font_file = os.environ.get("HSK_TEST_CJK_FONT")
+    if font_file:
+        font_manager.fontManager.addfont(font_file)
+        return font_manager.FontProperties(fname=font_file).get_name()
+    for family in ("Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", "SimHei", "PingFang SC"):
+        try:
+            font_manager.findfont(family, fallback_to_default=False)
+        except ValueError:
+            continue
+        return family
+    raise unittest.SkipTest("The export check needs a CJK font (HSK_TEST_CJK_FONT)")
 
+
+def assert_svg_labels(test, path, labels, family):
+    parser = ElementTree.XMLParser(target=ElementTree.TreeBuilder(insert_comments=True))
+    root = ElementTree.parse(path, parser=parser).getroot()
+    paths = {p.get("id"): p.get("d") for p in root.findall(".//{*}path")}
+    label_uses = {}
+    for group in root.findall(".//{*}g"):
+        for comment, content in zip(group, list(group)[1:]):
+            if comment.tag is ElementTree.Comment and (comment.text or "").strip() in labels:
+                label = comment.text.strip()
+                label_uses[label] = {u.get("{http://www.w3.org/1999/xlink}href", "").lstrip("#")
+                                     for u in content.findall(".//{*}use")}
+    face = font_manager.get_font(font_manager.findfont(family, fallback_to_default=False))
+    prefix = quote(face.postscript_name).replace("%20", "_")
+    outlines = {}
+    for label in labels:
+        test.assertIn(label, label_uses)
+        for char in set(label):
+            if not "\u4e00" <= char <= "\u9fff":
+                continue
+            index = face.get_char_index(ord(char))
+            test.assertGreater(index, 0, char)
+            # SVG backends use either a Unicode code point or a font glyph index.
+            ids = {f"{prefix}-{value:x}" for value in (index, ord(char))}
+            found = label_uses[label].intersection(ids)
+            test.assertEqual(len(found), 1, (label, char, ids))
+            outline = paths.get(found.pop())
+            test.assertTrue(outline, char)
+            outlines[char] = outline
+    test.assertTrue(outlines, "expected Chinese labels")
+    test.assertEqual(len(set(outlines.values())), len(outlines), "distinct Chinese glyph outlines")
+
+
+class PlotRenderingSmoke(unittest.TestCase):
     def _book(self, path: Path, headers, rows):
         book = Workbook()
         sheet = book.active
@@ -62,10 +96,9 @@ class PlotRenderingSmoke(unittest.TestCase):
                                 allow_y_missing=True)
             self.assertEqual(x.tolist(), [0, 1, 2])
             self.assertTrue(np.isnan(y[1]))
-            plot.FONT_FAMILY = self.cjk_family()
             fig = plot.make_figure(x, y, color=(.2, .4, .6),
-                                   x_label="时刻 / s", y_label="误差率 / %",
-                                   series_label="误差", connect=True)
+                                   x_label="Time / s", y_label="Error / %",
+                                   series_label="Error", connect=True)
             self.assertEqual(fig.axes[0].get_title(), "")
             self.assertEqual(fig.axes[0].lines[0].get_ydata()[0], 1.2)
             output = Path(tmp) / "q1_evidence.png"
@@ -76,7 +109,7 @@ class PlotRenderingSmoke(unittest.TestCase):
             plt.close(fig)
 
     def test_exported_svg_contains_each_chinese_label_glyph(self):
-        family = self.cjk_family()
+        family = cjk_family()
         for name in ("q1_plot", "data_process"):
             with self.subTest(template=name), tempfile.TemporaryDirectory() as tmp:
                 plot = module(name)
@@ -112,19 +145,23 @@ class PlotRenderingSmoke(unittest.TestCase):
                             plot.main()
                         self.assertEqual(output.read_bytes(), b"prior export")
                         plot.FONT_FAMILY = family
+
+                        def failed_export(path, **kwargs):
+                            Path(path).write_bytes(b"incomplete image")
+                            raise OSError("export interrupted")
+
+                        before = set(directory.iterdir())
+                        with mock.patch("matplotlib.figure.Figure.savefig", side_effect=failed_export):
+                            with self.assertRaisesRegex(OSError, "export interrupted"):
+                                plot.main()
+                        self.assertEqual(output.read_bytes(), b"prior export")
+                        self.assertEqual(set(directory.iterdir()), before)
                         plot.main()
-                    root = ElementTree.parse(output).getroot()
-                    paths = {p.get("id"): p.get("d") for p in root.findall(".//{*}path")}
-                    uses = {u.get("{http://www.w3.org/1999/xlink}href", "").lstrip("#")
-                            for u in root.findall(".//{*}use")}
-                    chars = set(c for text in labels for c in text if "\u4e00" <= c <= "\u9fff")
-                    outlines = set()
-                    for char in chars:
-                        matches = [key for key in uses if key.endswith(f"-{ord(char):x}")]
-                        self.assertEqual(len(matches), 1, char)
-                        self.assertTrue(paths.get(matches[0]), char)
-                        outlines.add(paths[matches[0]])
-                    self.assertEqual(len(outlines), len(chars), "distinct Chinese glyph outlines")
+                        plot.EXPORT_FILE = name + ".png"
+                        plot.main()
+                        pixels = mpl_image.imread(directory / plot.EXPORT_FILE)
+                        self.assertGreater(float(pixels[..., :3].std()), .01)
+                    assert_svg_labels(self, output, labels, family)
                 finally:
                     plt.close("all")
 
