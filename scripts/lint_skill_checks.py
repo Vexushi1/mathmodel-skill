@@ -210,7 +210,7 @@ def check_skill_entrypoint_parity(errors: list[str]) -> None:
     if not runtime_resolver:
         errors.append("bootstrap startup_contract.resolver is required")
     required_tokens = (
-        "core/bootstrap.yaml", "core/workflow_router.yaml", "core/hsk_core_policy.md",
+        "core/bootstrap.yaml#startup_contract", "core/workflow_router.yaml", "core/hsk_core_policy.md",
         runtime_resolver, "core/writing_reasoning_contract.yaml", "core/numerical_verification_contract.yaml",
         "模型论文框架.md", "legacy/",
     )
@@ -247,6 +247,25 @@ def check_skill_entrypoint_parity(errors: list[str]) -> None:
         errors.append(f"plugin/bootstrap version mismatch: plugin -> {plugin.get('version')}, bootstrap -> {current}")
     if plugin.get("skills") != "./skills/":
         errors.append("plugin skill discovery path must remain ./skills/")
+
+    profiles = startup.get("profiles") or {}
+    activation = startup.get("activation") or {}
+    events = startup.get("candidate_events") or {}
+    if not isinstance(profiles, dict) or not isinstance(activation, dict) or not isinstance(events, dict):
+        errors.append("bootstrap startup profiles, activation and candidate_events must be mappings")
+        return
+    default_profile = activation.get("default_profile")
+    if not isinstance(default_profile, str) or default_profile not in profiles:
+        errors.append("bootstrap default startup profile must resolve in the same contract")
+    if not events or any(not isinstance(name, str) or name not in profiles for name in events.values()):
+        errors.append("bootstrap candidate startup event must resolve to a declared profile")
+
+    web_entry = read_text(ROOT / "PROJECT_INSTRUCTIONS.md")
+    selector = activation.get("candidate_selector")
+    if not isinstance(selector, str) or not selector.strip() or selector not in web_entry:
+        errors.append("web/App instructions must reference the bootstrap candidate selector")
+    if "PROJECT_INSTRUCTIONS.md#web-app-start" not in MARKDOWN_LINK_RE.findall(read_text(ROOT / "README.md")):
+        errors.append("README must link directly to PROJECT_INSTRUCTIONS.md#web-app-start")
 
 
 def check_repository_references(errors: list[str]) -> None:

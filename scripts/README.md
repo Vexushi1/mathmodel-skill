@@ -22,6 +22,7 @@ python scripts/resolve_runtime.py problem_analysis --objective explanation
 ## 运行时入口与治理
 
 - `resolve_runtime.py`：默认 assured runtime 入口。在兼容旧 plan 字段及 `objective / structures / capabilities` 分类轴的基础上，可选读取 `--project-root` / `--question` 恢复 current project state，先检查全题项目后端策略，再按本次问题及实际恢复阶段验证 artifact hash，输出 intent provenance、ambiguity、declarative contract closure、authority fingerprint 与 `runtime_plan/assurance`；`auto` 或无状态兼容默认不写入项目选择。
+  已有项目传入 `--project-root`，定位小问时另传 `--question`。例如，从完整资源根只读解析当前问题的审题动作可用 `python scripts/resolve_runtime.py problem_analysis --project-root <项目根> --question Q1`。
 - `reading_plan.py`：由默认 resolver 调用，使用同一次 hydration 的原始状态快照生成带文件哈希与行范围的初始读取、条件资料和工具接口清单；读取选择服从 `core/workflow_router.yaml#reading_policy`，不改旧计划、不执行校验门、不写项目。
 - `read_stage.py`：只读消费现有 resolver 读取计划或写作阶段来源，返回指定文件的实际正文块、源身份和缺口；不裁决条件、不执行 gate、不写项目，使用边界见下节。
 - `resolve_workflow.py`：保留的无状态兼容 resolver；仍可直接解析显式 intent/classification/artifact-name 输入，但不负责 project-state hydration 或 artifact hash assurance。
@@ -34,7 +35,7 @@ python scripts/resolve_runtime.py problem_analysis --objective explanation
 
 ## 阶段正文读取
 
-读取与恢复统一服从 `core/runtime_assurance_contract.yaml#reading_plan.consumer_protocol`。仅在助手具备执行工具、同版本完整 Skill 根和真实 resolver YAML 时使用下列接口；这不是用户本地 checker。`--source-commit` 使用该 Skill checkout 的完整 40 位 commit，`--path` 来自当前选定的来源：
+先按固定提交的 `core/bootstrap.yaml` 区分开场范围。以下工具只处理当前阶段的 `reading_plan`，其条目与输出不证明正式开场已取得全部规范。当前动作的读取服从 `core/runtime_assurance_contract.yaml#reading_plan.consumer_protocol`。仅在助手具备执行工具、同版本完整 Skill 根和真实 resolver YAML 时使用下列接口；这不是用户本地 checker。`--source-commit` 使用该 Skill checkout 的完整 40 位 commit，`--path` 来自当前选定的来源：
 
 ```text
 python scripts/read_stage.py --root <同版本Skill根> --plan <当前resolver.yaml> --source-commit <40位commit> --surface read_now --path core/hsk_core_policy.md --chunk-index 0
@@ -48,7 +49,7 @@ python scripts/read_stage.py --root <同版本Skill根> --plan <当前resolver.y
 
 纯非数值 draw.io 机理图的 `project_sync --delivery-scope mechanism` 只读复核当前已批准模型、Spec/source、真实预览和已登记导出，不发现/要求数值求解目录，也不改写项目状态。预览或人工批准未完成、模型身份过期、`result_evidence` 声明数值依赖时不能通过；数值图和混合请求保留原 figures/后续 scope。该机器结果不证明图形数学语义或人工视觉审查已由机器执行。
 
-只有 GitHub 读取工具时，用同一固定 commit 的 `core/stage_reading_guide.md` 定位原 Authority，保留前言／父级适用语并分段补齐；导航中的 raw 候选来源不替代当前批准、执行等待点或实际项目事实。可复制的 GPT 全局指令仅维护于 [计划 §13](../docs/stage_reading_execution_refactor_plan.md#132-可复制正文)。
+只有 GitHub 读取工具时，用同一固定 commit 的 `core/stage_reading_guide.md` 定位原 Authority，保留前言／父级适用语并分段补齐；导航中的 raw 候选来源不替代当前批准、执行等待点或实际项目事实。正式开场的全文范围由启动合同定义。网页和 App 的[项目指令](../PROJECT_INSTRUCTIONS.md#web-app-start)供各端复用。
 
 ## P3 文献研究检索 Provider（只读外部查询，手动报告输出）
 

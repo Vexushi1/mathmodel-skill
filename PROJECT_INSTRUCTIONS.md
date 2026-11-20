@@ -1,12 +1,25 @@
 # HSK 项目调用说明
 
-本文件只说明稳定调用程序和事实源边界。业务规则必须按 `core/bootstrap.yaml` 与 `scripts/resolve_runtime.py` 返回的 current Authority 读取，不在这里复制第二套合同。
+<a id="web-app-start"></a>
+
+## 网页和 App 项目指令
+
+将下面一段保存为项目指令，或在新会话随题目一起发送。过去保存的文字不会随仓库更新。改用此入口时，在项目指令中替换原来的数学建模段落一次即可。试用候选版本时，把打开本页用的固定提交链接或候选 PR 链接随题发给助手，由助手核对并固定实际提交。
+
+```text
+使用 https://github.com/Vexushi1/mathmodel-skill。已有项目沿用其固定提交。新项目将我选的提交链接、版本或 PR（未指定时用 main）解析为完整 commit，固定后从该提交读取 SKILL.md、core/bootstrap.yaml 和全局规则。遵守平台和系统指令。
+若固定提交没有声明 v11_full_read，按该提交自己的启动合同工作。若已声明，我选择启用它。正式建模即使只做一问，也先取得全部现行规范原文。只查字段、修改已有图的配色、维护或咨询，按请求范围取读。局部任务转为正式建模时自动补齐全文，再推进对应动作。
+在此模式下，换阶段、换问、换章、新图或改变范围，先重取适用的完整原文。已知缺段就补取。跨会话恢复正式任务、只剩摘要或已说不清规则范围，重新取齐整套。已有项目按当前模型论文框架、State 和已验收工作簿分别恢复语义、批准与数值。
+按实际工具和证据推进，保留模型双审、明确批准、用户运行数值代码及原有交付门。取不到的正文或未执行的检查说明其影响，继续有依据的工作。
+```
+
+旧项目继续使用原先固定提交中的入口和能力。主动升级时明确选择新提交。当前候选将 `v11_full_read` 作为显式选择，支持范围见 [启动合同](core/bootstrap.yaml)。旧版项目沿原入口工作的记录仍可从[固定的 v10.35.3 指令](https://github.com/Vexushi1/mathmodel-skill/blob/4f765d3e1326d3ca7555933059e9313f99b86347/docs/stage_reading_execution_refactor_plan.md#132-可复制正文)追溯。
 
 ## 启动与恢复
 
-1. 先确认本项目使用的固定版本／commit 并读 `core/bootstrap.yaml`。具备执行工具、同版本完整资源根、依赖及必要项目材料时，再运行 `scripts/resolve_runtime.py` 解析当前意图；只加载当前适用的 contracts、modules、packs 和 templates。只有 GitHub 读取工具时，用 `core/stage_reading_guide.md` 定位该 commit 的原 Authority，不虚构 resolver 输出或已执行的 gate。`scripts/resolve_workflow.py` 仅作无状态兼容入口。
-2. 已有项目且 resolver 可执行时传入 project root。当前语义与证据位置优先从 `模型论文框架.md` 恢复；revision/structured identity/text provenance/stale 以 `state/project_state.yaml` 为准；具体数值必须回到 accepted workbook 核对。
-3. 当前动作的实际正文、条件补读及新阶段／问／章、图设计和恢复时重取，统一遵守 `core/runtime_assurance_contract.yaml#reading_plan.consumer_protocol`；正文工具用法见 `scripts/README.md#阶段正文读取`。不依据旧聊天、历史计划或 `legacy/` 猜测 current 规则；legacy 只用于追溯和兼容。可复制的 GPT 全局指令见 [计划 §13](docs/stage_reading_execution_refactor_plan.md#132-可复制正文)，不在这里另维护一份。
+1. 以固定提交的 `core/bootstrap.yaml` 选择启动范围。同版本完整资源根、执行工具、依赖及必要材料齐备时，用 `scripts/resolve_runtime.py` 解析当前业务动作。已有项目传入项目根。只有 GitHub 读取工具时，直接取固定提交的规则正文；阶段导航可定位相应动作的来源。
+2. 项目语义和证据位置回到当前 `模型论文框架.md`，revision、structured identity、批准和 stale 回到 `state/project_state.yaml`，具体数值回到 accepted workbook。恢复正式项目时取完整当前框架；尚无框架时，按实际业务阶段建立。
+3. 阶段选段、条件补读及同阶段材料的复用服从 `core/runtime_assurance_contract.yaml#reading_plan.consumer_protocol`。可用工具和分段读取方法见[阶段正文读取](scripts/README.md#阶段正文读取)。旧 `scripts/resolve_workflow.py` 仅作无状态兼容入口。
 
 ## 执行硬边界
 

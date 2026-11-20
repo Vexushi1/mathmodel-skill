@@ -1,8 +1,8 @@
 version: 10.35.3
 bootstrap: core/bootstrap.yaml
 
-# 默认只加载全局硬规则。其余核心合同按 route 显式加载，避免绘图/写作等阶段
-# 无差别读取 taxonomy、用户执行合同和预处理合同。
+# default_load / load_policy 描述本次业务动作的路由资源。开场读取方式由
+# 同一提交的 core/bootstrap.yaml#startup_contract 决定。切换读取范围不改变下列业务门。
 default_load:
 - core/hsk_core_policy.md
 

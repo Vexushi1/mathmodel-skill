@@ -177,6 +177,17 @@ class TestA7EntryConsistency(unittest.TestCase):
         for name in ("packs/artifact/algorithm_flow.md", "templates/writing/caption_explanation.md"):
             self.assertIn("modules/05_writing/paper_writing_protocol.md", (ROOT / name).read_text(encoding="utf-8"))
 
+    def test_entry_lint_rejects_an_unresolvable_startup_event(self):
+        bootstrap_path = ROOT / "core/bootstrap.yaml"
+        bootstrap = lint.load_structured(bootstrap_path)
+        bootstrap["startup_contract"]["candidate_events"]["formal_single_question"] = "removed_profile"
+        original = lint.load_structured
+        with patch.object(lint, "load_structured", side_effect=lambda path:
+                          bootstrap if path == bootstrap_path else original(path)):
+            errors = []
+            lint.check_skill_entrypoint_parity(errors)
+        self.assertIn("bootstrap candidate startup event must resolve to a declared profile", errors)
+
     def test_standalone_support_package_matches_canonical_workbook_validation(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
