@@ -64,7 +64,7 @@ def packet_files(case_id: str, turn: int) -> dict[str, bytes]:
     return files
 
 
-def export_packet(case_id: str, turn: int, output: Path) -> str:
+def packet_bytes(case_id: str, turn: int) -> bytes:
     files = packet_files(case_id, turn)
     buffer = BytesIO()
     with ZipFile(buffer, "w") as archive:
@@ -74,7 +74,11 @@ def export_packet(case_id: str, turn: int, output: Path) -> str:
             info.create_system = 0
             info.external_attr = 0x20
             archive.writestr(info, data)
-    raw = buffer.getvalue()
+    return buffer.getvalue()
+
+
+def export_packet(case_id: str, turn: int, output: Path) -> str:
+    raw = packet_bytes(case_id, turn)
     with output.open("xb") as target:
         target.write(raw)
     return hashlib.sha256(raw).hexdigest()

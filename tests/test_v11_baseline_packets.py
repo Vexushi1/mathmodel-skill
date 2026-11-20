@@ -1,6 +1,7 @@
 """Acceptance of the maintenance packet and its separation from evaluation material."""
 
 from collections import Counter
+from copy import deepcopy
 from hashlib import sha256
 import json
 import subprocess
@@ -79,38 +80,94 @@ class WebAppPacketTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "new trial directory"):
                 prepare(commit, folder)
 
+    def new_trial(self, directory):
+        root = FIXTURES.parents[1]
+        pin = subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
+        folder = Path(directory) / "trial"
+        prepare(pin, folder)
+        return folder, json.loads((folder / "private_schedule.json").read_bytes())
+
     def test_budget_freezes_only_untouched_candidate_and_located_baseline(self):
         with TemporaryDirectory() as temporary:
-            folder = Path(temporary)
-            schedule = {"sessions": [{"id": g, "client": "web", "case": "intake", "group": g}
-                                     for g in "ABC"], "repeats": 1, "turns": {"intake-1": {}}}
-            (folder / "private_schedule.json").write_text(json.dumps(schedule), encoding="utf-8")
+            folder, schedule = self.new_trial(temporary)
             path = folder / "web_observations.json"
-            rows = [{"id": g, "state": "completed", "session_locator": "synthetic-test-only",
-                     "turns": [{"first_correct_seconds": t, "request_time_utc": "2026-01-01T00:00:00Z",
-                                "response_locator": "synthetic-test-only"}]} for g, t in zip("ABC", [12, 20, 11])]
+            rows = json.loads(path.read_bytes())
+            by_id = {row["id"]: row for row in rows}
+            web = [s for s in schedule["sessions"] if s["client"] == "web"]
+            for session in web:
+                if session["group"] == "C":
+                    continue
+                row = by_id[session["id"]]
+                row.update(state="completed", session_locator="synthetic-test-only")
+                if session["repeat"] == 3:
+                    row.update(state="failed", exposure_or_failure="No correct response observed in this trial")
+                    continue
+                for turn in row["turns"]:
+                    turn.update(first_correct_seconds=12 if session["group"] == "A" else 20,
+                                request_time_utc="2026-01-01T00:00:00Z", response_locator="synthetic-test-only")
+            candidate = next(by_id[s["id"]] for s in web if s["group"] == "C")
+            candidate["state"] = "completed"
             path.write_text(json.dumps(rows), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "already started"):
                 lock_budget(folder, "web")
-            rows[2].update(state="not_run", session_locator=None,
-                           turns=[{"request_time_utc": None, "response_locator": None}])
-            rows[2]["turns"][0]["first_correct_seconds"] = 0
+            candidate["state"] = "not_run"
+            candidate["turns"][0]["first_correct_seconds"] = 0
             path.write_text(json.dumps(rows), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "already started"):
                 lock_budget(folder, "web")
-            rows[2]["turns"][0]["first_correct_seconds"] = None
-            rows[1]["turns"][0]["first_correct_seconds"] = None
+            candidate["turns"][0]["first_correct_seconds"] = None
+            missing = [by_id[s["id"]]["turns"][0] for s in web
+                       if s["group"] == "B" and s["case"] == "intake" and s["repeat"] < 3]
+            for turn in missing:
+                turn["first_correct_seconds"] = None
             path.write_text(json.dumps(rows), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "both A and B"):
                 lock_budget(folder, "web")
             self.assertFalse((folder / "web_budget.json").exists())
-            rows[1]["turns"][0]["first_correct_seconds"] = 20
+
+            for turn in missing:
+                turn["first_correct_seconds"] = 20
             path.write_text(json.dumps(rows), encoding="utf-8")
             lock_budget(folder, "web")
             budget = json.loads((folder / "web_budget.json").read_bytes())
-            self.assertEqual(budget["per_turn"]["intake-1"], {"limit_seconds": 20, "measured": 2, "scheduled": 2})
+            self.assertEqual(set(budget["per_turn"]), set(schedule["turns"]))
+            self.assertEqual(budget["per_turn"]["intake-1"], {"limit_seconds": 20, "measured": 4, "scheduled": 6})
+            self.assertTrue(any(row["state"] == "failed" for row in budget["source_AB_observations"]))
+            self.assertFalse((folder / "native_budget.json").exists())
             with self.assertRaises(FileExistsError):
                 lock_budget(folder, "web")
+
+    def test_schedule_and_matching_observations_cannot_drop_or_move_trial_slots(self):
+        with TemporaryDirectory() as temporary:
+            folder, original = self.new_trial(temporary)
+            path = folder / "private_schedule.json"
+            for client in CLIENTS:
+                observations = folder / f"{client}_observations.json"
+                initial = json.loads(observations.read_bytes())
+                for damage in ("no_AB", "wrong_client", "missing_turn", "packet", "wrong_reference"):
+                    with self.subTest(client=client, damage=damage):
+                        schedule = deepcopy(original)
+                        rows = deepcopy(initial)
+                        if damage == "no_AB":
+                            remove = {s["id"] for s in schedule["sessions"]
+                                      if s["client"] == client and s["group"] in ("A", "B")}
+                            schedule["sessions"] = [s for s in schedule["sessions"] if s["id"] not in remove]
+                            rows = [r for r in rows if r["id"] not in remove]
+                        elif damage == "wrong_client":
+                            moved = next(s for s in schedule["sessions"] if s["client"] == client)
+                            moved["client"] = next(other for other in CLIENTS if other != client)
+                            rows = [r for r in rows if r["id"] != moved["id"]]
+                        elif damage == "missing_turn":
+                            schedule["turns"].pop("local_to_full-2")
+                        elif damage == "packet":
+                            schedule["turns"]["intake-1"]["sha256"] = "0" * 64
+                        else:
+                            schedule["rubric_sha256"] = "0" * 64
+                        path.write_text(json.dumps(schedule), encoding="utf-8")
+                        observations.write_text(json.dumps(rows), encoding="utf-8")
+                        with self.assertRaisesRegex(ValueError, "preregistered|frozen"):
+                            lock_budget(folder, client)
+                        self.assertFalse((folder / f"{client}_budget.json").exists())
 
     def test_frozen_hard_and_planted_criteria_exist_in_the_corresponding_turn(self):
         criteria = {f"{c['id']}-{n}": set(t["criteria"]) for c in self.rubric["cases"]
