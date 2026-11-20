@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import base64
 import hashlib
 import itertools
 from pathlib import Path
@@ -480,3 +481,95 @@ class MechanismScopeTests(unittest.TestCase):
                 self.assertEqual(sync_project.synchronize(root, delivery_scope="mechanism")["status"], "failed")
             output = yaml.safe_load((ROOT / "core/output_contract.yaml").read_bytes())
             self.assertIn("solution_workbook", sync_project.stage_requirements("figures", output))
+
+    def test_replaced_export_at_approved_path_is_not_the_reviewed_surface(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp).resolve()
+            artifact = self.make_project(root)["artifact"]
+            exported = artifact["final_exports"][0]
+            (root / exported).write_text('<svg xmlns="http://www.w3.org/2000/svg">'
+                                         '<text>预测流量 357.2 千辆</text></svg>', encoding="utf-8")
+            before = file_bytes(root)
+            for selected in (None, artifact["spec_source"]):
+                report = sync_project.synchronize(root, delivery_scope="mechanism", mechanism_spec=selected)
+                self.assertEqual(report["status"], "failed")
+                self.assertEqual(report["export_evidence_required"], [exported])
+                self.assertEqual(report["observed_sources"][artifact["preview"]], artifact["preview_sha256"])
+            self.assertEqual(file_bytes(root), before)
+
+    def test_alternate_format_uses_existing_question_figure_bundle(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp).resolve()
+            spec = self.make_project(root)
+            artifact = spec["artifact"]
+            alternate = "figures/q1_occlusion.png"
+            png = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42"
+                                   "mP8/x8AAwMCAO+jUyoAAAAASUVORK5CYII=")
+            (root / alternate).write_bytes(png)
+            artifact["final_exports"].append(alternate)
+            (root / artifact["spec_source"]).write_text(yaml.safe_dump(spec, allow_unicode=True), encoding="utf-8")
+            state_path = root / "state/project_state.yaml"
+            state = yaml.safe_load(state_path.read_bytes())
+            state["artifacts"]["approved_figures"].append(alternate)
+            question = state["subproblems"]["Q1"]
+            framing = root / "模型论文框架.md"
+            original = framing.read_text(encoding="utf-8")
+            text = original.replace("## 图表证据链", f"| Figure ID |\n|---|\n| {spec['figure_id']} |\n\n"
+                                    f"## 图表证据链\n\n| 图号 | 导出文件 |\n|---|---|\n"
+                                    f"| {spec['figure_id']} | {alternate} |")
+            framing.write_text(text, encoding="utf-8")
+            state["paper_framework"]["sha256"] = hashlib.sha256(framing.read_bytes()).hexdigest()
+            state_path.write_text(yaml.safe_dump(state, allow_unicode=True), encoding="utf-8")
+            options = {"delivery_scope": "mechanism", "mechanism_spec": artifact["spec_source"]}
+            unbound = sync_project.synchronize(root, **options)
+            self.assertEqual(unbound["export_evidence_required"], [alternate])
+            bundle = sync_project.combined_hash([root / alternate], root)
+            for field in ("artifact_hashes", "validated_artifact_hashes"):
+                question.setdefault(field, {})["figure_bundle"] = bundle
+            state_path.write_text(yaml.safe_dump(state, allow_unicode=True), encoding="utf-8")
+            before = file_bytes(root)
+            bound = sync_project.synchronize(root, **options)
+            self.assertEqual(bound["status"], "passed", bound["issues"])
+            self.assertEqual(file_bytes(root), before)
+            (root / alternate).write_bytes(png + b"updated export metadata")
+            changed = sync_project.synchronize(root, **options)
+            self.assertEqual(changed["status"], "failed")
+            self.assertEqual(changed["export_evidence_required"], [alternate])
+
+    def test_expected_question_and_selected_spec_must_match(self):
+        import semantic_identity
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp).resolve()
+            first = self.make_project(root)
+            state_path = root / "state/project_state.yaml"
+            state = yaml.safe_load(state_path.read_bytes())
+            model = dict(identity(), question="Q2", preprocessing_decision="not_needed",
+                         research_object="独立的运输成本问题")
+            section = framework(model).split("# 模型论文框架\n\n", 1)[1].replace("Q1", "Q2").replace("第一问", "第二问")
+            framing = root / "模型论文框架.md"
+            text = framing.read_text(encoding="utf-8").replace("## 图表证据链", section + "\n## 图表证据链")
+            framing.write_text(text, encoding="utf-8")
+            state["paper_framework"]["sha256"] = hashlib.sha256(framing.read_bytes()).hexdigest()
+            inspected = semantic_identity.inspect_question_semantics(semantic_identity.question_sections(text)["Q2"], "Q2")
+            q2 = deepcopy(state["subproblems"]["Q1"])
+            q2.update(framework_section="### Q2：第二问", semantic_text_hash=inspected["semantic_text_hash"])
+            for key in ("semantic_identity_hash", "validated_semantic_identity_hash", "approved_semantic_identity_hash"):
+                q2[key] = semantic_identity.semantic_identity_hash(model)
+            state["subproblems"]["Q2"] = q2
+            state_path.write_text(yaml.safe_dump(state, allow_unicode=True), encoding="utf-8")
+            self.assertIn("locked_model_spec", sync_project.RUNTIME_ASSURANCE.hydrate_project_context(
+                root, "Q2")["verified_artifacts"])
+            selected = first["artifact"]["spec_source"]
+            before = file_bytes(root)
+            for expected, status in (("Q1", "passed"), ("Q2", "failed")):
+                report = sync_project.synchronize(root, delivery_scope="mechanism", mechanism_spec=selected,
+                                                  mechanism_question=expected)
+                self.assertEqual(report["status"], status, report["issues"])
+                self.assertEqual(report["mechanism_question"], expected)
+                if expected == "Q2":
+                    self.assertTrue(any("Q1" in issue and "Q2" in issue for issue in report["issues"]))
+            for path, expected in ((None, "Q1"), (selected, "Q01")):
+                with self.assertRaises(ValueError):
+                    sync_project.synchronize(root, delivery_scope="mechanism", mechanism_spec=path, mechanism_question=expected)
+            self.assertEqual(file_bytes(root), before)

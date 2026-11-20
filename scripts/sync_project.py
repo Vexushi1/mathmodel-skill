@@ -1260,8 +1260,40 @@ def _verify_sync_question_sources(
             raise PROJECT_TX.ReadSetConflictError(f"sync observation differs from captured source: {relative}")
 
 
+def _mechanism_exports_in_validated_bundle(
+    root: Path, state: Mapping[str, Any], question: str, exports: set[str],
+    observed: dict[str, str | None],
+) -> set[str]:
+    """Check alternate export bytes against the question's pre-existing approved bundle."""
+    entry = state["subproblems"][question]
+    expected = (entry.get("validated_artifact_hashes") or {}).get("figure_bundle")
+    current = (entry.get("artifact_hashes") or {}).get("figure_bundle")
+    if (not expected or (current and current != expected) or entry.get("artifacts_stale")
+            or "figure_bundle" in (entry.get("stale_layers") or [])):
+        return set()
+    script = PLOT_BACKEND.resolve_question_script(
+        root, state, question, STAGE_CODE.question_name(question), STAGE_CODE.question_number(question) or 0,
+    ).path
+    _capture_sync_source(root, observed, script)
+    paths, issues = PROJECT_SNAPSHOT.scoped_figure_files(root, script, entry)
+    names = [path.relative_to(root).as_posix() for path in paths]
+    approved = set((state.get("artifacts") or {}).get("approved_figures") or [])
+    candidates = exports.intersection(names)
+    if issues or not candidates or not set(names).issubset(approved):
+        return set()
+    for path in paths:
+        _capture_sync_source(root, observed, path)
+    if (paths, issues) != PROJECT_SNAPSHOT.scoped_figure_files(root, script, entry):
+        raise PROJECT_TX.ReadSetConflictError("mechanism Figure bundle discovery changed")
+    bundle = ARTIFACT_FINGERPRINT.combined_hash_from_entries(
+        (name, observed[name]) for name in names
+    )
+    return candidates if bundle == expected else set()
+
+
 def inspect_mechanism_delivery(
     root: Path, snapshot, output_contract, *, write_requested: bool, mechanism_spec: str | None = None,
+    mechanism_question: str | None = None,
 ) -> dict[str, Any]:
     """Recheck existing nonnumerical draw.io evidence without numeric discovery.
 
@@ -1301,6 +1333,7 @@ def inspect_mechanism_delivery(
     if not specs:
         issues.append(f"mechanism交付缺少{mechanism_spec or 'figures/source/*.mechanism.yaml'}")
     approved = set((state.get("artifacts") or {}).get("approved_figures") or [])
+    evidence_required = []
     for path in specs:
         relative = path.relative_to(root).as_posix()
         try:
@@ -1308,6 +1341,8 @@ def inspect_mechanism_delivery(
             if spec["semantic_anchors"]["result_evidence"]:
                 raise ValueError("数值证据机理图须使用figures scope，不可豁免accepted工作簿")
             question = spec["question_id"]
+            if mechanism_question is not None and question != mechanism_question:
+                raise ValueError(f"机理图 Spec 声明 {question}，本次交付要求 {mechanism_question}")
             hydration = RUNTIME_ASSURANCE.hydrate_project_context(root, question, state_snapshot=snapshot)
             if "locked_model_spec" not in hydration["verified_artifacts"]:
                 raise ValueError(f"{question}: mechanism要求current已批准模型身份")
@@ -1324,13 +1359,21 @@ def inspect_mechanism_delivery(
                     issues.append(f"{relative}: {item.code}: {item.message}")
             if not all(artifact.get(key) for key in ("spec_sha256", "drawio_sha256", "preview", "preview_sha256")):
                 raise ValueError("mechanism交付要求当前spec/drawio/preview身份和真实预览")
-            read(artifact["preview"])
             if not artifact["final_exports"]:
                 raise ValueError("mechanism正式交付缺少实际final_exports")
+            alternate = set()
             for exported in artifact["final_exports"]:
                 raw = read(exported)
                 if exported not in approved or not _preview_format_is_valid(root / exported, raw):
                     raise ValueError("mechanism导出必须为当前approved_figures中的真实图片: " + exported)
+                if observed[exported] != artifact["preview_sha256"]:
+                    alternate.add(exported)
+            if alternate:
+                alternate -= _mechanism_exports_in_validated_bundle(root, state, question, alternate, observed)
+            if alternate:
+                evidence_required.extend(sorted(alternate))
+                issues.append(f"{question}: 正式导出与已审查预览不同，缺少匹配的已验证图表文件哈希: "
+                              + ", ".join(sorted(alternate)))
         except (OSError, ValueError, TypeError, KeyError, yaml.YAMLError) as exc:
             issues.append(f"{relative}: {exc}")
     if specs != selected_specs():
@@ -1341,6 +1384,8 @@ def inspect_mechanism_delivery(
             "formal_delivery_scope": True, "issues": issues, "warnings": [],
             "write_requested": write_requested, "write": False, "write_performed": False,
             **({"mechanism_spec": mechanism_spec} if mechanism_spec is not None else {}),
+            **({"mechanism_question": mechanism_question} if mechanism_question is not None else {}),
+            **({"export_evidence_required": sorted(set(evidence_required))} if evidence_required else {}),
             "observed_sources": observed, "semantic_visual_review": "not_assessed_by_machine"}
 
 
@@ -1351,11 +1396,15 @@ def synchronize(
     strict: bool = False,
     delivery_scope: str | None = None,
     mechanism_spec: str | None = None,
+    mechanism_question: str | None = None,
     schema_path: Path = DEFAULT_SCHEMA_PATH,
     output_contract_path: Path = DEFAULT_OUTPUT_CONTRACT_PATH,
 ) -> dict[str, Any]:
     if mechanism_spec is not None and delivery_scope != "mechanism":
         raise ValueError("mechanism_spec requires explicit mechanism delivery scope")
+    if mechanism_question is not None and (mechanism_spec is None or not isinstance(mechanism_question, str)
+                                           or not re.fullmatch(r"Q[1-9][0-9]*", mechanism_question)):
+        raise ValueError("mechanism_question must be a canonical Q number with an explicit mechanism_spec")
     root = Path(project_root).resolve()
     state_path = root / "state/project_state.yaml"
     framework_path = root / "模型论文框架.md"
@@ -1382,7 +1431,7 @@ def synchronize(
     output_contract = load_yaml(Path(output_contract_path))
     if delivery_scope == "mechanism":
         return inspect_mechanism_delivery(root, state_snapshot, output_contract, write_requested=write,
-                                          mechanism_spec=mechanism_spec)
+                                          mechanism_spec=mechanism_spec, mechanism_question=mechanism_question)
     phase = str((state.get("project") or {}).get("current_phase", "model_design"))
     explicit_delivery_scope = delivery_scope is not None
     scope = delivery_scope or PHASE_SCOPE.get(phase, "design")
@@ -2011,6 +2060,7 @@ def main() -> int:
     parser.add_argument("--write", action="store_true")
     parser.add_argument("--strict", action="store_true")
     parser.add_argument("--mechanism-spec", help="project-relative path to the one nonnumerical draw.io Spec")
+    parser.add_argument("--mechanism-question", help="expected question ID for the selected mechanism Spec")
     parser.add_argument(
         "--delivery-scope",
         choices=["design", "mechanism", "code", "results", "figures", "docx", "latex", "submission"],
@@ -2020,6 +2070,7 @@ def main() -> int:
         report = synchronize(
             Path(args.project_root), write=args.write, strict=args.strict,
             delivery_scope=args.delivery_scope, mechanism_spec=args.mechanism_spec,
+            mechanism_question=args.mechanism_question,
         )
     except (ValueError, RUNTIME_ASSURANCE.ProjectStateReadError, PROJECT_TX.ProjectTransactionError) as exc:
         print(f"- {exc}")

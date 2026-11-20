@@ -199,50 +199,95 @@ def matched_inference_keywords(request: str, router: dict[str, Any]) -> dict[str
             if limit:
                 review = [limit[0]]
         return {"review": review} if review else {}
+    # A chart name and an already accepted input can mention other route keywords
+    # without requesting a new validation. Keep independently requested actions.
+    policy = router.get("figure_delivery_policy", {})
+    if policy and figure_request_outputs(request, policy):
+        for route, pattern in (("validation", "result_figure"), ("returned_workbook_validation", "workbook_reference")):
+            if route in matches:
+                outside = re.sub(policy[pattern], "", request, flags=re.IGNORECASE)
+                remaining = [word for word in matches[route] if word.casefold() in outside.casefold()]
+                if remaining:
+                    matches[route] = remaining
+                else:
+                    del matches[route]
     return matches
 
 
-def figure_request_layout(intents: Iterable[str], request: str, router: dict[str, Any]) -> str | None:
-    """Separate explicitly coordinated outputs. Unknown mixed geometry keeps the numerical boundary."""
-    policy = router.get("figure_delivery_policy")
-    if not policy or not request or not set(intents) or set(intents) - {"figures", "editable_mechanism_diagram"}:
+def figure_request_outputs(request, policy):
+    """Bind recognized physical figures to their own evidence level and stated question."""
+    if not request or not policy:
         return None
-    text = re.sub(policy["negated_output"], "", request, flags=re.IGNORECASE)
+    text = request
+    for name in ("negated_output", "negated_encoding"):
+        text = re.sub(policy[name], "", text, flags=re.IGNORECASE)
     if re.search(policy["semantic_change"], text, re.IGNORECASE):
         return None
-    mechanism = list(re.finditer(policy["mechanism_figure"], text, re.IGNORECASE))
-    results = list(re.finditer(policy["result_figure"], text, re.IGNORECASE))
-    if not mechanism or not (results or re.search(policy["numerical_evidence"], text, re.IGNORECASE)):
+    mechanism = re.search(policy["mechanism_figure"], text, re.IGNORECASE)
+    result = re.search(policy["result_figure"], text, re.IGNORECASE)
+    encoding = re.search(policy["numerical_evidence"], text, re.IGNORECASE)
+    if not mechanism or not (result or encoding):
         return None
-    if (not results or re.search(policy["same_output"], text, re.IGNORECASE)
-            or re.search(policy["numeric_mechanism"], text, re.IGNORECASE)):
-        return "single_numeric"
-    if re.search(policy["separate_outputs"], text, re.IGNORECASE):
-        return "separate"
-    for left in mechanism:
-        for right in results:
-            first, last = sorted((left, right), key=lambda match: match.start())
-            if first.end() <= last.start() and re.fullmatch(
-                policy["between_outputs"], text[first.end():last.start()], re.IGNORECASE,
-            ):
-                return "separate"
-    return "single_numeric"
+
+    questions = list(re.finditer(policy["question"], text, re.IGNORECASE))
+
+    def question_at(match):
+        from stage_code import question_number
+
+        # Attach a local prefix such as "为问题一画" or "Q2 的". A single
+        # question anywhere scopes the pair. Ambiguous lists need adjudication.
+        prefix = [q for q in questions if q.end() <= match.start() and re.fullmatch(
+            r"\s*(?:的|[的]?\s*(?:设计|绘制|画|制作|导出|生成|做))?\s*(?:一[张幅个])?\s*(?:可编辑)?",
+            text[q.end():match.start()],
+        )]
+        q = prefix[-1] if prefix else (questions[0] if len(questions) == 1 else None)
+        if q is None:
+            return "unresolved" if questions else None
+        raw = re.sub(r"\s+|问题|第|问", "", q[0].upper())
+        number = raw.removeprefix("Q") if raw.removeprefix("Q").isdigit() else question_number("问题" + raw)
+        return "Q" + str(number) if number else "unresolved"
+
+    mechanism_q = question_at(mechanism)
+    result_q = question_at(result) if result else None
+    separate = False
+    if result and not re.search(policy["same_output"], text, re.IGNORECASE):
+        first, last = sorted((mechanism, result), key=lambda match: match.start())
+        connector = re.sub(policy["question"], "", text[first.end():last.start()], flags=re.IGNORECASE)
+        separate = bool(re.search(policy["separate_outputs"], text, re.IGNORECASE)
+                        or re.fullmatch(policy["between_outputs"], connector, re.IGNORECASE))
+    if not separate:
+        target = "unresolved" if result and result_q != mechanism_q else mechanism_q
+        return "single_numeric", [("combined", "figures", target)]
+
+    # A result caption can have its own encoding. All unassigned numerical
+    # encodings conservatively qualify the mechanism as numerical as well.
+    mechanism_numeric = False
+    for clause in re.split(r"[。；;，,]", text):
+        if re.search(policy["numerical_evidence"], clause, re.IGNORECASE):
+            if (re.search(policy["mechanism_figure"], clause, re.IGNORECASE)
+                    or not re.search(policy["result_figure"], clause, re.IGNORECASE)):
+                mechanism_numeric = True
+    return "separate", [("mechanism", "figures" if mechanism_numeric else "mechanism", mechanism_q),
+                        ("result", "figures", result_q)]
 
 
-def figure_delivery_plan(layout, router, manifest, preprocessing_decision):
+def figure_delivery_plan(composition, router, manifest, preprocessing_decision):
     """Use the owning router and gate manifest for each requested physical output."""
-    scopes = ["mechanism", "figures"] if layout == "separate" else ["figures"]
+    layout, outputs = composition
     deliveries = []
-    for scope in scopes:
+    for kind, scope, question in outputs:
         requirements = list(router["figure_delivery_policy"]["requirements"][scope])
         if scope == "figures" and preprocessing_decision == "project_level":
             requirements.append("accepted_preprocessing_workbook")
         gates = gate_plan(router["execution_contract"]["formal_delivery_gates"], manifest, scope)
         if scope == "mechanism":
+            owner = question if question and re.fullmatch(r"Q[1-9][0-9]*", question) else "<registered_question>"
             for gate in gates:
                 if gate["name"] == "project_sync":
-                    gate["command"] += ' --mechanism-spec "<spec_source>"'
+                    gate["command"] += f' --mechanism-spec "<spec_source>" --mechanism-question "{owner}"'
         deliveries.append({
+            "figure_kind": kind,
+            "question": question,
             "delivery_scope": scope,
             "required_verified_artifacts": requirements,
             "missing_verified_artifacts": list(requirements),
@@ -685,10 +730,12 @@ def resolve_workflow(
     if not resolved_intents:
         raise ValueError("no workflow intent resolved; pass an intent or --request")
     figure_text = figure_request or request or ""
-    layout = figure_request_layout(resolved_intents, figure_text, router)
-    if layout and "figures" not in resolved_intents:
+    figure_outputs = None
+    if set(resolved_intents) <= {"figures", "editable_mechanism_diagram"}:
+        figure_outputs = figure_request_outputs(figure_text, router.get("figure_delivery_policy", {}))
+    if figure_outputs and "figures" not in resolved_intents:
         resolved_intents.append("figures")
-    if (layout == "separate" and "editable_mechanism_diagram" not in resolved_intents
+    if (figure_outputs and figure_outputs[0] == "separate" and "editable_mechanism_diagram" not in resolved_intents
             and re.search(router["figure_delivery_policy"]["editable_backend"], figure_text, re.IGNORECASE)):
         resolved_intents.append("editable_mechanism_diagram")
     unknown_intents = [name for name in resolved_intents if name not in router.get("routing", {})]
@@ -840,8 +887,9 @@ def resolve_workflow(
         if delivery_scope != "design":
             explicit_gates.extend(router.get("execution_contract", {}).get("formal_delivery_gates", []))
     gates = gate_plan(explicit_gates, manifest, delivery_scope)
-    composition = figure_delivery_plan(layout, router, manifest, preprocessing_decision) if layout else None
-    if layout == "separate" and "editable_mechanism_diagram" in resolved_intents:
+    composition = figure_delivery_plan(figure_outputs, router, manifest, preprocessing_decision) if figure_outputs else None
+    if (composition and composition["deliveries"][0]["delivery_scope"] == "mechanism"
+            and "editable_mechanism_diagram" in resolved_intents):
         # Shared semantic governance runs once; recheck each requested physical output in its own scope.
         mechanism_sync = next(gate for gate in composition["deliveries"][0]["pre_delivery_gates"]
                               if gate["name"] == "project_sync")

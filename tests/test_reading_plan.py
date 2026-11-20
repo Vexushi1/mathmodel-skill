@@ -100,6 +100,65 @@ class FrameworkReadScopeTests(unittest.TestCase):
                 self.assertNotIn("Q3独有正文", selected)
                 self.assertNotIn("Q3专用写作内容", selected)
 
+    def test_split_figures_read_each_question_and_its_dependencies(self):
+        questions = self.state["subproblems"]
+        questions["Q1"]["depends_on"] = []
+        questions["Q2"]["depends_on"] = ["Q4"]
+        questions["Q4"] = {"depends_on": []}
+        text = self.framework.read_text(encoding="utf-8").replace(
+            "## 图表证据链", "### Q4：数据来源\n依赖问的数据定义。\n\n## 图表证据链")
+        self.framework.write_text(text, encoding="utf-8")
+        self.state["paper_framework"]["sha256"] = hashlib.sha256(self.framework.read_bytes()).hexdigest()
+        self.state_path.write_text(yaml.safe_dump(self.state, allow_unicode=True), encoding="utf-8")
+        request = "分别画 Q1 的机理图和 Q2 的误差图。"
+        for context in ("Q1", None):
+            with self.subTest(context=context):
+                plan = self.resolve(None, request, question=context)
+                selected = self.consume(plan)
+                self.assertEqual(plan["reading_plan"]["framework_read"]["status"], "planned")
+                self.assertIn("F1 已登记", selected)
+                self.assertIn("Q2独有依赖正文", selected)
+                self.assertIn("依赖问的数据定义", selected)
+                self.assertNotIn("Q3独有正文", selected)
+
+        questions["Q2"]["artifacts_stale"] = True
+        self.state_path.write_text(yaml.safe_dump(self.state, allow_unicode=True), encoding="utf-8")
+        plan = self.resolve(None, request)
+        self.assertIn("Q2独有依赖正文", self.consume(plan))
+        numeric = plan["figure_composition"]["deliveries"][1]
+        self.assertIn("accepted_solution_workbook", numeric["missing_verified_artifacts"])
+
+        # An unregistered second target cannot hide the first target's source
+        # or expand the framework read to unrelated questions.
+        plan = self.resolve(None, request.replace("Q2", "Q9"))
+        self.assertEqual(plan["reading_plan"]["framework_read"]["status"], "evidence_required")
+        self.assertTrue(any("Q9" in reason for reason in plan["reading_plan"]["reasons"]))
+        selected = self.consume(plan)
+        self.assertIn("F1 已登记", selected)
+        self.assertNotIn("Q2独有依赖正文", selected)
+        self.assertNotIn("Q3独有正文", selected)
+
+    def test_legacy_dependency_names_navigate_without_verifying_upstream(self):
+        self.state["subproblems"]["Q1"]["depends_on"] = ["Q2"]
+        self.state_path.write_text(yaml.safe_dump(self.state, allow_unicode=True), encoding="utf-8")
+        plan = self.resolve("review", "只评阅问题一。")
+        selected = self.consume(plan)
+        self.assertIn("Q2独有依赖正文", selected)
+        self.assertNotIn("Q3独有正文", selected)
+        self.assertNotIn("framework_read", plan["assurance"])
+
+    def test_missing_shared_headings_do_not_expand_to_all_questions(self):
+        self.framework.write_text("# 项目\n### Q1：一\n局部正文\n### Q2：二\n其他问正文\n", encoding="utf-8")
+        self.state["paper_framework"]["sha256"] = hashlib.sha256(self.framework.read_bytes()).hexdigest()
+        self.state_path.write_text(yaml.safe_dump(self.state, allow_unicode=True), encoding="utf-8")
+        plan = self.resolve("review", "只核查术语。", question=None)
+        reading = plan["reading_plan"]
+        self.assertEqual(reading["framework_read"]["scope"], "shared_sections")
+        self.assertEqual(reading["framework_read"]["status"], "evidence_required")
+        self.assertTrue(any("no shared framework section" in reason for reason in reading["reasons"]))
+        self.assertFalse(any(row["origin"] == "project" for row in reading["read_now"]))
+        self.assertTrue(any(row["origin"] == "skill" for row in reading["read_now"]))
+
     def test_recovery_needs_current_framework_and_rejects_changed_source(self):
         for startup, event in (("cross_chat_formal_resume", "cross_chat_handoff"),
                                ("formal_context_lost", "long_context_recovery")):

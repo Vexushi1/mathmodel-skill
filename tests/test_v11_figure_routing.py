@@ -24,12 +24,16 @@ class FigureRoutingTests(unittest.TestCase):
                 "为问题一绘制机理图和误差分布图。",
                 "同一份题面，请设计这张机理草图和预测误差结果图。现有材料能落到哪里就先做到哪里。",
                 "绘制残差图，以及一张机理图。",
+                "把机理图与敏感性曲线分别导出。",
+                "输出机理图和一张残差直方图。",
             ):
                 with self.subTest(request=request):
                     plan = resolve_runtime(request=request, project_root=root, question="Q1")
                     group = plan["figure_composition"]
                     self.assertEqual(group["layout"], "separate")
                     self.assertEqual(group["gate_execution"], "not_assessed_by_router")
+                    self.assertTrue(any(g["name"] == "project_sync" and g["delivery_scope"] == "figures"
+                                        for g in plan["pre_delivery_gates"]))
                     mechanism, result = group["deliveries"]
                     self.assertEqual(mechanism["delivery_scope"], "mechanism")
                     self.assertEqual(mechanism["evidence_status"], "base_inputs_verified")
@@ -47,6 +51,8 @@ class FigureRoutingTests(unittest.TestCase):
         for plan in (resolve_workflow.resolve_workflow(request=request), resolve_runtime(request=request)):
             with self.subTest(resolver="assurance" in plan):
                 self.assertEqual(plan["figure_composition"]["layout"], "separate")
+                if "assurance" in plan:
+                    self.assertFalse(plan["assurance"]["intent_resolution"]["ambiguity"])
                 gates = plan["pre_delivery_gates"]
                 self.assertEqual([g["name"] for g in gates].count("semantic_governance"), 1)
                 sync = [g for g in gates if g["name"] == "project_sync"]
@@ -86,6 +92,65 @@ class FigureRoutingTests(unittest.TestCase):
         semantic = resolve_runtime("figures", request="修改模型参数，再画机理图和误差图。")
         self.assertNotIn("figure_composition", semantic)
         self.assertEqual(semantic["reading_plan"]["profile"], "full")
+
+    def test_measured_encodings_via_inferred_and_explicit_routes(self):
+        requests = (
+            ("画一张可编辑机理图，用线宽表示每条边的实际客流量。", "single_numeric"),
+            ("一张可编辑机理图按已验收工作簿中的流量着色。", "single_numeric"),
+            ("一张机理图按已验收工作簿中的流量着色。", "single_numeric"),
+            ("分别画机理图与误差图。机理图也按工作簿的流量着色。", "separate"),
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp).resolve()
+            fixtures.MechanismScopeTests().make_project(root)
+            for request, layout in requests:
+                for intent in (None, "editable_mechanism_diagram"):
+                    with self.subTest(request=request, intent=intent):
+                        plan = resolve_runtime(intent, request=request, question="Q1", project_root=root)
+                        composition = plan["figure_composition"]
+                        self.assertEqual(composition["layout"], layout)
+                        self.assertEqual(len(composition["deliveries"]), 2 if layout == "separate" else 1)
+                        for row in composition["deliveries"]:
+                            self.assertEqual(row["delivery_scope"], "figures")
+                            self.assertIn("accepted_solution_workbook", row["missing_verified_artifacts"])
+                        self.assertEqual([g["delivery_scope"] for g in plan["pre_delivery_gates"]
+                                          if g["name"] == "project_sync"], ["figures"])
+
+    def test_other_positive_actions_and_negative_figure_mentions_keep_their_boundary(self):
+        for request, intent in (("先验收工作簿，再画机理图与敏感性曲线。", "returned_workbook_validation"),
+                                ("请做敏感性分析，再绘制机理图与敏感性曲线。", "result_analysis")):
+            with self.subTest(request=request):
+                plan = resolve_runtime(request=request)
+                self.assertIn(intent, plan["intents"])
+                self.assertNotIn("figure_composition", plan)
+        negative = resolve_runtime("editable_mechanism_diagram", request="画可编辑机理图，不要画误差图。")
+        self.assertNotIn("figure_composition", negative)
+
+    def test_cross_question_outputs_bind_evidence_to_each_named_question(self):
+        from reading_plan_cases import build_project
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp).resolve()
+            build_project(ROOT, root, "current")
+            state_path = root / "state/project_state.yaml"
+            state = yaml.safe_load(state_path.read_bytes())
+            state["subproblems"]["Q2"] = {"depends_on": []}
+            state_path.write_text(yaml.safe_dump(state, allow_unicode=True), encoding="utf-8")
+            before = fixtures.file_bytes(root)
+            for request in ("分别画 Q1 的机理图和 Q2 的误差图。", "为问题一画机理图，为问题二画预测误差图。"):
+                with self.subTest(request=request):
+                    plan = resolve_runtime(request=request, question="Q1", project_root=root)
+                    group = plan["figure_composition"]
+                    self.assertEqual(group["layout"], "separate")
+                    mechanism, numeric = group["deliveries"]
+                    self.assertEqual((mechanism["question"], numeric["question"]), ("Q1", "Q2"))
+                    self.assertEqual(mechanism["evidence_status"], "base_inputs_verified")
+                    scoped_sync = next(g for g in mechanism["pre_delivery_gates"] if g["name"] == "project_sync")
+                    self.assertIn('--mechanism-question "Q1"', scoped_sync["command"])
+                    self.assertEqual(numeric["evidence_status"], "missing_current_inputs")
+                    self.assertIn("accepted_solution_workbook", numeric["missing_verified_artifacts"])
+                    self.assertIn("validated_results", numeric["missing_verified_artifacts"])
+            self.assertEqual(fixtures.file_bytes(root), before)
 
     def test_verification_of_one_exact_spec_cannot_qualify_its_numeric_neighbor(self):
         with tempfile.TemporaryDirectory() as tmp:

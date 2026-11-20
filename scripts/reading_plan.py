@@ -18,6 +18,7 @@ from yaml.tokens import AliasToken
 from artifact_fingerprint import combined_hash, sha256_file
 from runtime_assurance import ProjectStateReadError, ProjectStateSnapshot
 from project_transaction import STATE_RELATIVE_PATH
+from state_transitions import dependency_edges
 import plot_backend as PLOT_BACKEND
 
 
@@ -763,10 +764,10 @@ def _framework_event(plan: dict[str, Any], request: str, memory: dict[str, Any])
 
 
 def _project_reads(
-    root: Path, state: dict[str, Any], question: str | None, *, style: bool,
+    root: Path, state: dict[str, Any], scope_questions: list[str], *, style: bool,
     state_snapshot: ProjectStateSnapshot, memory: dict[str, Any], whole: bool,
-    writing: bool,
-) -> list[dict[str, Any]]:
+    writing: bool, per_figure: bool,
+) -> tuple[list[dict[str, Any]], list[str]]:
     state_snapshot.assert_current(root)
     if state_snapshot.raw is None:
         raise ValueError("current project state is unavailable for framework reading")
@@ -779,6 +780,7 @@ def _project_reads(
     framework = reader.describe({"path": framework_path})
     if not framework["source_bytes"] or record.get("sha256") != framework["sha256"]:
         raise ValueError("framework bytes differ from the current project-state record")
+    missing_sections = []
     if not whole:
         known = _headings(reader.cache[framework_path][1])
         titles = {"## 当前有效口径", "## 图表证据链", "## 待办与缺口"}
@@ -793,22 +795,34 @@ def _project_reads(
             if not question_level and (heading in titles or heading.lstrip("#").strip() in writing_titles):
                 headings.append(heading)
         scoped = set()
-        pending = [question] if question else []
+        pending = list(scope_questions)
         questions = state.get("subproblems", {})
+        upstream = {}
+        # Names from legacy untyped edges identify what to read, not what
+        # evidence is current or what kind of dependency was approved.
+        for edge in dependency_edges(questions):
+            upstream.setdefault(edge["target"], []).append(edge["source"])
         while pending:
             current = pending.pop()
             if current in scoped:
                 continue
             scoped.add(current)
             if current not in questions:
-                raise ValueError(f"framework question is absent from project state: {current}")
+                reason = f"framework question is absent from project state: {current}"
+                if per_figure:
+                    missing_sections.append(reason)
+                    continue
+                raise ValueError(reason)
             matches = [s for _, _, s in known if re.match(r"^###\s+" + re.escape(current) + r"[：:]", s)]
-            headings.append(matches[0] if len(matches) == 1 else f"missing-unique-question-{current}")
-            for dependency in questions[current].get("depends_on", []):
-                target = dependency.get("question") if isinstance(dependency, dict) else None
-                if not isinstance(target, str) or target not in questions:
-                    raise ValueError(f"framework dependency for {current} is missing from project state")
-                pending.append(target)
+            if len(matches) == 1:
+                headings.append(matches[0])
+            elif per_figure:
+                missing_sections.append(f"missing unique framework section for {current}")
+            else:
+                headings.append(f"missing-unique-question-{current}")
+            pending.extend(upstream.get(current, []))
+        if not headings:
+            raise ValueError("no shared framework section located; select a question or identify its section")
         framework = reader.describe({"path": framework_path, "headings": headings})
     rows = [framework, reader.describe({"path": STATE_RELATIVE_PATH})]
     if style:
@@ -816,8 +830,8 @@ def _project_reads(
         if report["issues"]:
             raise ValueError("Figure backend conflict: " + "; ".join(report["issues"]))
         role = "plot_script" if report["backend"] == "python" else "matlab_script"
-        rows.append(reader.describe({"path": state["subproblems"][question][role]}))
-    return reader.consolidate(rows)
+        rows.append(reader.describe({"path": state["subproblems"][scope_questions[0]][role]}))
+    return reader.consolidate(rows), missing_sections
 
 
 def build_reading_plan(root: Path, plan: dict[str, Any], router: dict[str, Any],
@@ -905,10 +919,25 @@ def build_reading_plan(root: Path, plan: dict[str, Any], router: dict[str, Any],
                       if key in manifest.get("modules", {})}
     downstream = bool(memory.get("full_read_signals") and memory_modules.intersection(plan.get("modules", [])))
     framework_read = None
+    if state_snapshot is None and event and memory["full_read_signals"][event].get("startup_events"):
+        framework_read = {
+            "scope": "full", "event": event, "status": "evidence_required",
+            "reason": "recovery needs the current project root, framework and state",
+        }
     if state_snapshot is not None and (verified_project or event or downstream):
         writing = bool(set(plan.get("intents", [])) & {"latex", "docx", "review", "full_workflow"})
-        scope_question = context.get("question")
-        scope = "question_and_dependencies" if scope_question else "shared_sections"
+        scope_questions = [context["question"]] if context.get("question") else []
+        figure_deliveries = (plan.get("figure_composition") or {}).get("deliveries", [])
+        unresolved_figure = False
+        if not event:
+            for delivery in figure_deliveries:
+                owner = delivery.get("question")
+                if owner and owner != "unresolved":
+                    if owner not in scope_questions:
+                        scope_questions.append(owner)
+                elif "question" in delivery:
+                    unresolved_figure = True
+        scope = "question_and_dependencies" if scope_questions else "shared_sections"
         if event:
             scope = "full"
         framework_read = {"scope": scope, "event": event, "status": "planned"}
@@ -916,14 +945,20 @@ def build_reading_plan(root: Path, plan: dict[str, Any], router: dict[str, Any],
             if not context.get("project_state_loaded") or state_snapshot.raw is None:
                 raise ValueError("current project state was not loaded for framework reading")
             state = state_snapshot.payload()
-            if not event and not scope_question and len(state.get("subproblems", {})) == 1:
-                scope_question = next(iter(state["subproblems"]))
+            if not event and not scope_questions and not unresolved_figure and len(state.get("subproblems", {})) == 1:
+                scope_questions = list(state["subproblems"])
                 framework_read["scope"] = "question_and_dependencies"
-            project_rows = _project_reads(
-                state_snapshot.root, state, scope_question, memory=memory, whole=bool(event), writing=writing,
+            project_rows, missing_sections = _project_reads(
+                state_snapshot.root, state, scope_questions, memory=memory, whole=bool(event), writing=writing,
+                per_figure=bool(figure_deliveries),
                 style=verified_project and profile in {"figure_style", "figure_style_and_design"},
                 state_snapshot=state_snapshot,
             )
+            if unresolved_figure:
+                missing_sections.append("figure question unresolved; only identified framework sections can be read")
+            if missing_sections:
+                framework_read["status"] = status = "evidence_required"
+                reasons.extend(missing_sections)
             if project_rows[0]["resolution"] == "whole_file_fallback":
                 framework_read["scope"] = "whole_file_fallback"
         except ProjectStateReadError:

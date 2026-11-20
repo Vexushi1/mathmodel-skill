@@ -2007,9 +2007,9 @@ V11_P3_DEFAULT_READER_HASHES = {
 
 
 V11_P4_DEFAULT_READER_HASHES = {
-    "scripts/resolve_workflow.py": "104a10d9fdfbc9510d05040c176ce05fae18b0078e27a1ca32239ba585d3d926",
-    "scripts/resolve_runtime.py": "91998c2658820fb42f36f8d690fbede4b94e4ad5ab50a3426700637ac241a61a",
-    "scripts/reading_plan.py": "b063dddbfc435581f85f51694a7cd3bf90e6efc426c3aecfe68744d3f7e5b2ed",
+    "scripts/resolve_workflow.py": "76b260651786357b8082a3d566f9d30b2f26737cab0d711b072ebb42aca216bc",
+    "scripts/resolve_runtime.py": "ea898ad8bb67272414ec3840d2fe8028c6201b182f0bb896c00435a50298b54e",
+    "scripts/reading_plan.py": "8f0d470e0ad03813435faafb7199dd9bcab8305b1239f816ec755f263f5225ba",
     "scripts/read_stage.py": V11_P3_DEFAULT_READER_HASHES["scripts/read_stage.py"],
 }
 
@@ -2097,11 +2097,11 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
                 return deepcopy(original), []
             # Only the exact candidate's selector paragraph may be reversed here.
             if (matched_carrier == V10353_LITERATURE_QUERY_COVERAGE_AUTHORITY_VERSIONS
-                    and actual[0]["sha256"] == "e04bb0ab0fa3de44b389c190d54cc3e3f1b1a9f04854e61408a0c6251f9be6cb"):
+                    and actual[0]["sha256"] == "d1a395266067db570001e23813b90941e409ce73d0911c70aba401abf81a2cbf"):
                 selector = (
-                    "  mechanism_spec_selector: With an explicit mechanism scope, --mechanism-spec binds one "
-                    "current figures/source/*.mechanism.yaml to its original read-only checks. Without that "
-                    "selector, all discovered mechanism specs remain in scope.\n"
+                    "  mechanism_spec_selector: With an explicit mechanism scope, --mechanism-spec selects one "
+                    "current figures/source/*.mechanism.yaml. When supplied, --mechanism-question must match "
+                    "that spec's question_id. Without a selected spec, all discovered mechanism specs remain in scope.\n"
                 ).encode("utf-8")
                 if raw.count(selector) != 1:
                     return deepcopy(original), []
