@@ -406,10 +406,10 @@ def _snapshot_ordinary_plan(root: Path, entry: Mapping[str, Any], source: bytes,
     from validate_user_execution import configuration_map, delivered_stage_config, ordinary_experiment_issues
 
     methods = entry.get("analysis_methods") or ()
-    mapping = schema["result_analysis_workbook"]["ordinary_method_sheets"]
+    active = WORKBOOK_VALIDATION.required_ordinary_sheets(schema["result_analysis_workbook"], methods)
     config, source_issues = delivered_stage_config(root, {}, entry, "analysis")
     receipt, receipt_issues = configuration_map(source)
-    if not (any(method in mapping for method in methods)
+    if not (active
             or any(field in obj for obj in (config or {}, receipt) for field in (ORDINARY_ROWS, ORDINARY_VERSION))):
         return None
 

@@ -472,6 +472,59 @@ class UserExecutionContractTests(unittest.TestCase):
             self.assertTrue(any("sensitivity-a" in issue for issue in issues), issues)
             self.assertEqual(state["subproblems"]["Q1"]["analysis_execution_status"], "rejected")
 
+    def test_optional_observations_only_overturn_the_same_frozen_required_claim(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self.accept_primary(root, self.make_project(root))
+            self.activate_analysis(root)
+            required, = self.ordinary_experiments(["参数敏感性"])
+            corroboration = {**required, "id": "second-check", "required": False}
+            side_claim = {**corroboration, "id": "extra-scenario", "claim": required["claim"] + "（扩展场景）"}
+            plan = [required, corroboration, side_claim]
+            source = self.make_analysis_code(root, experiments=plan)
+            issues, config = CODE.validate_script(root, source, "analysis")
+            self.assertEqual(issues, [])
+            CODE.update_state(root, config, source)
+            workbook = self.make_analysis_workbook(root, source)
+            original = workbook.read_bytes()
+            for label, summary_edits, failed_observation, expected in (
+                ("side supports", {}, None, "accepted"),
+                ("side modifies", {"D4": False, "F4": "modify"}, None, "accepted"),
+                ("side rejects", {"D4": False, "F4": "reject"}, None, "accepted"),
+                ("shared claim rejected", {"D3": False, "F3": "reject"}, None, "redo_required"),
+                ("required claim rejected", {"D2": False, "F2": "reject"}, None, "redo_required"),
+                ("failed attempt", {"D3": False, "F3": None}, "F3", "accepted"),
+                ("side lacks evidence", {"D4": False, "F4": "reject"}, "F4", "rejected"),
+                ("required evidence missing", {"D3": False, "F3": "reject"}, "F2", "rejected"),
+                ("summary substitutes claim", {"A4": required["claim"], "D4": False, "F4": "reject"}, None, "rejected"),
+            ):
+                with self.subTest(label=label):
+                    book = openpyxl.load_workbook(io.BytesIO(original))
+                    for cell, value in summary_edits.items():
+                        book["结论稳定性汇总"][cell] = value
+                    if failed_observation:
+                        book["参数敏感性"][failed_observation] = "technical_failure"
+                    book.save(workbook)
+                    book.close()
+                    before = workbook.read_bytes()
+                    state = self.read_state(root)
+                    issues = RECEIPT.validate_one(root, workbook, state, True)
+                    entry = state["subproblems"]["Q1"]
+                    self.assertEqual(entry["analysis_execution_status"], expected, issues)
+                    self.assertEqual("存在核心结论未保持" in issues, expected == "redo_required")
+                    self.assertEqual(entry["primary_execution_status"], "accepted")
+                    self.assertEqual(workbook.read_bytes(), before)
+
+            book = openpyxl.load_workbook(io.BytesIO(original))
+            book["结论稳定性汇总"].delete_rows(2)
+            book.save(workbook)
+            book.close()
+            self.assertEqual(RECEIPT.analysis_passed(workbook, ordinary_experiments=plan)[:2], (False, "failed"))
+            state = self.read_state(root)
+            issues = RECEIPT.validate_one(root, workbook, state, True)
+            self.assertTrue(any(required["id"] in issue for issue in issues), issues)
+            self.assertEqual(state["subproblems"]["Q1"]["analysis_execution_status"], "rejected")
+
     def test_missing_source_cannot_turn_an_optional_failure_into_core_rejection(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -545,6 +598,43 @@ class UserExecutionContractTests(unittest.TestCase):
                     recovered, issues = RECEIPT.delivered_stage_config(root, {}, entry, "analysis")
                     self.assertIsNone(recovered)
                     self.assertTrue(any("SHA-256" in detail for detail in issues))
+
+    def test_padded_registered_method_requires_the_source_plan_at_every_entry(self):
+        from project_snapshot import _validate_workbook
+
+        schema = yaml.safe_load((ROOT / "core/workbook_schema.yaml").read_bytes())
+        for method in (" 参数敏感性 ", " parameter_sensitivity "):
+            with self.subTest(method=method), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                # A previously delivered source without an ordinary method had no experiment list.
+                workbook = self.prepare_ordinary_analysis(root, ["历史自定义"])
+                state = self.read_state(root)
+                entry = state["subproblems"]["Q1"]
+                entry["analysis_methods"] = [method]
+                self.write_state(root, state)
+                source = root / entry["result_analysis_code"]
+
+                issues, config = CODE.validate_script(root, source, "analysis")
+                self.assertTrue(any("冻结实验" in issue for issue in issues), issues)
+                with self.assertRaisesRegex(ValueError, "冻结实验"):
+                    CODE.update_state(root, config, source)
+                snapshot = _validate_workbook(workbook, "result_analysis", schema, entry, project_root=root)
+                self.assertTrue(any("冻结实验" in issue for issue in snapshot), snapshot)
+                issues = RECEIPT.validate_one(root, workbook, state, True)
+                self.assertTrue(any("冻结实验" in issue for issue in issues), issues)
+                self.assertEqual(entry["analysis_execution_status"], "rejected")
+                self.assertEqual(entry["primary_execution_status"], "accepted")
+
+                source = self.make_analysis_code(root, experiments=self.ordinary_experiments(["参数敏感性"]))
+                issues, config = CODE.validate_script(root, source, "analysis")
+                self.assertEqual(issues, [])
+                CODE.update_state(root, config, source)
+                workbook = self.make_analysis_workbook(root, source)
+                state = self.read_state(root)
+                entry = state["subproblems"]["Q1"]
+                self.assertEqual(_validate_workbook(workbook, "result_analysis", schema, entry, project_root=root), [])
+                self.assertEqual(RECEIPT.validate_one(root, workbook, state, True), [])
+                self.assertEqual(entry["analysis_execution_status"], "accepted")
 
     def test_unknown_legacy_analysis_method_does_not_invent_a_required_sheet(self):
         with tempfile.TemporaryDirectory() as temp:

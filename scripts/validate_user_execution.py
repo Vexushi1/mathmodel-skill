@@ -431,8 +431,10 @@ def analysis_passed(workbook: Path | bytes, *, comparison_methods=(), ordinary_e
         id_column = headers.index("检验ID") if "检验ID" in headers else None
         disposition_column = headers.index("主张处置") if "主张处置" in headers else None
         registered = ordinary_experiments if isinstance(ordinary_experiments, list) else ()
-        required = {item["id"]: item.get("required", True) for item in registered
-                    if isinstance(item, Mapping) and isinstance(item.get("id"), str)}
+        by_id = {item["id"]: item for item in registered
+                 if isinstance(item, Mapping) and isinstance(item.get("id"), str)}
+        required_claims = {item["claim"] for item in by_id.values()
+                           if item.get("required", True) and isinstance(item.get("claim"), str)}
         has_summary_rows = False
         unstable = False
         for row_number, row in enumerate(rows[1:], start=2):
@@ -443,11 +445,17 @@ def analysis_passed(workbook: Path | bytes, *, comparison_methods=(), ordinary_e
                 continue
             if ordinary_experiments is not None:
                 identifier = row[id_column] if id_column is not None else None
-                disposition = row[disposition_column] if disposition_column is not None else None
-                if identifier not in required or (not required[identifier] and
-                                                  disposition not in ("support", "modify", "reject")):
-                    # A post-run observation cannot establish or overturn a frozen claim. The
-                    # workbook schema separately rejects any unregistered asserted disposition.
+                experiment = by_id.get(identifier)
+                if experiment is None:
+                    continue
+                if not experiment.get("required", True):
+                    # Optional evidence can refute the same frozen claim, but cannot
+                    # stand in for a required result or overturn a different claim.
+                    claim = experiment.get("claim")
+                    disposition = row[disposition_column] if disposition_column is not None else None
+                    if (isinstance(claim, str) and claim in required_claims
+                            and disposition in ("modify", "reject") and as_bool(row[index]) is False):
+                        unstable = True
                     continue
             has_summary_rows = True
             verdict = as_bool(row[index] if len(row) > index else None)
@@ -512,11 +520,10 @@ def ordinary_experiment_issues(delivered, analysis_methods, schema, *, require_c
     """Check a source-bound declaration against the selected question's registered ordinary methods."""
     config = delivered or {}
     methods = analysis_methods if isinstance(analysis_methods, (list, tuple)) else ()
-    mapping = schema["result_analysis_workbook"]["ordinary_method_sheets"]
-    active = [m for m in methods if isinstance(m, str) and m in mapping]
+    active = WORKBOOK_VALIDATION.required_ordinary_sheets(schema["result_analysis_workbook"], methods)
     issues = ordinary_protocol_issues(config, required=bool(require_current and active), receipt=receipt)
     if require_current and active and ORDINARY_ROWS not in config:
-        issues.append("已激活普通深化方法缺少冻结实验: " + "、".join(active))
+        issues.append("已激活普通深化方法缺少冻结实验: " + "、".join(sorted(active)))
     if ORDINARY_ROWS in config:
         issues.extend(WORKBOOK_VALIDATION.ordinary_experiment_plan_issues(
             config[ORDINARY_ROWS], schema=schema, analysis_methods=methods if require_current else (),

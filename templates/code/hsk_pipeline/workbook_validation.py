@@ -255,7 +255,8 @@ def _check_missing_value_audit(prepared: Sequence[tuple[str, pd.DataFrame]], kin
         raise ValueError(f"工作表 {affected} 包含缺失值，但数据审计未说明缺失处理")
 
 
-def _required_ordinary_sheets(section: Mapping[str, Any], analysis_methods: Sequence[str]) -> set[str]:
+def required_ordinary_sheets(section: Mapping[str, Any], analysis_methods: Sequence[str]) -> set[str]:
+    """Resolve the selected method names and aliases to their ordinary evidence sheets."""
     mapping = section.get("ordinary_method_sheets", {})
     methods = {method.strip() for method in analysis_methods if isinstance(method, str)}
     return {mapping[method] for method in methods if method in mapping}
@@ -338,7 +339,7 @@ def ordinary_experiment_plan_issues(rows: Any, *, schema: Mapping[str, Any],
     if not required:
         issues.append("ordinary_experiments缺少必需实验")
     if analysis_methods:
-        selected = _required_ordinary_sheets(section, analysis_methods)
+        selected = required_ordinary_sheets(section, analysis_methods)
         if selected - required:
             issues.append(f"已选择普通方法缺少必需实验: {sorted(selected - required)}")
         if registered - selected:
@@ -557,7 +558,7 @@ def validate_tables(
     ordinary_sheets: set[str] = set()
     if kind == "result_analysis" and (options.ordinary_experiments is not None or options.require_ordinary_method_coverage):
         section = schema["result_analysis_workbook"]
-        ordinary_sheets = _required_ordinary_sheets(section, options.analysis_methods)
+        ordinary_sheets = required_ordinary_sheets(section, options.analysis_methods)
         _check_experiment_coverage(dict(prepared), section, ordinary_sheets, options.ordinary_experiments)
     if any(frame.empty for _, frame in prepared):
         raise ValueError("禁止写入空工作表")
@@ -591,7 +592,7 @@ def validate_ordinary_method_coverage(
 ) -> None:
     """Check selected evidence sheets without imposing new schemas on unrelated legacy sheets."""
     section = schema["result_analysis_workbook"]
-    required = _required_ordinary_sheets(section, analysis_methods)
+    required = required_ordinary_sheets(section, analysis_methods)
     if not required:
         return
     tables = read_workbook_tables(path, only_sheets=required)
