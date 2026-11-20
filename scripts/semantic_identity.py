@@ -490,7 +490,8 @@ def dependency_alignment_issues(
         for source, kind in sorted(typed - expected):
             issues.append(f"{question}: State dependency {source}/{kind} missing from SIB dependencies")
         for source, kind in sorted(expected):
-            if source not in subproblems:
+            # Missing execution inputs do not revoke approval for the mathematical model.
+            if kind == "model" and source not in subproblems:
                 issues.append(f"{question}: SIB dependency {source}/{kind} refers to an unknown State question")
         if issues:
             conflicts[question] = issues

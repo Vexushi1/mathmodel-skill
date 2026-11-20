@@ -83,24 +83,37 @@ def bind_current_solver_project(root: Path, state: dict) -> None:
     }
 
 
-def build_project(repo: Path, root: Path, mode: str) -> None:
-    path = repo / "tests" / "optimization_baseline.py"
-    spec = importlib.util.spec_from_file_location("p2_existing_fixture", path)
+def _load_fixture(path: Path, name: str):
+    spec = importlib.util.spec_from_file_location(name, path)
     if spec is None or spec.loader is None:
-        raise RuntimeError("Existing P1 fixture is unavailable")
+        raise RuntimeError(f"Existing fixture is unavailable: {path}")
     helper = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = helper
     spec.loader.exec_module(helper)
+    return helper
+
+
+def build_project(repo: Path, root: Path, mode: str) -> None:
+    helper = _load_fixture(repo / "tests/optimization_baseline.py", "p2_existing_fixture")
     helper.build_project(repo, root, "identity_drift" if mode == "identity_drift" else "approved")
     framework = root / "模型论文框架.md"
     text = framework.read_text(encoding="utf-8")
+    state_path = root / "state/project_state.yaml"
+    state = yaml.safe_load(state_path.read_text(encoding="utf-8"))
+    q = state["subproblems"]["Q1"]
+    if mode == "stale_dependency":
+        binding = _load_fixture(repo / "tests/test_v900_semantic_identity_binding.py", "p2_dependency_binding")
+        section = binding.SEMANTIC.question_sections(text)["Q1"]
+        payload = binding.SEMANTIC.inspect_question_semantics(section, "Q1")["identity"]
+        edge = {"question": "Q2", "kind": "result"}
+        payload["dependencies"] = [edge]
+        text = binding.framework(payload)
+        q.update(binding.structured_question(payload), depends_on=[{**edge, "note": "test dependency"}])
+        state["subproblems"]["Q2"] = {"artifacts_stale": True}
     text = text.replace("### Q1", "## 当前有效口径\n已锁定的测试模型。\n\n## 各问模型与结果\n\n### Q1", 1)
     text += "\n## 图表证据链\n登记图与工作簿对应关系。\n\n## 待办与缺口\n当前测试无待办。\n"
     # The comparison driver gives v10 and the candidate the same bytes on every OS.
     framework.write_bytes(text.encode("utf-8"))
-    state_path = root / "state/project_state.yaml"
-    state = yaml.safe_load(state_path.read_text(encoding="utf-8"))
-    q = state["subproblems"]["Q1"]
     folder = root / "问题一求解"
     folder.mkdir()
     # These binding tests exercise file provenance only, not numerical workbook acceptance.
@@ -131,9 +144,6 @@ def build_project(repo: Path, root: Path, mode: str) -> None:
         figure.write_text("changed after visual approval", encoding="utf-8")
     elif mode == "no_figure_approval":
         state["artifacts"]["approved_figures"] = []
-    elif mode == "stale_dependency":
-        q["depends_on"] = [{"question": "Q2", "kind": "result", "note": "test dependency"}]
-        state["subproblems"]["Q2"] = {"artifacts_stale": True}
-    elif mode not in {"current", "identity_drift"}:
+    elif mode not in {"current", "identity_drift", "stale_dependency"}:
         raise ValueError(f"Unknown reading fixture: {mode}")
     state_path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8")
