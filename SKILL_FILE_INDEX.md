@@ -665,6 +665,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_v10_project_runtime_policy.py`
 - `tests/test_v10_recovery_read_boundaries.py`
 - `tests/test_v10_retired_artifact_isolation.py`
+- `tests/test_v11_figure_routing.py`
 - `tests/test_v631_contract_closure.py`
 - `tests/test_v632_delivery_gate_closure.py`
 - `tests/test_v633_gate_hardening.py`
