@@ -16,6 +16,7 @@ import sys
 from fractions import Fraction
 from pathlib import Path
 from typing import Any, Mapping
+from xml.etree.ElementTree import iterparse
 
 import openpyxl
 import yaml
@@ -84,6 +85,30 @@ def _sheet_records(book: openpyxl.Workbook, sheet: str) -> tuple[list[str], list
             continue
         records.append({headers[index]: row[index] if index < len(row) else None for index in range(len(headers))})
     return headers, records
+
+
+def _check_verification_id_caches(worksheet, column: int) -> None:
+    """Distinguish an explicit empty string cache from an unresolved formula's empty <v>."""
+    ns = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
+    row_number = 0
+    # This is the worksheet part already resolved inside the same read-only XLSX archive.
+    # The public data_only view returns None for both encodings.
+    with worksheet._get_source() as source:
+        for _, row in iterparse(source, events=("end",)):
+            if row.tag != ns + "row":
+                continue
+            row_number = int(row.get("r", row_number + 1))
+            cell_column = 0
+            for cell in row.iterfind(ns + "c"):
+                address = cell.get("r")
+                cell_column = openpyxl.utils.cell.coordinate_to_tuple(address)[1] if address else cell_column + 1
+                if row_number == 1 or cell_column != column or cell.find(ns + "f") is None:
+                    continue
+                cache = cell.find(ns + "v")
+                if cache is None or (cache.text is None and cell.get("t") != "str"):
+                    position = address or f"{openpyxl.utils.get_column_letter(column)}{row_number}"
+                    raise ValueError(f"{worksheet.title}!{position}: Verification ID 公式缺少可核实的缓存值")
+            row.clear()
 
 
 def _verification_id(record: Mapping[str, Any]) -> str:
@@ -340,6 +365,8 @@ def validate_primary_numerical_evidence(
         if not quality_headers:
             return False, ["缺少主结果质量门工作表"], {"mode": "invalid", "strict": False}
 
+        if "Verification ID" in quality_headers:
+            _check_verification_id_caches(book["主结果质量门"], quality_headers.index("Verification ID") + 1)
         marker_present = any(_verification_id(row) for row in quality_rows)
         strict = approved_specification is not None or bool(force_strict) or marker_present
 

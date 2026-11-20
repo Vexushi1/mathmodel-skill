@@ -261,6 +261,42 @@ class UserExecutionContractTests(unittest.TestCase):
             self.assertEqual(state["subproblems"]["Q1"]["status"], "solved")
             self.assertEqual(state["subproblems"]["Q1"]["result_quality_status"], "passed")
 
+    def test_historical_primary_receipt_rejects_an_unresolved_verification_id(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            code = self.make_project(root)
+            # Recreate a previously delivered source without a v7.14 quality binding.
+            config = self.config("primary", "问题一求解结果.xlsx")
+            del config["primary_quality_protocol_version"]
+            self.write_code(code, config)
+            CODE.update_state(root, config, code)
+            workbook = self.make_primary_workbook(root, code)
+            book = openpyxl.load_workbook(workbook)
+            metadata = book["运行配置"]
+            protocol_row = next(cell.row for cell in metadata["A"]
+                                if cell.value == "primary_quality_protocol_version")
+            metadata.delete_rows(protocol_row)
+            for marker in (None, '="PQ-Q1-01"'):
+                with self.subTest(marker=marker):
+                    book["主结果质量门"]["A2"] = marker
+                    book.save(workbook)
+                    before = workbook.read_bytes()
+                    state = self.read_state(root)
+                    issues = RECEIPT.validate_one(root, workbook, state, True)
+                    entry = state["subproblems"]["Q1"]
+                    self.assertEqual(workbook.read_bytes(), before)
+                    if marker is None:
+                        self.assertEqual(issues, [])
+                        self.assertEqual(entry["primary_execution_status"], "accepted")
+                        self.assertEqual(entry["validated_artifact_hashes"]["solution_workbook"],
+                                         hashlib.sha256(before).hexdigest())
+                    else:
+                        self.assertTrue(any("主结果质量门!A2" in issue and "缓存" in issue
+                                            for issue in issues), issues)
+                        self.assertEqual(entry["primary_execution_status"], "rejected")
+                        self.assertNotIn("solution_workbook", entry.get("validated_artifact_hashes", {}))
+            book.close()
+
     def test_primary_receipt_qualifies_typed_metric_observations_and_interval_endpoints(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

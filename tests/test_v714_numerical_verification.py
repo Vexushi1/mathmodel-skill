@@ -5,6 +5,8 @@ from io import BytesIO
 import tempfile
 import unittest
 from pathlib import Path
+from xml.etree import ElementTree as ET
+from zipfile import ZipFile
 
 import openpyxl
 import yaml
@@ -513,6 +515,66 @@ class V714NumericalVerificationTests(unittest.TestCase):
                 self.assertEqual(report["mode"], "v7.14_strict" if strict else "legacy_read")
                 self.assertEqual(passed, not strict, issues)  # These rows contain only the old Boolean gate.
                 self.assertEqual(path.read_bytes(), before)
+
+    def test_verification_formula_requires_a_typed_cached_result(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "quality.xlsx"
+            self.make_book(
+                path, ['="PQ-Q1-01"', "验算", True, "原始记录", "bool_true", True, True,
+                       "验证明细", "solver_tolerance"], "验证明细", ["编码"], [1])
+            original = path.read_bytes()
+            for label, cell_type, value, mode, passed in (
+                ("uncached default numeric", "n", "", "invalid", False),
+                ("missing even with string type", "str", None, "invalid", False),
+                ("computed empty string", "str", "", "legacy_read", True),
+                ("computed whitespace", "str", "  ", "legacy_read", True),
+                ("cached ID", "str", "PQ-Q1-01", "v7.14_strict", True),
+                ("cached number zero", "n", "0", "v7.14_strict", False),
+                ("cached Boolean false", "b", "0", "v7.14_strict", False),
+            ):
+                with self.subTest(case=label):
+                    # Preserve the actual Excel formula while setting its persisted OOXML result.
+                    with ZipFile(BytesIO(original)) as src, ZipFile(path, "w") as target:
+                        for item in src.infolist():
+                            data = src.read(item)
+                            if item.filename == "xl/worksheets/sheet1.xml":
+                                xml = ET.fromstring(data)
+                                cell = xml.find(".//{*}c[@r='A2']")
+                                self.assertIsNotNone(cell.find("{*}f"))
+                                cell.set("t", cell_type)
+                                cache = cell.find("{*}v")
+                                if value is None:
+                                    cell.remove(cache)
+                                else:
+                                    cache.text = value
+                                data = ET.tostring(xml)
+                            target.writestr(item, data)
+                    captured = path.read_bytes()
+                    for source in (path, captured):
+                        ok, issues, report = NUMERICAL.validate_primary_numerical_evidence(source)
+                        self.assertEqual((report["mode"], ok), (mode, passed), issues)
+                        if mode == "invalid":
+                            self.assertTrue(any("主结果质量门!A2" in issue and "缓存" in issue
+                                                for issue in issues), issues)
+                    self.assertEqual(path.read_bytes(), captured)
+
+    def test_sparse_formula_only_in_id_column_blocks_historical_fallback(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "legacy.xlsx"
+            book = openpyxl.Workbook()
+            gate = book.active
+            gate.title = "主结果质量门"
+            gate.append(["检查项", "是否通过", "证据", "Verification ID", "非判定列"])
+            gate.append(["检查", True, "旧记录", None, "=1+2"])
+            book.save(path)
+            self.assertTrue(NUMERICAL.validate_primary_numerical_evidence(path)[0])
+            gate["D9"] = '=""'
+            book.save(path)
+            book.close()
+            ok, issues, report = NUMERICAL.validate_primary_numerical_evidence(path)
+            self.assertFalse(ok)
+            self.assertEqual(report["mode"], "invalid")
+            self.assertTrue(any("主结果质量门!D9" in issue for issue in issues), issues)
 
     def test_runtime_and_receipt_integration_are_declared(self):
         bootstrap = yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8"))
