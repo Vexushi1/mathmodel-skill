@@ -20,7 +20,56 @@ from claim_workbook import Workbook
 import conformance_gate
 from tests import conformance_a2_smoke as smoke
 from tests.test_model_code_conformance import save,bytes_in
-from tests.claim_fixture import install_record
+from tests.claim_fixture import install_record, source, workbook
+
+class ClaimAggregateEvidenceTests(unittest.TestCase):
+    def test_workbook_aggregation_and_explicit_assertions(self):
+        contract = yaml.safe_load((ROOT / 'core/claim_evidence_contract.yaml').read_bytes())
+        schema = yaml.safe_load((ROOT / 'core/project_state.schema.yaml').read_bytes())
+        scenarios = ('baseline', 'candidate')
+        samples = ('A', 'B')
+        rows = [['cost', scenario, sample, 10, 'kg', 'B' if sample == 'A' else 'A']
+                for scenario in scenarios for sample in samples]
+        book = Workbook(workbook(rows, ['metric', 'scenario', 'sample', 'value', 'unit', 'alias']), contract)
+        for case in ('same_mean', 'sum_vs_mean', 'reordered_mean', 'duplicate_source'):
+            with self.subTest(case=case):
+                sources, nodes, selected = [], [], {}
+                for scenario in scenarios:
+                    members = []
+                    for sample in samples:
+                        item = source(scenario + sample, scenario)
+                        selector = item['selector']
+                        selector['row_key']['sample'] = sample
+                        if case == 'duplicate_source' and scenario == 'candidate' and sample == 'B':
+                            # Different selector and sample labels, same actual numeric cell.
+                            selector['row_key']['sample'] = 'A'
+                            selector['identity_columns']['sample'] = 'alias'
+                        sources.append(item)
+                        ref = 'source:' + item['id']
+                        members.append(ref)
+                        selected[ref], _ = book.select(selector, [])
+                    if case == 'reordered_mean' and scenario == 'candidate':
+                        members.reverse()
+                    reducer = 'sum' if case == 'sum_vs_mean' and scenario == 'candidate' else 'mean'
+                    nodes.append({'id': scenario, 'op': 'aggregate', 'axis': 'sample',
+                                  'reducer': reducer, 'inputs': {'items': members}})
+                nodes.append({'id': 'delta', 'op': 'difference', 'comparison_axis': 'scenario',
+                              'inputs': {s: 'derivation:' + s for s in scenarios}})
+                claim = {'id': 'delta_claim', 'scope': 'Q1', 'kind': 'comparative', 'text': 'Synthetic cost difference.',
+                         'evidence': [{'ref': 'derivation:delta', 'relation': 'supports'}],
+                         'assertion': {'evidence_ref': 'derivation:delta', 'unit': 'kg',
+                                       'value': 10 if case == 'sum_vs_mean' else 0}}
+                record = {'protocol_version': '1.0.0', 'sources': sources, 'derivations': nodes, 'claims': [claim]}
+                order = audit.validate_record(record, schema, contract)
+                derived, claims = audit.evaluate(record, order, selected, [], [], contract, {k: {'Q1'} for k in selected})
+                if case in ('same_mean', 'reordered_mean'):
+                    self.assertEqual(claims[0]['assertion_check']['status'], 'matched')
+                    self.assertEqual(claims[0]['arithmetic_status'], 'checked')
+                    self.assertEqual(derived[-1]['value'], '0')
+                else:
+                    rejected = next(row for row in derived if row['arithmetic_status'] == 'blocked')
+                    self.assertIn('operations' if case == 'sum_vs_mean' else 'duplicate physical', rejected['reason'])
+                    self.assertEqual(claims[0]['arithmetic_status'], 'needs_review')
 
 class ClaimEvidenceIntegrationTests(unittest.TestCase):
     @classmethod

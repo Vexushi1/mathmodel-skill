@@ -63,6 +63,43 @@ class ClaimValuesTests(unittest.TestCase):
         got=values.derive({'id':'d','op':'aggregate','axis':'scenario','reducer':'mean'},
            {'items':[self.value(1),self.value(2,scenario='candidate')]},self.contract)
         self.assertEqual(got.value,Decimal('1.5'))
+    def test_all_commutative_reducers_canonicalize_typed_sample_identities(self):
+        items = [self.value(n, sample=sample, origin=str(i)) for i, (sample, n) in
+                 enumerate([(Decimal('1.00'), 12), ('1.00', 0), ('x', 3)])]
+        for reducer in ('sum', 'mean', 'min', 'max'):
+            with self.subTest(reducer=reducer):
+                node = {'op': 'aggregate', 'reducer': reducer, 'axis': 'sample'}
+                first = values.derive(node, {'items': items}, self.contract)
+                second = values.derive(node, {'items': items[::-1]}, self.contract)
+                self.assertEqual(first, second)
+                self.assertEqual(first.operations[-1]['reducer'], reducer)
+
+    def test_differing_reducers_block_even_when_varying_the_previously_aggregated_axis(self):
+        def aggregate(reducer, labels):
+            items = [self.value(10, sample=label, origin=label) for label in labels]
+            return values.derive({'op': 'aggregate', 'axis': 'sample', 'reducer': reducer},
+                                 {'items': items}, self.contract)
+        base = aggregate('mean', ['A', 'B'])
+        candidate = aggregate('sum', ['C', 'D'])
+        with self.assertRaisesRegex(values.EvidenceError, 'operations'):
+            values.derive({'op': 'difference', 'comparison_axis': 'sample'},
+                          {'baseline': base, 'candidate': candidate}, self.contract)
+
+    def test_noncommutative_roles_and_improvement_direction_stay_distinct(self):
+        def effect(sample, *, reverse=False, direction='lower'):
+            args = [self.value(10, scenario=case, sample=sample, origin=case + sample)
+                    for case in ('base', 'new')]
+            if reverse:
+                args.reverse()
+            return values.derive({'op': 'improvement', 'direction': direction, 'comparison_axis': 'scenario'},
+                                 {'baseline': args[0], 'candidate': args[1]}, self.contract)
+        baseline = effect('one')
+        compare = {'op': 'difference', 'comparison_axis': 'sample'}
+        self.assertEqual(values.derive(compare, {'baseline': baseline, 'candidate': effect('two')}, self.contract).value, 0)
+        for candidate in (effect('two', reverse=True), effect('two', direction='higher')):
+            with self.assertRaises(values.EvidenceError):
+                values.derive(compare, {'baseline': baseline, 'candidate': candidate}, self.contract)
+
     def test_identity_scale_preserves_long_source_decimal(self):
         original=self.value('1.'+'1234567890'*10,'kg')
         result=values.converted(original,'kg',self.contract)
