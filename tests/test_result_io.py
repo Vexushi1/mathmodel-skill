@@ -132,6 +132,108 @@ class TestResultIO(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "禁止写入空工作表"):
                 MOD.write_workbook(path, {"参数敏感性": pd.DataFrame()})
 
+    def test_core_metric_types_and_record_specific_optional_missing_round_trip(self):
+        tables = self.solution_tables()
+        columns = ["指标", "数值", "值类型", "是否必需", "缺失原因"]
+        records = [
+            ["目标值", 0, None, None, None],
+            ["触发上限", False, "逻辑", True, None],
+            ["方案名称", "夜班方案", "文本", True, None],
+            ["夜间湿度", None, None, False, "夜间传感器停机"],
+        ]
+        tables["核心指标"] = pd.DataFrame(records, columns=columns, dtype=object)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "问题一求解结果.xlsx"
+            MOD.write_workbook(path, tables)
+            with io.BytesIO(path.read_bytes()) as captured:
+                self.assertIn("核心指标", MOD.WORKBOOK_VALIDATION.read_workbook_tables(captured))
+                self.assertFalse(captured.closed)
+            restored = dict(MOD.validate_workbook_file(path, "solution"))["核心指标"].to_dict("records")
+            self.assertEqual(restored[0]["数值"], 0)
+            self.assertIsNot(restored[0]["数值"], False)
+            self.assertIs(restored[1]["数值"], False)
+            self.assertEqual(restored[2]["数值"], "夜班方案")
+            self.assertTrue(pd.isna(restored[3]["数值"]))
+            workbook = openpyxl.load_workbook(path)
+            workbook["核心指标"]["B5"] = "=1+1"
+            workbook.save(path)
+            workbook.close()
+            with self.assertRaisesRegex(ValueError, "未计算公式"):
+                MOD.validate_workbook_file(path, "solution")
+
+            workbook = openpyxl.load_workbook(path)
+            workbook["核心指标"]["B5"].value = None
+            workbook["核心指标"]["B4"] = "#DIV/0!"
+            self.assertEqual(workbook["核心指标"]["B4"].data_type, "e")
+            workbook.save(path)
+            workbook.close()
+            with self.assertRaisesRegex(ValueError, "B4.*Excel 错误值"):
+                MOD.validate_workbook_file(path, "solution")
+
+        tables["数据审计"].loc[0, "信息"] = "无缺失"
+        for value, role, required, reason in (
+            (None, None, True, "夜间传感器停机"), (None, None, False, "无缺失"),
+            ("Infinity", None, False, "夜间传感器停机"), (float("inf"), None, False, "夜间传感器停机"),
+            (float("nan"), None, False, "夜间传感器停机"),
+            (True, None, True, None), ("False", "逻辑", True, None), (1, "文本", True, None),
+        ):
+            with self.subTest(value=value, role=role, required=required, reason=reason):
+                tables["核心指标"] = pd.DataFrame([records[0], ["夜间湿度", value, role, required, reason]],
+                                               columns=columns, dtype=object)
+                with self.assertRaisesRegex(ValueError, "核心指标.*夜间湿度"):
+                    MOD.validate_workbook_tables(tables, "solution")
+        tables["核心指标"] = pd.DataFrame([records[-1]], columns=columns, dtype=object)
+        with self.assertRaisesRegex(ValueError, "实际观测"):
+            MOD.validate_workbook_tables(tables, "solution")
+
+    def test_streamed_core_metric_rows_can_omit_trailing_optional_cells(self):
+        for case in ("optional_blank", "optional_formula", "default_required"):
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as directory:
+                path = Path(directory) / "问题一求解结果.xlsx"
+                workbook = openpyxl.Workbook(write_only=True)
+                metrics = workbook.create_sheet("核心指标")
+                metrics.append(["指标", "是否必需", "缺失原因", "数值", "值类型"])
+                metrics.append(["观测", None, None, 0])
+                # Streaming writers omit trailing cells, including the blank optional value.
+                row = ["不可得", False, "通道未安装"]
+                if case == "optional_formula":
+                    row.append("=1+1")
+                metrics.append(["默认必需"] if case == "default_required" else row)
+                for name, table in self.solution_tables().items():
+                    if name != "核心指标":
+                        sheet = workbook.create_sheet(name)
+                        sheet.append(table.columns.tolist())
+                        for values in table.itertuples(index=False, name=None):
+                            sheet.append(values)
+                workbook.save(path)
+                workbook.close()
+                if case == "optional_blank":
+                    metrics = dict(MOD.validate_workbook_file(path, "solution"))["核心指标"]
+                    self.assertEqual(metrics["数值"].tolist(), [0, None])
+                else:
+                    expected = "未计算公式" if case == "optional_formula" else "默认必需.*缺少必需"
+                    with self.assertRaisesRegex(ValueError, expected):
+                        MOD.validate_workbook_file(path, "solution")
+
+    def test_interval_endpoints_share_a_basis_and_are_finite_ordered_numbers(self):
+        tables = self.solution_tables()
+        for lower, upper in ((0, 1), (-4, -1), (0, 0)):
+            tables["不确定性区间"] = [{"指标": "偏差", "下界": lower, "上界": upper, "单位": "m"}]
+            with tempfile.TemporaryDirectory() as directory:
+                path = Path(directory) / "问题一求解结果.xlsx"
+                MOD.write_workbook(path, tables)
+                restored = dict(MOD.validate_workbook_file(path, "solution"))["不确定性区间"]
+                self.assertEqual(tuple(restored.loc[0, ["下界", "上界"]]), (lower, upper))
+        for change in (
+            {"下界": 100, "上界": -100}, {"下界": None}, {"上界": None}, {"上界": "Infinity"},
+            {"下界": float("-inf")}, {"上界": True}, {"下界单位": "m", "上界单位": "s"},
+            {"下界统计口径": "样本均值", "上界统计口径": "单个个体"},
+        ):
+            with self.subTest(change=change):
+                tables["不确定性区间"] = [{"指标": "偏差", "下界": 0, "上界": 1, **change}]
+                with self.assertRaisesRegex(ValueError, "不确定性区间.*偏差"):
+                    MOD.validate_workbook_tables(tables, "solution")
+
     def test_required_columns_are_enforced(self):
         tables = self.solution_tables()
         tables["核心指标"] = pd.DataFrame({"结果": [1.0]})

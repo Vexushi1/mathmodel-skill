@@ -754,8 +754,71 @@ ORDINARY_EXPERIMENT_BLOCKS = {
 }
 
 
+# Reverse the exact P4d workbook and numerical contract edits for older byte-level checks.
+WORKBOOK_ACCEPTANCE_BLOCKS = {
+    "core/workbook_schema.yaml": (
+        (
+            '  key_policy: 显式记录键或样本键必须非空且唯一', 3,
+            "17ea9cb5e5edbeb887d0c935fbe0e2420978a839ba3f18016fb689d82185b0f8",
+            (
+                '  key_policy: 显式记录键或样本键必须非空且唯一\n'
+                '  numeric_policy: 数值字段不得包含正负无穷；有依据的缺失值必须在数据审计中说明\n'
+                '  constraint_judgement_policy: 违反量、容差和是否满足必须逻辑一致\n'
+            ),
+        ),
+        (
+            '      required_columns: [指标, 数值]', 8,
+            "abb9e712d55cc85b3175e4adc2c217de16e2506d24e96b322b3de36d22c393c5",
+            (
+                '      required_columns: [指标, 数值]\n'
+                '      optional_columns: [单位, 统计口径, 说明]\n'
+                '    数据审计:\n'
+            ),
+        ),
+        (
+            '      required_columns: [主体或均衡, 残差, 容差, 是否满足]', 6,
+            "2717aa8b0b8a3d8cd7ba0e5d8b33d7fe898864b17e6535786f12d0d55993ee79",
+            (
+                '      required_columns: [主体或均衡, 残差, 容差, 是否满足]\n'
+                '    守恒残差:\n'
+                '      required_columns: [守恒量, 残差, 容差, 是否满足]\n'
+                '    离散精度:\n'
+            ),
+        ),
+        (
+            '      required_columns: [指标, 下界, 上界]', 7,
+            "8556d5a081afb5e0479334ead3a78d52ef3f89d49cd8a71cc4de559fa2f4cce3",
+            (
+                '      required_columns: [指标, 下界, 上界]\n'
+                '      optional_columns: [置信水平, 分位数口径, 样本数, 单位]\n'
+                '    泄漏检查:\n'
+            ),
+        ),
+    ),
+    "core/numerical_verification_contract.yaml": (
+        (
+            '    evidence_sheet: 不确定性区间', 3,
+            "8db50dcb9ce1d4828c9149a27abfa60e9edc9344f6cb700151aadc19f97c6ea8",
+            (
+                '    evidence_sheet: 不确定性区间\n'
+                '    recheck_mode: summary_criterion\n'
+            ),
+        ),
+        (
+            '    source_columns: [残差, 容差, 是否满足]', 12,
+            "3ea95af15688372a370898d4287f01cdadf126f9b62fba53520b9830ed6f6b1c",
+            (
+                '    source_columns: [残差, 容差, 是否满足]\n'
+                '    computed_metric: max_abs_value\n'
+            ),
+        ),
+    ),
+}
+
+
 def p4a_authority_text(relative: str) -> str:
     text = (ROOT / relative).read_text(encoding="utf-8")
+    text = _prior_reviewed_blocks(relative, text, WORKBOOK_ACCEPTANCE_BLOCKS, "workbook acceptance")
     return _prior_reviewed_blocks(relative, text, ORDINARY_EXPERIMENT_BLOCKS, "ordinary experiment")
 
 
@@ -1519,7 +1582,7 @@ class ContractAndDriftTests(unittest.TestCase):
                         b"blob " + str(len(data)).encode("ascii") + b"\0" + data
                     ).hexdigest()
                 elif relative in PRIMARY_QUALITY_BINDING_BLOCKS:
-                    predecessor = prior_execution_scale_binding(relative, path.read_text(encoding="utf-8"))
+                    predecessor = prior_execution_scale_binding(relative, p4a_authority_text(relative))
                     text = prior_primary_quality_binding(relative, predecessor)
                     data = text.encode("utf-8")
                     actual = hashlib.sha1(

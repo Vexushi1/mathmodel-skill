@@ -261,6 +261,51 @@ class UserExecutionContractTests(unittest.TestCase):
             self.assertEqual(state["subproblems"]["Q1"]["status"], "solved")
             self.assertEqual(state["subproblems"]["Q1"]["result_quality_status"], "passed")
 
+    def test_primary_receipt_qualifies_typed_metric_observations_and_interval_endpoints(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            code = self.make_project(root)
+            issues, config = CODE.validate_script(root, code, "primary")
+            self.assertEqual(issues, [])
+            CODE.update_state(root, config, code)
+            workbook = self.make_primary_workbook(root, code)
+            baseline = workbook.read_bytes()
+            optional = ["夜间湿度", None, None, False, "夜间传感器停机"]
+            for metrics, interval, accepted in (
+                (None, None, False), ([["必答", None]], None, False),
+                ([["必答", "Infinity"]], None, False), ([["必答", True]], None, False),
+                ([["必答", 0], optional], None, True), ([optional], None, False),
+                ([["约束激活", False, "逻辑"]], None, True), ([["推荐班次", "夜班", "文本"]], None, True),
+                ([["目标", 1]], (0, 1), True), ([["目标", 1]], (-2, -1), True),
+                ([["目标", 1]], (0, 0), True), ([["目标", 1]], (100, -100), False),
+                ([["目标", 1]], (0, None), False), ([["目标", 1]], (None, 1), False),
+            ):
+                with self.subTest(metrics=metrics, interval=interval):
+                    workbook.write_bytes(baseline)
+                    state = self.read_state(root)
+                    entry = state["subproblems"]["Q1"]
+                    book = openpyxl.load_workbook(workbook)
+                    del book["核心指标"]
+                    if metrics is not None:
+                        sheet = book.create_sheet("核心指标")
+                        sheet.append(["指标", "数值", "值类型", "是否必需", "缺失原因"])
+                        for row in metrics:
+                            sheet.append(row)
+                    if interval is not None:
+                        gate = book["主结果质量门"]
+                        gate["H2"], gate["B2"], gate["D2"] = "不确定性区间", "区间检查", "见不确定性区间"
+                        sheet = book.create_sheet("不确定性区间")
+                        sheet.append(["指标", "下界", "上界", "置信水平"])
+                        sheet.append(["已批准的预测", *interval, 0.95])
+                        entry["capabilities"] = {"requires_uncertainty_quantification": True}
+                    book.save(workbook)
+                    book.close()
+                    issues = RECEIPT.validate_one(root, workbook, state, True)
+                    self.assertEqual(not issues, accepted, issues)
+                    self.assertEqual(entry.get("status") == "solved", accepted)
+                    self.assertEqual(entry.get("primary_execution_status") == "accepted", accepted)
+                    self.assertEqual("solution_workbook" in entry.get("validated_artifact_hashes", {}), accepted)
+
     def test_primary_schema_failures_never_acquire_validated_workbook_hash(self):
         for missing in ("核心指标", "数据审计", None):
             with self.subTest(missing=missing), tempfile.TemporaryDirectory() as temp:
@@ -1040,6 +1085,41 @@ class UserExecutionContractTests(unittest.TestCase):
             self.assertEqual(issues, [])
             with self.assertRaisesRegex(ValueError, "已accepted并冻结"):
                 CODE.update_state(root, config, primary)
+
+
+class ResidualUnitReceiptTests(unittest.TestCase):
+    def test_bound_residual_units_control_receipt_state_and_validated_hash(self):
+        from tests.test_v10_project_delivery_receipt import ProjectDeliveryReceiptTests
+
+        for value, unit, accepted in ((50, "cm", True), (0.5, "km", False)):
+            with self.subTest(unit=unit):
+                fixture = ProjectDeliveryReceiptTests()
+                fixture.setUp()
+                self.addCleanup(fixture.doCleanups)
+                fixture.configure_approved_primary_quality(residual_unit="m", residual_threshold=1)
+                fixture.deliver_and_execute_primary_fixture()
+                book = openpyxl.load_workbook(fixture.workbook)
+                sheet = book["均衡残差"]
+                columns = {cell.value: cell.column for cell in sheet[1]}
+                sheet.cell(2, columns["残差"]).value = value
+                sheet.cell(2, columns["容差"]).value = max(1, abs(value))
+                sheet.cell(2, columns["单位"]).value = unit
+                quality = book["主结果质量门"]
+                actual = next(cell.column for cell in quality[1] if cell.value == "实际值")
+                quality.cell(2, actual).value = 0.5
+                book.save(fixture.workbook)
+                book.close()
+                output = io.StringIO()
+                with mock.patch("sys.argv", ["validate_user_execution.py", str(fixture.root),
+                                             "--workbook", str(fixture.workbook), "--strict", "--write"]), redirect_stdout(output):
+                    result = RECEIPT.main()
+                self.assertEqual(result == 0, accepted, output.getvalue())
+                entry = fixture.state()["subproblems"]["Q1"]
+                self.assertEqual(entry["primary_execution_status"], "accepted" if accepted else "rejected")
+                self.assertEqual(entry["status"] == "solved", accepted)
+                self.assertEqual("solution_workbook" in entry.get("validated_artifact_hashes", {}), accepted)
+                if not accepted:
+                    self.assertIn("PQ-Q1-01", output.getvalue())
 
 
 if __name__ == "__main__":

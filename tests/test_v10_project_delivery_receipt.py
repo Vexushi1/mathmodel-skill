@@ -406,13 +406,13 @@ class ProjectDeliveryReceiptTests(unittest.TestCase):
         self.assertTrue(any("项目后端" in item for item in issues))
         self.assertEqual(state, before)
 
-    def configure_approved_primary_quality(self, additional_items=()):
+    def configure_approved_primary_quality(self, additional_items=(), *, residual_unit="1", residual_threshold=0.05):
         specification = {
             "version": "1.0.0",
             "items": [
                 {"id": "PQ-Q1-01", "metric": "方程残差", "relation": "abs<=",
-                 "threshold": 0.05, "threshold_source": "solver_tolerance",
-                 "evidence_sheet": "均衡残差", "unit": "1"},
+                 "threshold": residual_threshold, "threshold_source": "solver_tolerance",
+                 "evidence_sheet": "均衡残差", "unit": residual_unit},
                 {"id": "PQ-Q1-02", "metric": "输出齐备", "relation": "bool_true",
                  "threshold": True, "threshold_source": "mathematical_definition",
                  "evidence_sheet": "核心指标", "unit": None},
@@ -427,7 +427,7 @@ class ProjectDeliveryReceiptTests(unittest.TestCase):
             run_receipt_protocol_version="1.3.0",
             primary_quality_protocol_version="1.1.0",
             primary_quality_spec_sha256=digest,
-            tolerance=0.05,
+            tolerance=residual_threshold,
         )
         rewrite_config(self.code, self.config)
         source = self.code.read_text(encoding="utf-8")
@@ -445,9 +445,17 @@ class ProjectDeliveryReceiptTests(unittest.TestCase):
         )
         source = replace_once(
             source, 'residual, "均衡残差", "solver_tolerance")],',
-            'residual, "均衡残差", "solver_tolerance", "1"),\n'
+            f'residual, "均衡残差", "solver_tolerance", {residual_unit!r}),\n'
             '                    ("PQ-Q1-02", "输出齐备", True, "主输出", "bool_true", True, True,\n'
             '                     "核心指标", "mathematical_definition", None)],',
+        )
+        source = replace_once(
+            source, '("主体或均衡", "残差", "容差", "是否满足"),',
+            '("主体或均衡", "残差", "容差", "是否满足", "单位"),',
+        )
+        source = replace_once(
+            source, '("a*x=b", residual, config["tolerance"], passed)',
+            f'("a*x=b", residual, config["tolerance"], passed, {residual_unit!r})',
         )
         self.code.write_text(source, encoding="utf-8", newline="\n")
         return payload
