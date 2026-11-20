@@ -207,6 +207,30 @@ materials:
       NTggMDAwMDAgbiAKMDAwMDAwMDEyNyAwMDAwMCBuIAowMDAwMDAwMTk3IDAwMDAwIG4gCjAwMDAwMDAzMjMgMDAwMDAgbiAK
       MDAwMDAwMDUzMiAwMDAwMCBuIAowMDAwMDAwNjU4IDAwMDAwIG4gCjAwMDAwMDA5ODAgMDAwMDAgbiAKMDAwMDAwMTEwNiAw
       MDAwMCBuIAp0cmFpbGVyCjw8IC9TaXplIDEwIC9Sb290IDEgMCBSID4+CnN0YXJ0eHJlZgoxMzEwCiUlRU9GCg==
+  controlled_workbook:
+    file: v11_p6_observations.xlsx
+    path: 核查回传.xlsx
+    sha256: ed575424c0c9d9f42832586a65df43c4e0fbfc6a8655d3fa41c60c1b30e0b124
+  question_records:
+    path: 本轮交接.md
+    text: |
+      本轮只核对回传，不生成代码。Q1 最近变更了候选管线定义，已提交复核；其要求主簿交回最优管长（m）和 len-01 的全段最大绝对长度残差，容许上限 1 m。
+      Q2 成本模型逐段计价，主输入是 Q1 的最优管长；上次登记的跨问依赖列表为空。Q3 单独分析问卷，从独立原始表生成，不使用管线、成本或 Q1/Q2 的产物。
+      同件另有“对照观测”用于另项独立比较，不参与 Q1 的长度残差检验。
+  comparison:
+    path: 主张及原指标.md
+    text: |
+      两个等权站点同时评估两个版本，比较对象、测试时段、样本和测量方式相同。预登记指标为两站点误差的算术平均数，下降为改善。
+      交接人提供的概要表把基准记为 4 m（站点平均）、候选记为 4 m（站点合计），据此写“二者没有改善”。请利用同一回传中的逐站数据复核。
+  legacy_note:
+    path: 历史登记.yaml
+    text: |
+      Q1:
+        description: 历史版最小运输距离
+        semantic_revision: 2
+        semantic_hash: 853bc9c15dd25e6e3c980994e54b0f4153e0e5f15816bb57a407c79d6ef7d5a4
+        human_model_approval_status: approved
+      本轮变更: 改为最小运输费用，每条路段另计收费。尚未对本轮改动重做双审或明确批准。
 cases:
   - id: intake
     turns:
@@ -252,3 +276,15 @@ cases:
         materials: [old_review, old_pdf, first_page]
       - prompt: 刚收到完整的新稿 B。请检查当前三页的版面，指出可定位的漏印或遮挡，说明实际页覆盖。
         materials: [current_pdf]
+  - id: scope_and_units
+    turns:
+      - prompt: 请按本轮工作簿核查能否验收，并逐问说明这一结果对后续工作的影响。
+        materials: [controlled_workbook, question_records]
+  - id: metric_change
+    turns:
+      - prompt: 请核对目前这条比较结论能否写入正文，给出可复查的依据及适用范围。
+        materials: [controlled_workbook, comparison]
+  - id: legacy_execution
+    turns:
+      - prompt: 请从这份旧项目登记恢复工作，判断现在可否按改后的模型交付正式求解代码。
+        materials: [legacy_note]
