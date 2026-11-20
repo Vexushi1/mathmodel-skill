@@ -20,7 +20,7 @@ from validate_user_execution import PREPROCESSING_EVIDENCE_SHEETS
 def downstream_approval(edge_registered, change_objective, *, independent=False):
     """Can Q2 still consume its approval after the change? All state is synthetic."""
     with TemporaryDirectory() as folder:
-        root = Path(folder)
+        root = Path(folder).resolve()
         state = yaml.safe_load((semantic_fixture.ROOT / "state/project_state.example.yaml").read_bytes())
         state["requirements"] = {"total": 2, "completed": [], "pending": ["Q1", "Q2"]}
         q1 = state["subproblems"]["Q1"]
@@ -67,7 +67,7 @@ def downstream_approval(edge_registered, change_objective, *, independent=False)
 def preprocessing(source):
     with TemporaryDirectory() as folder:
         sample = preprocessing_fixture.SolverBackendPreprocessingTests()
-        sample.prepare_root(Path(folder))
+        sample.prepare_root(Path(folder).resolve())
         sample.preprocessing_workbook()
         book = openpyxl.load_workbook(sample.pre_workbook)
         try:
@@ -90,7 +90,7 @@ def preprocessing(source):
 
 def primary_receipt(metric=1, *, drop_metrics=False, interval=None):
     with TemporaryDirectory() as folder:
-        root = Path(folder)
+        root = Path(folder).resolve()
         sample = execution_fixture.UserExecutionContractTests()
         code = sample.make_project(root)
         issues, config = execution_fixture.CODE.validate_script(root, code, "primary")

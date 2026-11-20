@@ -30,7 +30,7 @@ def holdout_predictions(reordered):
     inputs = {"train_t": [0, 1, 2, 3], "train_y": [0, 1, 4, 9], "evaluation_t": times,
               "scenarios": ["holdout" if t == 4 else f"train-{t}" for t in times], "model_difference_threshold": 1}
     with TemporaryDirectory() as tmp:
-        root = Path(tmp)
+        root = Path(tmp).resolve()
         config = {"tolerance": 1e-10, "primary_workbook": "q.xlsx"}
         tables = example.primary_tables(config, inputs)
         example.write_workbook(root / "q.xlsx", tables)
@@ -86,7 +86,7 @@ def citation_result(retracted, disposition):
         return "invalid"
     snapshot = test_literature_snapshot.SNAP
     with TemporaryDirectory() as tmp:
-        root = Path(tmp)
+        root = Path(tmp).resolve()
         (root / "Q1.md").write_text("Q1 synthetic frozen conditions.", encoding="utf-8")
         (root / "research.json").write_text(json.dumps(report), encoding="utf-8")
         preview = snapshot.preview(root, "Q1", "Q1.md", "research.json")
@@ -119,7 +119,7 @@ def tex_observations():
 
 def appendix_observations():
     with TemporaryDirectory() as tmp:
-        root = Path(tmp)
+        root = Path(tmp).resolve()
         (root / "state").mkdir()
         (root / "final_latex").mkdir()
         (root / "state/project_state.yaml").write_text('project: {competition: CUMCM, competition_edition: "2026"}',
