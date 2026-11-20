@@ -86,6 +86,11 @@ def _sheet_records(book: openpyxl.Workbook, sheet: str) -> tuple[list[str], list
     return headers, records
 
 
+def _verification_id(record: Mapping[str, Any]) -> str:
+    value = record.get("Verification ID")
+    return "" if value is None else str(value).strip()
+
+
 def _numeric_equal(left: float, right: float | Fraction, contract: Mapping[str, Any]) -> bool:
     tolerance = (contract.get("numeric_consistency") or {}).get("comparison_tolerance") or {}
     absolute = float(tolerance.get("absolute", 1.0e-12))
@@ -185,9 +190,7 @@ def _residuals_by_id(
     maxima: dict[str, Fraction] = {}
     observations, issues = _residual_observations(sheet, headers, records, "残差")
     for index, record, value in observations:
-        raw_id = record.get("Verification ID")
-        label = "" if raw_id is None else str(raw_id).strip()
-        identifier = label or only_id
+        identifier = _verification_id(record) or only_id
         if identifier not in target_units:
             issues.append(f"{sheet}第{index}行Verification ID缺失或未在该表登记: {identifier!r}")
             continue
@@ -337,11 +340,8 @@ def validate_primary_numerical_evidence(
         if not quality_headers:
             return False, ["缺少主结果质量门工作表"], {"mode": "invalid", "strict": False}
 
-        marker_present = "Verification ID" in quality_headers and any(
-            str(row.get("Verification ID", "")).strip() for row in quality_rows
-        )
-        strict = (approved_specification is not None
-                  or (marker_present if force_strict is None else bool(force_strict)))
+        marker_present = any(_verification_id(row) for row in quality_rows)
+        strict = approved_specification is not None or bool(force_strict) or marker_present
 
         protocol_map = contract.get("capability_protocols") or {}
         active_capabilities = sorted(
@@ -401,7 +401,7 @@ def validate_primary_numerical_evidence(
         for row in quality_rows:
             sheet = str(row.get("证据工作表", "")).strip()
             if sheet in residual_sheets:
-                identifier = str(row.get("Verification ID", "")).strip()
+                identifier = _verification_id(row)
                 item = (approved_items or {}).get(identifier)
                 unit = item.get("unit") if item is not None else row.get("单位")
                 residual_units.setdefault(sheet, {})[identifier] = _unit_label(unit, f"{identifier} 主结果质量门")
@@ -452,7 +452,7 @@ def validate_primary_numerical_evidence(
 
         checked_ids: list[str] = []
         for row_number, row in enumerate(quality_rows, start=2):
-            verification_id = str(row.get("Verification ID", "")).strip()
+            verification_id = _verification_id(row)
             if not verification_id:
                 issues.append(f"主结果质量门第{row_number}行缺少Verification ID")
                 continue

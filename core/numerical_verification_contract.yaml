@@ -98,7 +98,7 @@ strict_v714_trace:
   activation:
     any:
     - receipt binds current primary_quality_protocol_version from already delivered primary code
-    - 主结果质量门 contains a non-empty Verification ID
+    - 主结果质量门 contains a Verification ID other than an absent cell, an empty cell, or whitespace-only text
   force_strict_when_delivered_protocol_bound: true
   legacy_when_absent_only_without_current_protocol_binding: true
   quality_gate_sheet: 主结果质量门

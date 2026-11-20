@@ -487,6 +487,33 @@ class V714NumericalVerificationTests(unittest.TestCase):
             self.assertTrue(passed, issues)
             self.assertEqual(report["mode"], "legacy_read")
 
+    def test_historical_id_cells_and_explicit_protocol_dispatch(self):
+        for name, include_column, marker, binding, strict in (
+            ("absent column", False, None, None, False),
+            ("empty cell", True, None, None, False),
+            ("whitespace", True, " \t ", None, False),
+            ("real ID", True, "PQ-Q1-01", None, True),
+            ("bound protocol", True, None, True, True),
+            ("explicit false cannot mask an ID", True, "PQ-Q1-01", False, True),
+            ("malformed numeric ID", True, 0, None, True),
+            ("malformed Boolean ID", True, False, None, True),
+        ):
+            with self.subTest(case=name), tempfile.TemporaryDirectory() as tmp:
+                path = Path(tmp) / "legacy.xlsx"
+                book = openpyxl.Workbook()
+                sheet = book.active
+                sheet.title = "主结果质量门"
+                sheet.append(["检查项", "是否通过", "证据"] + (["Verification ID"] if include_column else []))
+                sheet.append(["完整运行", True, "旧工作簿"] + ([marker] if include_column else []))
+                book.save(path)
+                book.close()
+                before = path.read_bytes()
+                passed, issues, report = NUMERICAL.validate_primary_numerical_evidence(path, force_strict=binding)
+                self.assertEqual(report["strict"], strict, report)
+                self.assertEqual(report["mode"], "v7.14_strict" if strict else "legacy_read")
+                self.assertEqual(passed, not strict, issues)  # These rows contain only the old Boolean gate.
+                self.assertEqual(path.read_bytes(), before)
+
     def test_runtime_and_receipt_integration_are_declared(self):
         bootstrap = yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8"))
         manifest = yaml.safe_load((ROOT / "core/module_manifest.yaml").read_text(encoding="utf-8"))
