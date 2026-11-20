@@ -32,12 +32,14 @@ quality = {'Verification ID','检查项','是否通过','证据','判定关系',
     '阈值或容差','实际值','证据工作表','阈值来源'; ...
     'PQ-Q1-01','方程残差',passed,'由原始系数与求解值重算','abs<=', ...
     RUN_CONFIG.tolerance,residual,'均衡残差','solver_tolerance'};
+residual_detail = {'主体或均衡','残差','容差','是否满足'; ...
+    'a*x=b',residual,RUN_CONFIG.tolerance,passed};
 if strcmp(RUN_CONFIG.primary_quality_protocol_version, '1.1.0')
     quality(:, end + 1) = {'单位'; '1'};
+    residual_detail(:, end + 1) = {'单位'; '1'};
 end
 sheets(end + 1, :) = {'主结果质量门',quality};
-sheets(end + 1, :) = {'均衡残差',{'主体或均衡','残差','容差','是否满足'; ...
-    'a*x=b',residual,RUN_CONFIG.tolerance,passed}};
+sheets(end + 1, :) = {'均衡残差',residual_detail};
 sheets(end + 1, :) = {'状态明细',{'记录键','状态','数值','单位'; '0001','解',solution,'无量纲'}};
 current = verify_inputs(root, entrypoint, RUN_CONFIG);
 assert(isequal(identity, current), 'HSK:IdentityChanged', 'Source or input changed during execution.');

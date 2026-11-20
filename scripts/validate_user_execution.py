@@ -358,7 +358,7 @@ def _boolean_gate(workbook: Path | bytes, sheet: str, column: str) -> tuple[bool
 
 
 def _evidence_sheet_issues(book: openpyxl.Workbook, sheet: str, required: tuple[str, ...]) -> list[str]:
-    if sheet not in book.sheetnames:
+    if sheet not in book.sheetnames or not hasattr(book[sheet], "iter_rows"):
         return [f"预处理工作簿缺少工作表: {sheet}"]
     rows = list(book[sheet].iter_rows(values_only=True))
     if len(rows) < 2:
@@ -368,6 +368,83 @@ def _evidence_sheet_issues(book: openpyxl.Workbook, sheet: str, required: tuple[
     issues = [f"{sheet}缺少列: {column}" for column in missing]
     if not any(any(value not in (None, "") for value in row) for row in rows[1:]):
         issues.append(f"{sheet}没有实质数据")
+    return issues
+
+
+def _plot_source_issues(sheet, references):
+    """Resolve all index rows for one source in a single pass over its observations."""
+    issues = []
+    rows = sheet.iter_rows()
+    headers = [str(cell.value).strip() if cell.value is not None and cell.data_type != "e" else ""
+               for cell in next(rows, ())]
+    named = {index for index, name in enumerate(headers) if name}
+    observation_columns = named
+    if sheet.title == "处理前后对比":
+        observation_columns = {i for i, name in enumerate(headers) if name in ("处理前", "处理后")}
+    pending = {}
+    for label, fields in references:
+        unresolved = [f"{role}={name}" for role, name in fields if headers.count(name) != 1]
+        if unresolved:
+            issues.append(f"{label}在{sheet.title}中找不到唯一字段: " + "、".join(unresolved))
+            continue
+        columns = frozenset(headers.index(name) for _, name in fields)
+        pending.setdefault(columns, []).append(label)
+    for row in rows:
+        if not pending:
+            break
+        values = {i for i, cell in enumerate(row) if i in named and cell.data_type != "e"
+                  and WORKBOOK_VALIDATION._substantive(cell.value)}
+        if values & observation_columns:
+            for columns in list(pending):
+                if columns <= values:
+                    del pending[columns]
+    for columns, labels in pending.items():
+        fields = "、".join(headers[i] for i in sorted(columns))
+        for label in labels:
+            issues.append(f"{label}引用的工作表{sheet.title}无匹配的底层数据行"
+                          + (f"（{fields}）" if fields else ""))
+    return issues
+
+
+def _plot_index_issues(book):
+    required = PREPROCESSING_EVIDENCE_SHEETS["绘图数据索引"]
+    selectors = ("横轴字段", "处理前字段", "处理后字段", "分组字段", "验证字段")
+    rows = book["绘图数据索引"].iter_rows()
+    headers = [str(cell.value).strip() if cell.value is not None else "" for cell in next(rows)]
+    duplicate = [name for name in (*required, *selectors) if headers.count(name) > 1]
+    if duplicate:
+        return ["绘图数据索引列名重复: " + "、".join(duplicate)]
+    positions = {name: headers.index(name) for name in (*required, *selectors) if name in headers}
+    issues = []
+    sources = {}
+    for number, row in enumerate(rows, 2):
+        if not any(cell.value is not None and str(cell.value).strip() for cell in row):
+            continue
+        entry = {name: str(row[i].value).strip() if i < len(row) and row[i].value is not None else ""
+                 for name, i in positions.items()}
+        label = f"绘图数据索引第{number}行（{entry['图组']}）"
+        invalid = [name for name, i in positions.items() if i < len(row) and row[i].data_type == "e"]
+        if invalid:
+            issues.append(f"{label}含错误单元格: " + "、".join(invalid))
+            continue
+        missing = [name for name in required if not entry[name]]
+        if missing:
+            issues.append(f"{label}缺少: " + "、".join(missing))
+            continue
+        source = entry["源工作表"]
+        if source not in book.sheetnames:
+            issues.append(f"{label}引用不存在的工作表: {source}")
+        elif not hasattr(book[source], "iter_rows"):
+            issues.append(f"{label}引用非数据工作表: {source}")
+        elif source in PREPROCESSING_EVIDENCE_SHEETS and source != "处理前后对比":
+            issues.append(f"{label}引用管理工作表{source}，需要真实底层数据")
+        else:
+            fields = [(name, entry[name]) for name in selectors if entry.get(name)]
+            sources.setdefault(source, []).append((label, fields))
+    if not issues and not sources:
+        issues.append("绘图数据索引至少必须登记一个源工作表")
+    for source, references in sources.items():
+        issues.extend(_plot_source_issues(book[source], references))
     return issues
 
 
@@ -381,26 +458,7 @@ def preprocessing_passed(workbook: Path | bytes) -> tuple[bool, list[str]]:
         if issues:
             return False, list(dict.fromkeys(issues))
 
-        # 绘图数据索引必须至少指向一个真实、非空的底层数据工作表，避免MATLAB从摘要数字反推。
-        index_rows = list(book["绘图数据索引"].iter_rows(values_only=True))
-        headers = [str(item).strip() if item is not None else "" for item in index_rows[0]]
-        source_idx = headers.index("源工作表")
-        referenced = {
-            str(row[source_idx]).strip()
-            for row in index_rows[1:]
-            if len(row) > source_idx and row[source_idx] not in (None, "")
-        }
-        if not referenced:
-            issues.append("绘图数据索引至少必须登记一个源工作表")
-        else:
-            for sheet in sorted(referenced):
-                if sheet not in book.sheetnames:
-                    issues.append(f"绘图数据索引引用不存在的工作表: {sheet}")
-                    continue
-                rows = list(book[sheet].iter_rows(values_only=True))
-                if len(rows) < 2:
-                    issues.append(f"绘图数据索引引用的工作表无底层数据: {sheet}")
-
+        issues.extend(_plot_index_issues(book))
         gate_passed, gate_issues = _boolean_gate(workbook, "预处理质量门", "是否通过")
         issues.extend(gate_issues)
         return gate_passed and not issues, list(dict.fromkeys(issues))
@@ -1079,9 +1137,9 @@ def _validate_captured_receipt(
             accepted = not issues and passed
             preprocessing["status"] = "accepted" if accepted else "rejected"
             preprocessing["quality_status"] = "passed" if accepted else "failed"
-            preprocessing["workbook"] = workbook.relative_to(root).as_posix()
-            preprocessing["workbook_sha256"] = workbook_hash
             if accepted:
+                preprocessing["workbook"] = workbook.relative_to(root).as_posix()
+                preprocessing["workbook_sha256"] = workbook_hash
                 state.setdefault("data", {})["active_source_mode"] = "preprocessed"
                 state.setdefault("project", {})["current_phase"] = "solve_validate"
         return list(dict.fromkeys(issues))

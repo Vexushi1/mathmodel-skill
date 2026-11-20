@@ -351,6 +351,8 @@ def verify_approved_primary_quality(root: Path, runtime_report: dict, receipt) -
     try:
         assert book["主结果质量门"]["J1"].value == "单位"
         assert book["主结果质量门"]["J2"].value == "1"
+        assert book["均衡残差"]["E1"].value == "单位"
+        assert book["均衡残差"]["E2"].value == "1"
     finally:
         book.close()
     result_io.validate_workbook_file(

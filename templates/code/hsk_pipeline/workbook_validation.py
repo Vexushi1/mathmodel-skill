@@ -1,11 +1,12 @@
 """Shared workbook contract validation for writers, artifact checks and project sync."""
 from __future__ import annotations
 
+from contextlib import closing
 import math
 import io
 from numbers import Real
 from pathlib import Path
-from typing import Any, Callable, Mapping, NamedTuple, Sequence
+from typing import Any, BinaryIO, Callable, Mapping, NamedTuple, Sequence
 
 import pandas as pd
 from openpyxl import load_workbook
@@ -22,13 +23,13 @@ def _normalize_kind(kind: str) -> str:
     return normalized
 
 
-def _as_frame(value: Any, *, allow_empty: bool = False) -> pd.DataFrame:
+def _as_frame(value: Any, *, allow_empty: bool = False, dtype: str | None = None) -> pd.DataFrame:
     if isinstance(value, pd.DataFrame):
         frame = value.copy()
     elif isinstance(value, Mapping):
-        frame = pd.DataFrame([dict(value)])
+        frame = pd.DataFrame([dict(value)], dtype=dtype)
     elif isinstance(value, (list, tuple)):
-        frame = pd.DataFrame(value)
+        frame = pd.DataFrame(value, dtype=dtype)
     else:
         frame = pd.DataFrame({"数值": [value]})
     frame = frame.dropna(how="all").reset_index(drop=True)
@@ -64,31 +65,62 @@ def prepare_tables(
         if name in used:
             raise ValueError(f"工作表名称重复: {name}")
         used.add(name)
-        prepared.append((name, _as_frame(value, allow_empty=allow_empty)))
+        # Preserve Excel's distinction between a blank return and a non-finite number.
+        dtype = "object" if name == "核心指标" else None
+        prepared.append((name, _as_frame(value, allow_empty=allow_empty, dtype=dtype)))
     return prepared
+
+
+def _worksheet_values(worksheet) -> list[tuple]:
+    if worksheet.title != "核心指标":
+        return list(worksheet.iter_rows(values_only=True))
+    rows = []
+    for row in worksheet.iter_rows():
+        for cell in row:
+            if cell.data_type == "e":
+                raise ValueError(f"核心指标单元格 {cell.coordinate} 含 Excel 错误值 {cell.value}")
+        rows.append(tuple(cell.value for cell in row))
+    return rows
+
+
+def _worksheet_headers(rows: list[tuple]) -> list[str]:
+    headers = ["" if value is None else str(value).strip() for value in rows[0]]
+    while headers and not headers[-1] and all(
+        len(row) < len(headers) or row[len(headers) - 1] in (None, "") for row in rows[1:]
+    ):
+        headers.pop()
+    return headers
+
+
+def _check_optional_metric_formulas(source: BinaryIO, headers: list[str], rows: list[tuple]) -> None:
+    """Excel's cached-value view represents uncalculated formulas and empty cells as None."""
+    if not {"数值", "是否必需"}.issubset(headers):
+        return
+    value = headers.index("数值")
+    required = headers.index("是否必需")
+    blanks = {number for number, row in enumerate(rows, 2) if row[required] is False and row[value] is None}
+    if not blanks:
+        return
+    with closing(load_workbook(source, read_only=True, data_only=False)) as book:
+        for number, (cell,) in enumerate(book["核心指标"].iter_rows(
+                min_row=2, max_row=max(blanks), min_col=value + 1, max_col=value + 1), 2):
+            if number in blanks and cell.data_type == "f":
+                raise ValueError(f"核心指标第 {number} 行的未计算公式不能登记为可选缺失")
 
 
 def read_workbook_tables(
     path: Path | bytes, *, only_sheets: set[str] | None = None, allow_empty: bool = False,
 ) -> dict[str, pd.DataFrame]:
-    workbook = load_workbook(io.BytesIO(path) if isinstance(path, bytes) else path,
-                             read_only=True, data_only=True)
+    source = io.BytesIO(path) if isinstance(path, bytes) else Path(path).open("rb")
     tables: dict[str, pd.DataFrame] = {}
-    try:
+    with source, closing(load_workbook(source, read_only=True, data_only=True)) as workbook:
         for worksheet in workbook.worksheets:
             if only_sheets is not None and worksheet.title not in only_sheets:
                 continue
-            rows = list(worksheet.iter_rows(values_only=True))
-            if not rows:
-                if allow_empty:
-                    tables[worksheet.title] = pd.DataFrame()
-                    continue
+            rows = _worksheet_values(worksheet)
+            if not rows and not allow_empty:
                 raise ValueError(f"工作表“{worksheet.title}”为空")
-            headers = ["" if value is None else str(value).strip() for value in rows[0]]
-            while headers and not headers[-1] and all(
-                len(row) < len(headers) or row[len(headers) - 1] in (None, "") for row in rows[1:]
-            ):
-                headers.pop()
+            headers = _worksheet_headers(rows) if rows else []
             if allow_empty and not headers:
                 tables[worksheet.title] = pd.DataFrame()
                 continue
@@ -96,6 +128,8 @@ def read_workbook_tables(
                 raise ValueError(f"工作表“{worksheet.title}”存在空字段名")
             if len(headers) != len(set(headers)):
                 raise ValueError(f"工作表“{worksheet.title}”包含重复字段")
+            if worksheet.title == "核心指标":
+                _check_optional_metric_formulas(source, headers, rows[1:])
             data = [
                 tuple(row[: len(headers)])
                 for row in rows[1:]
@@ -103,9 +137,8 @@ def read_workbook_tables(
             ]
             if not data and not allow_empty:
                 raise ValueError(f"工作表“{worksheet.title}”为空")
-            tables[worksheet.title] = pd.DataFrame(data, columns=headers)
-    finally:
-        workbook.close()
+            dtype = "object" if worksheet.title == "核心指标" else None
+            tables[worksheet.title] = pd.DataFrame(data, columns=headers, dtype=dtype)
     return tables
 
 
@@ -196,6 +229,80 @@ def _check_finite_numbers(sheet: str, frame: pd.DataFrame) -> None:
             raise ValueError(f"工作表“{sheet}”的数值字段“{column}”包含 NaN 以外的非有限值")
 
 
+def _blank_cell(value: Any) -> bool:
+    return pd.api.types.is_scalar(value) and (pd.isna(value) or isinstance(value, str) and not value.strip())
+
+
+def _finite_number(value: Any) -> bool:
+    return isinstance(value, Real) and not isinstance(value, bool) and math.isfinite(value)
+
+
+def _metric_rows(sheet: str, frame: pd.DataFrame):
+    for index, row in enumerate(frame.to_dict("records"), start=2):
+        metric = row["指标"]
+        location = f"{sheet}第 {index} 行（{metric}）"
+        if not isinstance(metric, str) or not _substantive(metric):
+            raise ValueError(f"{location} 缺少有效指标名称")
+        yield location, row
+
+
+def _check_core_metrics(frame: pd.DataFrame) -> None:
+    observed = False
+    for location, row in _metric_rows("核心指标", frame):
+        role = row.get("值类型")
+        role = "数值" if _blank_cell(role) else role
+        if role not in ("数值", "逻辑", "文本"):
+            raise ValueError(f"{location} 值类型必须为数值、逻辑或文本")
+        required = row.get("是否必需")
+        if not _blank_cell(required) and not isinstance(required, bool):
+            raise ValueError(f"{location} 是否必需必须为布尔值")
+        value = row["数值"]
+        if isinstance(value, Real) and not math.isfinite(value):
+            raise ValueError(f"{location} 含非有限值，不能登记为可选缺失")
+        if _blank_cell(value):
+            if required is not False:
+                raise ValueError(f"{location} 缺少必需的指标值")
+            reason = row.get("缺失原因")
+            if (not isinstance(reason, str) or not _substantive(reason)
+                    or reason.strip().casefold() in {"无", "无缺失", "缺失", "数据缺失", "missing", "no missing"}):
+                raise ValueError(f"{location} 可选缺失必须在本行登记具体缺失原因")
+            continue
+        if role == "数值" and not _finite_number(value):
+            raise ValueError(f"{location} 数值须为有限数，布尔值和字符串不能替代")
+        if role == "逻辑" and not isinstance(value, bool):
+            raise ValueError(f"{location} 逻辑指标须为布尔值")
+        if role == "文本" and not (isinstance(value, str) and _substantive(value)):
+            raise ValueError(f"{location} 文本指标须为非占位的文字")
+        observed = True
+    if not observed:
+        raise ValueError("核心指标至少需要一条有实际观测的指标")
+
+
+def _check_interval_basis(row: Mapping[str, Any], field: str, location: str) -> None:
+    shared = row.get(field)
+    lower = row.get("下界" + field)
+    upper = row.get("上界" + field)
+    if _blank_cell(lower) and _blank_cell(upper):
+        return
+    lower = shared if _blank_cell(lower) else lower
+    upper = shared if _blank_cell(upper) else upper
+    declared = [lower, upper] if _blank_cell(shared) else [shared, lower, upper]
+    if (not all(isinstance(value, str) and _substantive(value) for value in declared)
+            or len({value.strip() for value in declared}) != 1):
+        raise ValueError(f"{location} 的上下界{field}必须一致且可识别")
+
+
+def _check_uncertainty_intervals(frame: pd.DataFrame) -> None:
+    for location, row in _metric_rows("不确定性区间", frame):
+        lower, upper = row["下界"], row["上界"]
+        if not _finite_number(lower) or not _finite_number(upper):
+            raise ValueError(f"{location} 的上下界必须为有限数")
+        if lower > upper:
+            raise ValueError(f"{location} 的下界不得大于上界")
+        _check_interval_basis(row, "单位", location)
+        _check_interval_basis(row, "统计口径", location)
+
+
 def _as_bool(value: Any) -> bool | None:
     if isinstance(value, bool):
         return value
@@ -240,6 +347,13 @@ def _check_missing_value_audit(prepared: Sequence[tuple[str, pd.DataFrame]], kin
         if name == "数据审计":
             continue
         missing = frame.isna()
+        if name == "核心指标":
+            # Per-row role, presence and omission reasons were checked together.
+            missing = missing.drop(columns=["数值", "值类型", "是否必需", "缺失原因"], errors="ignore")
+            if "单位" in missing and "值类型" in frame:
+                missing.loc[frame["值类型"].isin(["逻辑", "文本"]), "单位"] = False
+        if name == "不确定性区间":
+            missing = missing.drop(columns=["下界单位", "上界单位", "下界统计口径", "上界统计口径"], errors="ignore")
         if name == "主结果质量门" and {"单位", "判定关系"}.issubset(frame.columns):
             logical_rows = frame["判定关系"].astype(str).str.strip().eq("bool_true")
             missing.loc[logical_rows, "单位"] = False  # A logical criterion has no unit.
@@ -574,6 +688,10 @@ def validate_tables(
     for name, frame in prepared:
         if name in sheet_schemas:
             _check_required_columns(name, frame, sheet_schemas[name])
+        if kind == "solution" and name == "核心指标":
+            _check_core_metrics(frame)
+        if kind == "solution" and name == "不确定性区间":
+            _check_uncertainty_intervals(frame)
         _check_record_keys(name, frame)
         _check_finite_numbers(name, frame)
         _check_residual_consistency(name, frame)
