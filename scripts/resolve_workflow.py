@@ -214,6 +214,25 @@ def matched_inference_keywords(request: str, router: dict[str, Any]) -> dict[str
     return matches
 
 
+def figure_uses_numerical_evidence(clause, policy):
+    """Inspect what an encoding represents; the drawing's physical dimensions are presentation."""
+    clause = re.sub(policy["negated_mapping"], "", clause, flags=re.IGNORECASE)
+    if re.search(policy["numerical_evidence"], clause, re.IGNORECASE):
+        return True
+    for pattern in policy["visual_mapping"]:
+        mapping = re.search(pattern, clause, re.IGNORECASE)
+        if mapping:
+            target = mapping["target"].strip(" 。.,")
+            if not any(re.fullmatch(policy[key], target, re.IGNORECASE)
+                       for key in ("categorical_target", "symbolic_target")):
+                return True
+    content = re.sub(policy["layout_value"], "", clause, flags=re.IGNORECASE)
+    if re.search(policy["scalar_assignment"], content, re.IGNORECASE):
+        return True
+    return bool(re.search(policy["annotation"], content, re.IGNORECASE)
+                and re.search(policy["observation_source"], content, re.IGNORECASE))
+
+
 def figure_request_outputs(request, policy):
     """Bind recognized physical figures to their own evidence level and stated question."""
     if not request or not policy:
@@ -225,8 +244,11 @@ def figure_request_outputs(request, policy):
         return None
     mechanism = re.search(policy["mechanism_figure"], text, re.IGNORECASE)
     result = re.search(policy["result_figure"], text, re.IGNORECASE)
-    encoding = re.search(policy["numerical_evidence"], text, re.IGNORECASE)
-    if not mechanism or not (result or encoding):
+    if not mechanism:
+        return None
+    clauses = re.split(r"[。；;，,!?！？]|(?<![0-9])\.(?![0-9])", text)
+    encoded = [clause for clause in clauses if figure_uses_numerical_evidence(clause, policy)]
+    if not (result or encoded):
         return None
 
     questions = list(re.finditer(policy["question"], text, re.IGNORECASE))
@@ -261,12 +283,11 @@ def figure_request_outputs(request, policy):
 
     # A result caption can have its own encoding. All unassigned numerical
     # encodings conservatively qualify the mechanism as numerical as well.
-    mechanism_numeric = False
-    for clause in re.split(r"[。；;，,]", text):
-        if re.search(policy["numerical_evidence"], clause, re.IGNORECASE):
-            if (re.search(policy["mechanism_figure"], clause, re.IGNORECASE)
-                    or not re.search(policy["result_figure"], clause, re.IGNORECASE)):
-                mechanism_numeric = True
+    mechanism_numeric = any(
+        re.search(policy["mechanism_figure"], clause, re.IGNORECASE)
+        or not re.search(policy["result_figure"], clause, re.IGNORECASE)
+        for clause in encoded
+    )
     return "separate", [("mechanism", "figures" if mechanism_numeric else "mechanism", mechanism_q),
                         ("result", "figures", result_q)]
 

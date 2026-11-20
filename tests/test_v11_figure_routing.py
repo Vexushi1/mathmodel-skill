@@ -116,6 +116,44 @@ class FigureRoutingTests(unittest.TestCase):
                         self.assertEqual([g["delivery_scope"] for g in plan["pre_delivery_gates"]
                                           if g["name"] == "project_sync"], ["figures"])
 
+    def test_physical_encodings_require_current_results_but_layout_and_symbols_do_not(self):
+        numerical = (
+            "在可编辑机理图上标出平均成本为 25.5 元。",
+            "绘制机制图，图中平均成本为 25.5 元。",
+            "画张可编辑机理图，用圆的面积表示各站点 2024 年的年吞吐量。",
+            "做一张可编辑机理图，箭头旁写上各运输线路的实测货运量。",
+            "把已求出的最优分配量标到可编辑机理图的连线上。",
+            "在可编辑机理图里用节点大小表示综合指标。",
+            "Draw an editable mechanism diagram. Use node area to encode annual output.",
+            "Draw an editable mechanism diagram, annotate each edge with its computed allocation.",
+            "Draw an editable mechanism diagram. Label the unit cost at $25.50.",
+        )
+        qualitative = (
+            "画可编辑机理图，用颜色区分节点类别。",
+            "画可编辑机理图，标注符号 x_i 和 y_2。不要用面积表示年吞吐量。",
+            "可编辑机理图用 A4 画布和 2 个面板，标注网格线宽为 2 pt。",
+            "画可编辑机理图，标注固定坐标轴宽度为 5 cm。",
+            "Draw an editable mechanism diagram. Use color to distinguish node types.",
+            "Draw an editable mechanism diagram. Label the font size as 12 pt.",
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp).resolve()
+            fixtures.MechanismScopeTests().make_project(root)
+            for request in numerical:
+                with self.subTest(request=request):
+                    plan = resolve_runtime(request=request, question="Q1", project_root=root)
+                    group = plan["figure_composition"]
+                    self.assertEqual(group["layout"], "single_numeric")
+                    row, = group["deliveries"]
+                    self.assertEqual(row["delivery_scope"], "figures")
+                    self.assertEqual(row["evidence_status"], "missing_current_inputs")
+                    self.assertIn("accepted_solution_workbook", row["missing_verified_artifacts"])
+            for request in qualitative:
+                with self.subTest(request=request):
+                    plan = resolve_runtime(request=request, question="Q1", project_root=root)
+                    self.assertNotIn("figure_composition", plan)
+                    self.assertEqual(plan["delivery_scope"], "mechanism")
+
     def test_other_positive_actions_and_negative_figure_mentions_keep_their_boundary(self):
         for request, intent in (("先验收工作簿，再画机理图与敏感性曲线。", "returned_workbook_validation"),
                                 ("请做敏感性分析，再绘制机理图与敏感性曲线。", "result_analysis")):
