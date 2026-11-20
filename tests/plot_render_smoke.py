@@ -11,6 +11,7 @@ from unittest import mock
 from urllib.parse import quote
 import warnings
 from xml.etree import ElementTree
+from zipfile import ZipFile
 
 import matplotlib
 matplotlib.use("Agg")
@@ -181,6 +182,76 @@ class PlotRenderingSmoke(unittest.TestCase):
                     assert_svg_labels(self, output, labels, family)
                 finally:
                     plt.close("all")
+
+    def test_selected_formula_cache_and_true_blank_in_both_templates(self):
+        plot, prep = module("q1_plot"), module("data_process")
+        sheet = "逐时结果"
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "source.xlsx"
+            self._book(path, ["t", "before", "after", "explore"], [
+                [0, 0, 3, "=1+2"], [1, None, None], [2, "=1+2", "=1-1"],
+            ])
+            # openpyxl writes formulas without results. Insert genuine OOXML numeric caches.
+            cached = path.with_name("cached.xlsx")
+            with ZipFile(path) as src, ZipFile(cached, "w") as target:
+                for entry in src.infolist():
+                    data = src.read(entry)
+                    if entry.filename == "xl/worksheets/sheet1.xml":
+                        xml = ElementTree.fromstring(data)
+                        for coordinate, value in (("B4", "3"), ("C4", "0")):
+                            cell = xml.find(f".//{{*}}c[@r='{coordinate}']")
+                            self.assertIsNotNone(cell.find("{*}f"))
+                            cell.find("{*}v").text = value
+                        data = ElementTree.tostring(xml)
+                    target.writestr(entry, data)
+            for header, expected in [("before", [0, np.nan, 3]), ("after", [3, np.nan, 0])]:
+                with self.subTest(header=header):
+                    x, y = plot.read_xy(cached, sheet, "t", header, allow_y_missing=True)
+                    np.testing.assert_array_equal(x, [0, 1, 2])
+                    np.testing.assert_array_equal(y, expected)
+            x, before, after = prep.read_before_after(cached, sheet, "t", "before", "after",
+                                                       allow_missing_headers=("before", "after"))
+            np.testing.assert_array_equal(x, [0, 1, 2])
+            np.testing.assert_array_equal(before, [0, np.nan, 3])
+            np.testing.assert_array_equal(after, [3, np.nan, 0])
+
+    def test_sparse_sheet_without_dimensions_preserves_a_trailing_blank(self):
+        plot, prep = module("q1_plot"), module("data_process")
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "streamed.xlsx"
+            book = Workbook(write_only=True)
+            sheet = book.create_sheet("trace")
+            sheet.append(["t", "before", "after"])
+            sheet.append([0, 0, 3])
+            sheet.append([1, 2])
+            book.save(path)
+            _, y = plot.read_xy(path, "trace", "t", "after", allow_y_missing=True)
+            _, _, after = prep.read_before_after(path, "trace", "t", "before", "after",
+                                                 allow_missing_headers=("after",))
+            np.testing.assert_array_equal(y, [3, np.nan])
+            np.testing.assert_array_equal(after, [3, np.nan])
+
+    def test_uncached_formula_identifies_the_selected_coordinate_and_layer(self):
+        plot, prep = module("q1_plot"), module("data_process")
+        sheet = "逐时结果"
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "uncached.xlsx"
+            for column, header in enumerate(("t", "before", "after")):
+                with self.subTest(header=header):
+                    row = [1, 2, 3]
+                    row[column] = "=1+2"
+                    self._book(path, ["t", "before", "after"], [[0, 0, 0], row])
+                    where = f"{sheet}!{'ABC'[column]}3.*{header}, row 3.*numeric cache.*plot layer "
+                    series = "after" if column == 2 else "before"
+                    with self.assertRaisesRegex(ValueError, where + series):
+                        plot.read_xy(path, sheet, "t", series, allow_y_missing=True)
+                    prep_layer = "before/after" if column == 0 else header
+                    with self.assertRaisesRegex(ValueError, where + prep_layer):
+                        prep.read_before_after(path, sheet, "t", "before", "after",
+                                               allow_missing_headers=("before", "after"))
+                    if column == 1:
+                        _, unaffected = plot.read_xy(path, sheet, "t", "after")
+                        np.testing.assert_array_equal(unaffected, [0, 3])
 
     def test_raw_duplicate_headers_do_not_get_silently_renamed(self):
         plot = module("q1_plot")

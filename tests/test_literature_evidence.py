@@ -72,6 +72,26 @@ class LiteratureEvidenceContractTests(unittest.TestCase):
         self.assertEqual(r["human_model_approval"], "not_granted")
         self.assertEqual(r["numerical_acceptance"], "not_granted")
 
+    def test_explicit_retraction_follows_the_linked_source_and_method_use(self):
+        item = self.report()
+        source, method = item["sources"][0], item["methods"][0]
+        source.update(is_retracted=True, origin="user_supplied")
+        item["sources"].append(dict(source, id="L2", is_retracted=False))
+        item["methods"].append(dict(method, id="M2", source_id="L2"))
+        for action in ("adopt_as_basis", "adapt_to_problem", "use_as_comparator", "use_for_validation"):
+            with self.subTest(action=action):
+                method["disposition"] = action
+                self.assertEqual(self.module.validate_report(item)["issues"],
+                                 [f"method:M1:source:L1:retracted_for:{action}"])
+        for action in ("reference_only", "reject", "insufficient_evidence"):
+            with self.subTest(action=action):
+                method["disposition"] = action
+                self.assertEqual(self.module.validate_report(item)["status"], "passed")
+        del source["is_retracted"]
+        method["disposition"] = "adapt_to_problem"
+        self.assertEqual(self.module.validate_report(item)["status"], "passed")
+        self.assertNotIn("is_retracted", source)
+
     def test_abstract_does_not_verify_adopted_equation(self):
         item = self.report()
         item["sources"][0].update(evidence_level="E1", access_level="abstract")

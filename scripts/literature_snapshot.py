@@ -19,7 +19,7 @@ import stat
 import sys
 from typing import Any
 
-from literature_evidence import EvidenceError, read_report, validate_report
+from literature_evidence import SUBSTANTIVE_DISPOSITIONS, EvidenceError, read_report, validate_report
 
 QUESTION = re.compile(r"^Q[1-9][0-9]*$")
 DIGEST = re.compile(r"^[0-9a-f]{64}$")
@@ -286,8 +286,7 @@ def inspect(root: str | Path, question: str) -> dict[str, Any]:
         for method in payload["methods"]:
             src = source_map.get(method["source_id"])
             if (src and src.get("evidence_level") in {"E2", "E3"}
-                    and method.get("disposition") in {"adopt_as_basis", "adapt_to_problem",
-                                                      "use_as_comparator", "use_for_validation"}):
+                    and method.get("disposition") in SUBSTANTIVE_DISPOSITIONS):
                 citations.append({"method_id": method["id"], "source_id": src["id"],
                                   "doi": src.get("doi"), "source_url": src["source_url"],
                                   "declared_anchor": src.get("method_anchor"),
