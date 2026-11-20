@@ -85,6 +85,29 @@ class HistoricalProjectionTests(unittest.TestCase):
                         self.assertEqual(changes_after_mutation, [])
             self.assertEqual(after, saved)
 
+    def test_p3_default_tuple_rejects_mixed_reader_generations_and_opt_in(self):
+        after = plan_evidence.worker(ROOT, 0)
+        current = plan_evidence.legacy_projection(after["plan"])
+        versions = after["authority_versions"]
+        published = {
+            "scripts/resolve_runtime.py": "a894882de3bd0f0037575adbe13d457ac636d5d87924c2857a3cb7c883442f7c",
+            "scripts/reading_plan.py": "eaf7b917dee8726cfc0fa88aa4e2e9018f670201f86d7dd51c8b43ba60e20d53",
+            "scripts/read_stage.py": "3ba04f8d8798ea08155df64546cc1074489241c4fdfd81d8522df15ae9d0b86d",
+        }
+        for count in range(1, len(published) + 1):
+            for paths in itertools.combinations(published, count):
+                with self.subTest(replaced=paths):
+                    changed = deepcopy(current)
+                    for row in changed["assurance"]["authority_fingerprint"]["sources"]:
+                        if row["path"] in paths:
+                            row["sha256"] = published[row["path"]]
+                    self.assertEqual(plan_evidence.runtime_consistency_predecessor(
+                        after["id"], changed, versions), (changed, []))
+        selected = deepcopy(current)
+        selected["startup_reading"] = {"selector": "v11_full_read", "status": "selection_only"}
+        self.assertEqual(plan_evidence.runtime_consistency_predecessor(
+            after["id"], selected, versions), (selected, []))
+
     def test_v10290_model_intake_is_not_legacy_approved_by_version_only(self):
         after = plan_evidence.worker(ROOT, 0)
         current = plan_evidence.legacy_projection(after["plan"])
@@ -110,7 +133,8 @@ class HistoricalProjectionTests(unittest.TestCase):
         sources = old_carrier["plan"]["assurance"]["authority_fingerprint"]["sources"]
         pinned = plan_evidence.RUNTIME_CONSISTENCY_PROJECTION["fingerprint"]["candidate"]
         for path in ("core/output_contract.yaml", "core/user_execution_contract.yaml",
-                     "scripts/resolve_runtime.py", "scripts/resolve_workflow.py"):
+                     "scripts/resolve_runtime.py", "scripts/resolve_workflow.py",
+                     "scripts/reading_plan.py", "scripts/read_stage.py"):
             actual_row = [row for row in sources if row["path"] == path]
             pinned_row = [row for row in pinned if row["path"] == path]
             self.assertEqual((len(actual_row), len(pinned_row)), (1, 1), path)
