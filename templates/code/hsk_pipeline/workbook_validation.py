@@ -131,13 +131,11 @@ def read_workbook_tables(
                 raise ValueError(f"工作表“{worksheet.title}”存在空字段名")
             if len(headers) != len(set(headers)):
                 raise ValueError(f"工作表“{worksheet.title}”包含重复字段")
+            width = len(headers)
+            records = [row[:width] + (None,) * (width - len(row)) for row in rows[1:]]
             if worksheet.title == "核心指标":
-                _check_optional_metric_formulas(source, headers, rows[1:])
-            data = [
-                tuple(row[: len(headers)])
-                for row in rows[1:]
-                if any(value is not None for value in row[: len(headers)])
-            ]
+                _check_optional_metric_formulas(source, headers, records)
+            data = [row for row in records if any(value is not None for value in row)]
             if not data and not allow_empty:
                 raise ValueError(f"工作表“{worksheet.title}”为空")
             dtype = "object" if worksheet.title == "核心指标" else None

@@ -186,6 +186,35 @@ class TestResultIO(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "实际观测"):
             MOD.validate_workbook_tables(tables, "solution")
 
+    def test_streamed_core_metric_rows_can_omit_trailing_optional_cells(self):
+        for case in ("optional_blank", "optional_formula", "default_required"):
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as directory:
+                path = Path(directory) / "问题一求解结果.xlsx"
+                workbook = openpyxl.Workbook(write_only=True)
+                metrics = workbook.create_sheet("核心指标")
+                metrics.append(["指标", "是否必需", "缺失原因", "数值", "值类型"])
+                metrics.append(["观测", None, None, 0])
+                # Streaming writers omit trailing cells, including the blank optional value.
+                row = ["不可得", False, "通道未安装"]
+                if case == "optional_formula":
+                    row.append("=1+1")
+                metrics.append(["默认必需"] if case == "default_required" else row)
+                for name, table in self.solution_tables().items():
+                    if name != "核心指标":
+                        sheet = workbook.create_sheet(name)
+                        sheet.append(table.columns.tolist())
+                        for values in table.itertuples(index=False, name=None):
+                            sheet.append(values)
+                workbook.save(path)
+                workbook.close()
+                if case == "optional_blank":
+                    metrics = dict(MOD.validate_workbook_file(path, "solution"))["核心指标"]
+                    self.assertEqual(metrics["数值"].tolist(), [0, None])
+                else:
+                    expected = "未计算公式" if case == "optional_formula" else "默认必需.*缺少必需"
+                    with self.assertRaisesRegex(ValueError, expected):
+                        MOD.validate_workbook_file(path, "solution")
+
     def test_interval_endpoints_share_a_basis_and_are_finite_ordered_numbers(self):
         tables = self.solution_tables()
         for lower, upper in ((0, 1), (-4, -1), (0, 0)):
