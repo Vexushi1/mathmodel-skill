@@ -56,12 +56,12 @@ def framework(identity, specs=None):
     return text
 
 
-def prepare_project(root, backend):
+def prepare_project(root, backend, payload=PAYLOAD):
     root.mkdir(parents=True, exist_ok=True)
     if (root / "state/project_state.yaml").exists():
         raise ValueError("Use a fresh isolated repository-fixture directory")
     (root / QUESTION).mkdir()
-    (root / "input.json").write_text(json.dumps(PAYLOAD), encoding="utf-8")
+    (root / "input.json").write_text(json.dumps(payload), encoding="utf-8")
     identity = model_identity()
     digest = semantic_identity.semantic_identity_hash(identity)
     text = framework(identity)
@@ -105,7 +105,8 @@ def comparison_scope(identity, backend):
             "questions": questions}
 
 
-def activate_comparison(root, state, backend):
+def activate_comparison(root, state, backend, payload=PAYLOAD):
+    holdout = payload["scenarios"].index("holdout")
     entry = state["subproblems"]["Q1"]
     specs = comparison_scope(model_identity(), backend)
     scope_hash = comparison.scope_sha256(specs)
@@ -119,7 +120,7 @@ def activate_comparison(root, state, backend):
     for scoped in specs["questions"]:
         model = scoped["kind"] == "model_comparison"
         sheet = "多模型检验" if model else "同模型多算法检验"
-        key = "model-4" if model else "algorithm-4"
+        key = f"model-{holdout}" if model else f"algorithm-{holdout}"
         keys = {"检验ID": scoped["id"], "记录键": key, "评价协议ID": scoped["evaluation"]["id"]}
         criterion_id = f"CRIT-{scoped['id']}"
         keys.update({"差异类型": "difference", "判据ID": criterion_id})
@@ -127,7 +128,7 @@ def activate_comparison(root, state, backend):
             "模型ID": "MODEL-Q1-01", "基准算法ID": "ALGO-Q1-01", "对照算法ID": "ALGO-Q1-02"})
         identities = {"metric": "指标", "scenario": "实例或场景", "model" if model else "algorithm": "对照模型ID" if model else "对照算法ID"}
         evidence = {"id": key, "candidate_ref": scoped["candidate_refs"][0],
-                    "baseline": {"source": "primary", "selector": selector("状态明细", {"记录键": "prediction-4"}, "数值", {"metric": "指标", "scenario": "实例或场景"})},
+                    "baseline": {"source": "primary", "selector": selector("状态明细", {"记录键": f"prediction-{holdout}"}, "数值", {"metric": "指标", "scenario": "实例或场景"})},
                     "candidate": {"source": "analysis", "selector": selector(sheet, keys, "对照模型数值" if model else "对照数值", identities)},
                     "reported_baseline": {"source": "analysis", "selector": selector(sheet, keys, "主模型数值" if model else "基准数值",
                         identities | {"model" if model else "algorithm": "主模型ID" if model else "基准算法ID"})},
@@ -136,7 +137,7 @@ def activate_comparison(root, state, backend):
         evidence_refs = [evidence]
         if not model:
             evidence_refs = []
-            for index in range(len(PAYLOAD["evaluation_t"])):
+            for index in range(len(payload["evaluation_t"])):
                 record = deepcopy(evidence)
                 record["id"] = f"algorithm-{index}"
                 record["baseline"]["selector"]["row_key"]["记录键"] = f"prediction-{index}"
@@ -187,7 +188,7 @@ def instantiate(root, backend, stage, state, plan_hash=None):
     return code, config
 
 
-def execute_stage(root, backend, code, stage, matlab_command):
+def execute_stage(root, backend, code, stage, matlab_command, *, expected_error=None):
     if backend == "python":
         command = [sys.executable, "-B", str(code)]
     else:
@@ -197,16 +198,20 @@ def execute_stage(root, backend, code, stage, matlab_command):
     executed = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", env={**os.environ, "PYTHONUTF8": "1"})
     log = executed.stdout + executed.stderr
     (root / f"{stage}_native.log").write_text(log, encoding="utf-8")
-    assert executed.returncode == 0, log
+    if expected_error:
+        assert executed.returncode != 0 and expected_error in log, log
+    else:
+        assert executed.returncode == 0, log
     return executed.returncode
 
 
-def run_smoke(root, backend, matlab_command=None):
-    state = prepare_project(root, backend)
+def run_valid_case(root, backend, matlab_command, payload):
+    holdout = payload["scenarios"].index("holdout")
+    state = prepare_project(root, backend, payload)
     outcomes, primary_bytes, plan_hash = [], None, None
     for stage in ("primary", "analysis"):
         if stage == "analysis":
-            plan_hash = activate_comparison(root, state, backend)
+            plan_hash = activate_comparison(root, state, backend, payload)
         code, config = instantiate(root, backend, stage, state, plan_hash)
         native = {}
         errors, parsed = delivery.validate_script(root, code, stage, matlab_command=matlab_command,
@@ -245,14 +250,22 @@ def run_smoke(root, backend, matlab_command=None):
             assert entry["semantic_identity_hash"] == entry["approved_semantic_identity_hash"] == entry["validated_semantic_identity_hash"]
         outcomes.append({"stage": stage, "native_exit": exit_code, "code_analyzer": native, "receipt_accepted": True})
         save_state(root, state)
+    primary = openpyxl.load_workbook(root / QUESTION / "问题一求解结果.xlsx", read_only=True, data_only=True)
+    try:
+        core_values = [value for metric, value in primary["核心指标"].values if metric == "留出预测"]
+        detail_values = [row[2] for row in primary["状态明细"].values if row[4] == "holdout" and row[5] == "prediction"]
+        assert len(core_values) == len(detail_values) == 1
+    finally:
+        primary.close()
     book = openpyxl.load_workbook(root / QUESTION / "问题一结果深化分析.xlsx", read_only=True, data_only=True)
     try:
         model_rows = list(book["多模型检验"].iter_rows(values_only=True))
         algorithm_rows = list(book["同模型多算法检验"].iter_rows(values_only=True))
         model = dict(zip(model_rows[0], model_rows[-1]))
         algorithm = dict(zip(algorithm_rows[0], algorithm_rows[-1]))
-        assert len(model_rows) == 2 and len(algorithm_rows) == len(PAYLOAD["evaluation_t"]) + 1
-        assert model["记录键"] == "model-4" and model["实例或场景"] == "holdout"
+        assert len(model_rows) == 2 and len(algorithm_rows) == len(payload["evaluation_t"]) + 1
+        assert model["记录键"] == f"model-{holdout}" and model["实例或场景"] == "holdout"
+        assert abs(core_values[0] - detail_values[0]) < 1e-10 and abs(core_values[0] - model["主模型数值"]) < 1e-10
         assert abs(model["主模型数值"] - 16) < 1e-10 and abs(model["对照模型数值"] - 11) < 1e-10
         assert abs(model["差异"] + 5) < 1e-10 and abs(algorithm["差异"]) <= 1e-10
     finally:
@@ -260,6 +273,8 @@ def run_smoke(root, backend, matlab_command=None):
     report = {"status": "passed", "backend": backend, "synthetic_only": True, "actual_python_execution": backend == "python",
               "actual_matlab_execution": backend == "matlab", "matlab_release": metadata.get("matlab_release") if backend == "matlab" else None,
               "primary_unchanged": True, "model_comparison_verified": True, "algorithm_comparison_verified": True,
+              "holdout_observations": {"evaluation_index": holdout, "primary_core": core_values[0],
+                                       "primary_detail": detail_values[0], "comparison_baseline": model["主模型数值"]},
               "linear_holdout_prediction": model["对照模型数值"], "quadratic_holdout_prediction": model["主模型数值"], "stages": outcomes}
     if backend == "matlab":
         assert report["matlab_release"] == "2024b", report
@@ -273,6 +288,26 @@ def run_smoke(root, backend, matlab_command=None):
         report["helper_drift_rejected"] = True
     finally:
         helper.write_bytes(original_helper)
+    return report
+
+
+def run_smoke(root, backend, matlab_command=None):
+    report = run_valid_case(root, backend, matlab_command, PAYLOAD)
+    reordered = deepcopy(PAYLOAD)
+    for key in ("scenarios", "evaluation_t"):
+        reordered[key] = reordered[key][-1:] + reordered[key][:-1]
+    permuted = run_valid_case(root / "reordered", backend, matlab_command, reordered)
+    report["reordered_holdout"] = permuted["holdout_observations"]
+    report["invalid_holdout_rejections"] = {}
+    for case, index, label in (("missing", -1, "extra-train"), ("duplicate", 0, "holdout")):
+        payload = deepcopy(PAYLOAD)
+        payload["scenarios"][index] = label
+        project = root / case
+        state = prepare_project(project, backend, payload)
+        code, config = instantiate(project, backend, "primary", state)
+        exit_code = execute_stage(project, backend, code, "primary", matlab_command, expected_error="Expected exactly one holdout scenario")
+        assert not (project / config["expected_workbook"]).exists()
+        report["invalid_holdout_rejections"][case] = exit_code
     (root / "comparison_smoke_report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     return report
 

@@ -18,6 +18,7 @@ class Value:
     unit: str
     identity: Mapping[str, Any]
     origins: frozenset[str]
+    operations: tuple[dict[str, str], ...] = ()
 
 _DECIMAL = re.compile(r'[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?\Z')
 
@@ -72,6 +73,8 @@ def converted(value: Value, target: str, contract: Mapping[str, Any]) -> Value:
 def _comparable(items: list[Value], axis: str) -> None:
     if axis == 'metric' or not axis or any(axis not in x.identity for x in items):
         raise EvidenceError('comparison axis must be observed and cannot be the metric')
+    if any(x.operations != items[0].operations for x in items):
+        raise EvidenceError('derived metric operations, axes, reducers or directions conflict')
     base = {k:v for k,v in items[0].identity.items() if k != axis}
     if any({k:v for k,v in x.identity.items() if k != axis} != base for x in items):
         raise EvidenceError('metric or noncomparison identity axes conflict')
@@ -83,6 +86,14 @@ def _comparable(items: list[Value], axis: str) -> None:
         if seen.intersection(item.origins):
             raise EvidenceError('duplicate physical observations cannot count as independent evidence')
         seen.update(item.origins)
+
+def _member_order(member: Any) -> tuple:
+    # Source axes contain text or exact numbers. Nested operations retain their input roles.
+    if isinstance(member, Mapping):
+        return (2, member['operation'], tuple(_member_order(x) for x in member['observations']))
+    if isinstance(member, str):
+        return (1, member)
+    return (0, member)
 
 def derive(node: Mapping[str, Any], args: Mapping[str, Any], contract: Mapping[str, Any]) -> Value:
     """Dispatch finite named operations. No executable expression language exists."""
@@ -117,6 +128,8 @@ def _derive(node: Mapping[str, Any], args: Mapping[str, Any], contract: Mapping[
     if any(x.kind != 'scalar' for x in items):
         raise NeedsReview('only identity is implemented for interval/categorical values')
     _comparable(items, axis)
+    if op == 'aggregate':
+        items = sorted(items, key=lambda item: _member_order(item.identity[axis]))
     first = items[0]
     aligned = [converted(x, first.unit, contract).value for x in items]
     unit = first.unit
@@ -154,9 +167,15 @@ def _derive(node: Mapping[str, Any], args: Mapping[str, Any], contract: Mapping[
                 if node['direction'] == 'lower':
                     output = -output
     identity = dict(first.identity)
-    identity[axis] = {'operation':op, 'observations':[x.identity[axis] for x in items]}
+    members = [x.identity[axis] for x in items]
+    operation = {'operation': op, 'axis': axis}
+    if op == 'aggregate':
+        operation['reducer'] = reducer
+    elif op == 'improvement':
+        operation['direction'] = node['direction']
+    identity[axis] = {'operation': op, 'observations': members}
     origins = frozenset().union(*(x.origins for x in items))
-    return Value('scalar',number(output,contract),unit,identity,origins)
+    return Value('scalar',number(output,contract),unit,identity,origins,(*first.operations, operation))
 
 def json_value(value: Any) -> Any:
     if isinstance(value, Decimal):
@@ -168,5 +187,6 @@ def json_value(value: Any) -> Any:
     return value
 
 def describe(value: Value) -> dict[str, Any]:
-    return {'value_type':value.kind,'value':json_value(value.value),'unit':value.unit,
+    return {**({'operations': list(value.operations)} if value.operations else {}),
+            'value_type':value.kind,'value':json_value(value.value),'unit':value.unit,
             'identity':json_value(value.identity),'physical_sources':sorted(value.origins)}

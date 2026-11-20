@@ -10,12 +10,14 @@ assert(strcmp(RUN_CONFIG.iteration_or_time_limit,'direct'), 'HSK:Policy', 'Use t
 rng(RUN_CONFIG.random_seed,'twister');
 started = tic;
 payload = read_model_input(root,RUN_CONFIG);
+holdout = find(string(payload.scenarios) == "holdout");
+assert(isscalar(holdout), 'HSK:Scenarios', 'Expected exactly one holdout scenario.');
 assert(numel(payload.scenarios) == numel(payload.evaluation_t) && ~isempty(payload.scenarios) && ...
     numel(unique(string(payload.scenarios))) == numel(payload.scenarios), ...
     'HSK:Scenarios', 'Every declared evaluation point needs one unique scenario.');
 if strcmp(RUN_CONFIG.stage,'primary')
     assert(strcmp(RUN_CONFIG.solver,'explicit_qr'), 'HSK:Solver', 'Wrong primary decomposition policy.');
-    [sheets,passed] = primary_tables(RUN_CONFIG,payload);
+    [sheets,passed] = primary_tables(RUN_CONFIG,payload,holdout);
     receipt = make_receipt(RUN_CONFIG,identity,toc(started),'all_declared_decompositions_completed',1);
     receipt.primary_quality_protocol_version = RUN_CONFIG.primary_quality_protocol_version;
 else
@@ -24,7 +26,7 @@ else
     primary = project_path(root,RUN_CONFIG.primary_workbook);
     assert(strcmpi(file_digest(primary),RUN_CONFIG.primary_workbook_sha256), 'HSK:Primary', 'Accepted primary workbook changed.');
     identity.primary_workbook_sha256 = file_digest(primary);
-    sheets = analysis_tables(root,RUN_CONFIG,payload);
+    sheets = analysis_tables(root,RUN_CONFIG,payload,holdout);
     passed = true; % Analysis conclusion is reviewed separately; source failure still throws.
     receipt = make_receipt(RUN_CONFIG,identity,toc(started),'all_declared_decompositions_completed',2);
     receipt.primary_workbook_sha256 = identity.primary_workbook_sha256;
@@ -42,7 +44,7 @@ write_workbook(workbook,sheets);
 assert(passed, 'HSK:Quality', 'The workbook records a failed primary numerical check.');
 end
 
-function [sheets,passed] = primary_tables(config,payload)
+function [sheets,passed] = primary_tables(config,payload,holdout)
 [coefficients,predictions,residual] = hsk_comparison_fit(payload.train_t,payload.train_y,2,"QR",payload.evaluation_t);
 rows = cell(numel(predictions)+numel(coefficients),6);
 for k = 1:numel(predictions)
@@ -52,7 +54,7 @@ for k = 1:numel(coefficients)
     rows(numel(predictions)+k,:) = {sprintf('coefficient-%d',k-1),'coefficient',coefficients(k),'dimensionless',sprintf('coefficient-%d',k-1),'coefficient'};
 end
 passed = residual <= config.tolerance;
-sheets = {'核心指标',{'指标','数值';'留出预测',predictions(end);'正规方程残差',residual}; ...
+sheets = {'核心指标',{'指标','数值';'留出预测',predictions(holdout);'正规方程残差',residual}; ...
     '数据审计',{'等级','检查项','信息','处理方式';'info','有限成对样本','完整原始训练和评价点','只读检查'}; ...
     '主结果质量门',{'Verification ID','检查项','是否通过','证据','判定关系','阈值或容差','实际值','证据工作表','阈值来源'; ...
       'PQ-Q1-01','最小二乘正规方程残差',passed,'从完整设计矩阵重算','abs<=',config.tolerance,residual,'均衡残差','solver_tolerance'}; ...
@@ -60,18 +62,21 @@ sheets = {'核心指标',{'指标','数值';'留出预测',predictions(end);'正
     '状态明细',[{'记录键','状态','数值','单位','实例或场景','指标'};rows]};
 end
 
-function sheets = analysis_tables(root,config,payload)
+function sheets = analysis_tables(root,config,payload,holdout)
 raw = readcell(project_path(root,config.primary_workbook),'Sheet','状态明细');
 headers = string(raw(1,:));
-keyColumn = find(headers == "记录键");
+metricColumn = find(headers == "指标");
+scenarioColumn = find(headers == "实例或场景");
 valueColumn = find(headers == "数值");
-assert(isscalar(keyColumn) && isscalar(valueColumn), 'HSK:Headers', 'Primary headers are missing or duplicated.');
-keys = string(raw(2:end,keyColumn));
+assert(isscalar(metricColumn) && isscalar(scenarioColumn) && isscalar(valueColumn), 'HSK:Headers', 'Primary headers are missing or duplicated.');
+predicted = string(raw(2:end,metricColumn)) == "prediction";
+scenarios = string(raw(2:end,scenarioColumn));
 count = numel(payload.evaluation_t);
+assert(nnz(predicted) == count, 'HSK:Primary', 'Expected one primary prediction per declared scenario.');
 baseline = zeros(count,1);
 for k = 1:count
-    selected = find(keys == sprintf('prediction-%d',k-1));
-    assert(isscalar(selected), 'HSK:Primary', 'Primary prediction key is missing or duplicated.');
+    selected = find(predicted & scenarios == string(payload.scenarios{k}));
+    assert(isscalar(selected), 'HSK:Primary', 'Primary prediction scenario is missing or duplicated.');
     baseline(k) = raw{selected+1,valueColumn};
 end
 [~,linear,linearResidual] = hsk_comparison_fit(payload.train_t,payload.train_y,1,"QR",payload.evaluation_t);
@@ -81,7 +86,7 @@ algorithms = cell(count,19);
 for k = 1:count
     modelDifference = linear(k)-baseline(k);
     algorithmDifference = svdPrediction(k)-baseline(k);
-    if strcmp(payload.scenarios{k}, 'holdout')
+    if k == holdout
         models(1,:) = {'CMP-Q1-01',sprintf('model-%d',k-1),'MODEL-Q1-01','MODEL-Q1-02','EVAL-Q1-01',payload.scenarios{k}, ...
             'prediction','dimensionless',baseline(k),linear(k),'difference',modelDifference,'CRIT-CMP-Q1-01', ...
             abs(modelDifference)>=payload.model_difference_threshold,linearResidual,char("QR/MATLAB " + string(version)),'decomposition_completed'};
