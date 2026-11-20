@@ -34,7 +34,7 @@ AUTHORITIES = (
     "scripts/claim_workbook.py", "scripts/claim_values.py", "scripts/execution_protocol.py",
     "scripts/validate_model_approval.py", "scripts/semantic_identity.py", "scripts/run_config_parser.py",
     "scripts/stage_code.py", "scripts/stage_inputs.py", safe_yaml.SOURCE_RELATIVE_PATH,
-    "scripts/state_transitions.py", "core/state_transition_contract.yaml",
+    "scripts/state_transitions.py", "scripts/validate_semantic_governance.py", "core/state_transition_contract.yaml",
     "templates/code/hsk_pipeline/workbook_validation.py",
 )
 AUTHORIZATION_FIELDS = (
@@ -335,7 +335,8 @@ def inspect_gate(root: Path, state: Mapping[str, Any], question: str, *, boundar
             review = evaluate_gate(root, gate="model_challenge", questions=[question], comparison_scope=True)
             CONFORMANCE.merge_read_sets(observed, review["observed_sources"])
         approval_issues = validate_comparison_approval(
-            root, state, entry, question, specs=framework.decode("utf-8"), review_report=review)
+            root, captured_state, captured_entry, question, specs=framework.decode("utf-8"), review_report=review,
+            transition_contract=safe_yaml.safe_load(authorities["core/state_transition_contract.yaml"]))
         result["issues"].extend(approval_issues)
         if boundary == "accepted_result" and analysis_bytes is None:
             relative = entry.get("result_analysis_workbook")

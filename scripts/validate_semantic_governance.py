@@ -6,7 +6,7 @@ import argparse
 from copy import deepcopy
 import sys
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Iterable, Mapping
 
 import yaml
 
@@ -16,6 +16,9 @@ if SCRIPT_DIR not in sys.path:
 
 from semantic_identity import (  # noqa: E402
     SemanticIdentityError,
+    dependency_alignment_issues,
+    past_approval_conflict,
+    validated_semantic_changes,
     is_semantic_revision,
     semantic_revision_issues,
     inspect_question_semantics,
@@ -153,6 +156,20 @@ def _legacy_write_issue(question: str) -> str:
     )
 
 
+def apply_semantic_transitions(
+    state: dict[str, Any], sources: Iterable[str], contract: Mapping[str, Any]
+) -> list[dict[str, Any]]:
+    """Apply the authority's typed transition to each source in the supplied state."""
+    reports = []
+    for question in sorted(set(sources)):
+        entry = state["subproblems"][question]
+        reports.append(STATE_TRANSITIONS.apply_transition(
+            state, event="semantic_identity_changed", source_question=question, contract=contract,
+            context={"semantic_change_categories": list(entry.get("semantic_change_categories") or [])},
+        ))
+    return reports
+
+
 def validate_project(root: Path, *, write: bool, strict: bool) -> dict[str, Any]:
     state_path = root / "state" / "project_state.yaml"
     framework_path = root / "模型论文框架.md"
@@ -198,6 +215,7 @@ def validate_project(root: Path, *, write: bool, strict: bool) -> dict[str, Any]
     identity_modes: dict[str, str] = {}
     changed_sources: set[str] = set()
     text_changed_sources: set[str] = set()
+    invalid_baselines: set[str] = set()
     migration_sources: set[str] = set()
     legacy_write_blocked_sources: set[str] = set()
     inspections: dict[str, dict[str, Any]] = {}
@@ -259,38 +277,43 @@ def validate_project(root: Path, *, write: bool, strict: bool) -> dict[str, Any]
                 issues.append(message)
             else:
                 warnings.append(message)
-            changed = False
-        else:
-            changed = validated_identity_hash != current_identity_hash
-            if changed:
-                changed_sources.add(question)
-        issues.extend(_revision_change_issues(question, entry, changed=changed))
+        hash_changed, revision_changed = validated_semantic_changes(entry, inspection)
+        if past_approval_conflict(entry, inspection):
+            warnings.append(f"{question}: 已验证的当前语义与旧批准绑定不匹配，须按依赖类型重新确认")
+            changed_sources.add(question)
+        elif hash_changed or revision_changed:
+            changed_sources.add(question)
+        change_issues = _revision_change_issues(question, entry, changed=hash_changed)
+        revision = entry.get("semantic_revision")
+        validated_revision = entry.get("validated_semantic_revision")
+        if (revision_changed and is_semantic_revision(revision)
+                and is_semantic_revision(validated_revision) and revision < validated_revision):
+            change_issues.append(f"{question}: semantic_revision不得低于validated_semantic_revision")
+        if change_issues:
+            invalid_baselines.add(question)
+            issues.extend(change_issues)
 
-    # Ambiguous/malformed semantics or a legacy/no-SIB question blocks the entire write transaction. Transition
-    # diagnostics still run on a copy so mixed projects cannot be half-migrated.
-    write_allowed = write and not legacy_write_blocked_sources and not semantic_parse_failed
+    conflicts = dependency_alignment_issues(subproblems, inspections)
+    for messages in conflicts.values():
+        issues.extend(messages)
+    # An ambiguous graph cannot advance even an upstream baseline. Report the typed
+    # reach on a copy so that reconciling the declarations can replay the original change.
+    write_allowed = write and not legacy_write_blocked_sources and not semantic_parse_failed and not conflicts
     transition_state = state if write_allowed else deepcopy(state)
-    transition_reports: list[dict[str, Any]] = []
-    for key in sorted(changed_sources):
-        transition_entry = ((transition_state.get("subproblems") or {}).get(key) or {})
-        transition_reports.append(
-            STATE_TRANSITIONS.apply_transition(
-                transition_state,
-                event="semantic_identity_changed",
-                source_question=key,
-                contract=STATE_TRANSITION_CONTRACT,
-                context={
-                    "semantic_change_categories": list(
-                        transition_entry.get("semantic_change_categories", []) or []
-                    )
-                },
-            )
-        )
+    for question in conflicts:
+        # An unreadable incoming edge list has no usable edges for the diagnostic
+        # traversal. The conflict still seeds its consumer and all known outgoing edges.
+        projected = transition_state["subproblems"][question]
+        if not isinstance(projected.get("depends_on", []), list):
+            projected["depends_on"] = []
+    transition_reports = apply_semantic_transitions(
+        transition_state, changed_sources | conflicts.keys(), STATE_TRANSITION_CONTRACT
+    )
     merged_transitions = STATE_TRANSITIONS.merge_transition_reports(transition_reports)
     affected = set(merged_transitions["affected_questions"])
     dependency_cycles = (
         merged_transitions["dependency_cycles"]
-        or STATE_TRANSITIONS.dependency_cycles(subproblems)
+        or STATE_TRANSITIONS.dependency_cycles(transition_state.get("subproblems") or {})
     )
     if dependency_cycles:
         warnings.append("检测到跨问依赖环: " + "; ".join(dependency_cycles))
@@ -315,23 +338,12 @@ def validate_project(root: Path, *, write: bool, strict: bool) -> dict[str, Any]
 
             current_identity_hash = str(inspection["semantic_identity_hash"])
             schema_version = str(inspection["semantic_identity_schema_version"])
-            prior_validated = str(entry.get("validated_semantic_identity_hash", "")).strip()
-            hash_changed = bool(prior_validated) and prior_validated != current_identity_hash
             entry["semantic_identity_schema_version"] = schema_version
             entry["semantic_identity_hash"] = current_identity_hash
             entry["semantic_text_hash"] = text_hash
-            if not _gate_issues(key, entry):
-                revision = entry.get("semantic_revision")
-                validated_revision = entry.get("validated_semantic_revision")
-                revision_ok = not hash_changed or (
-                    is_semantic_revision(revision)
-                    and is_semantic_revision(validated_revision) and revision > validated_revision
-                )
-                categories = set(entry.get("semantic_change_categories", []) or [])
-                category_ok = not hash_changed or bool(categories - {"initial_design"})
-                if revision_ok and category_ok:
-                    entry["validated_semantic_identity_hash"] = current_identity_hash
-                    entry["validated_semantic_revision"] = revision
+            if key not in invalid_baselines and not _gate_issues(key, entry):
+                entry["validated_semantic_identity_hash"] = current_identity_hash
+                entry["validated_semantic_revision"] = entry.get("semantic_revision")
         if state_path.is_file():
             PROJECT_TX.commit_project_state(
                 root, state, expected_generation=base_generation
@@ -352,6 +364,7 @@ def validate_project(root: Path, *, write: bool, strict: bool) -> dict[str, Any]
         "stale_paper_fragments": stale_fragments,
         "state_transitions": transition_reports,
         "dependency_cycles": dependency_cycles,
+        "dependency_conflicts": conflicts,
         "issues": sorted(set(issues)),
         "warnings": sorted(set(warnings)),
     }

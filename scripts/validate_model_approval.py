@@ -8,7 +8,14 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 import yaml
-from semantic_identity import semantic_revision_issues
+from semantic_identity import (
+    dependency_alignment_issues,
+    framework_semantic_evidence,
+    past_approval_conflict,
+    read_framework_semantic_evidence,
+    semantic_revision_issues,
+    validated_semantic_changes,
+)
 
 APPROVED = "approved"
 CHALLENGE_PASSED = "passed"
@@ -124,6 +131,66 @@ def validate_question(
     return errors
 
 
+def pending_semantic_approval_issues(
+    subproblems: Mapping[str, Any], inspections: Mapping[str, Mapping[str, Any]],
+    *, transition_contract: Mapping[str, Any] | None = None,
+) -> dict[str, list[str]]:
+    """Project unsynchronized changes through the same typed rules used by the writer."""
+    if not isinstance(subproblems, Mapping):
+        return {}
+    causes = dependency_alignment_issues(subproblems, inspections)
+    for question, entry in subproblems.items():
+        if not isinstance(entry, Mapping):
+            continue
+        inspection = inspections.get(question, {})
+        if _is_sha256(entry.get("validated_semantic_identity_hash")) and inspection.get("mode") != "semantic_identity_v1":
+            detail = inspection.get("error") or "current framework lacks a previously validated SIB"
+            causes.setdefault(question, []).append(f"{question}: {detail}")
+            continue
+        identity_changed, revision_changed = validated_semantic_changes(entry, inspection)
+        if identity_changed:
+            causes.setdefault(question, []).append(f"{question}: current SIB differs from the validated semantic identity")
+        if revision_changed:
+            causes.setdefault(question, []).append(
+                f"{question}: semantic_revision {entry.get('semantic_revision')!r} is not bound to validated_semantic_revision "
+                f"{entry.get('validated_semantic_revision')!r}"
+            )
+        if past_approval_conflict(entry, inspection):
+            causes.setdefault(question, []).append(
+                f"{question}: recorded approval binds an older or different model than the validated SIB and revision"
+            )
+    if not causes:
+        return {}
+
+    from validate_semantic_governance import STATE_TRANSITION_CONTRACT_PATH, apply_semantic_transitions
+
+    if transition_contract is None:
+        transition_contract = load_yaml(STATE_TRANSITION_CONTRACT_PATH)
+
+    # Only graph inputs are needed. The writer mutates the projection, never the supplied state.
+    projection = {"subproblems": {
+        question: {
+            "depends_on": entry.get("depends_on") if isinstance(entry.get("depends_on"), list) else [],
+            "semantic_change_categories": entry.get("semantic_change_categories", []),
+            "model_challenge_status": entry.get("model_challenge_status"),
+        }
+        for question, entry in subproblems.items() if isinstance(entry, Mapping)
+    }}
+    blockers: dict[str, list[str]] = {}
+    for report in apply_semantic_transitions(projection, causes, transition_contract):
+        source = report["source"]
+        for row in report["transitions"]:
+            if row["status_updates"].get("model_challenge_status") != "stale":
+                continue
+            question = row["question"]
+            target_issues = blockers.setdefault(question, [])
+            for issue in causes[source]:
+                message = issue if source == question else f"{question}: upstream approval is stale ({issue})"
+                if message not in target_issues:
+                    target_issues.append(message)
+    return blockers
+
+
 def _evaluate_model_receipts(project_root: Path, question: str) -> Mapping[str, Any]:
     from review_receipt_consumption import evaluate_gate
     return evaluate_gate(project_root, gate="model_challenge", questions=[question])
@@ -131,29 +198,35 @@ def _evaluate_model_receipts(project_root: Path, question: str) -> Mapping[str, 
 
 def validate_comparison_approval(
     project_root: Path, state: Mapping[str, Any], entry: Mapping[str, Any], question: str,
-    *, specs=None, review_report=None,
+    *, specs=None, review_report=None, transition_contract=None,
 ) -> list[str]:
     """Reuse Model Approval for a separately identified analysis comparison scope.
 
     A recorded scope verdict is not a numerical acceptance or a replacement for
     the current primary lock. Opt-in C review qualification remains separately owned.
     """
-    from analysis_comparison import enabled, inspect_plan
-    from semantic_identity import inspect_question_semantics, question_sections
+    from analysis_comparison import enabled, inspect_plan, scope_sha256
 
     if not enabled(entry):
         return []
     errors = validate_question(question, dict(entry))
     try:
-        if specs is None:
-            specs = (Path(project_root) / "模型论文框架.md").read_text(encoding="utf-8")
-        if isinstance(specs, str):
-            section = question_sections(specs).get(question, "")
-            actual = inspect_question_semantics(section, question)["semantic_identity_hash"]
-            if actual != entry.get("semantic_identity_hash"):
-                errors.append(f"{question}: comparison baseline differs from current primary framework SIB")
-        report = inspect_plan(entry, question=question, specs=specs)
+        # Extracted comparison specs contain no primary SIB or upstream sections.
+        framework = (specs if isinstance(specs, str)
+                     else (Path(project_root) / "模型论文框架.md").read_text(encoding="utf-8"))
+        inspections, framework_error = framework_semantic_evidence(framework)
+        if framework_error:
+            errors.append(framework_error)
+        issues = pending_semantic_approval_issues(state.get("subproblems", {}), inspections,
+                                                transition_contract=transition_contract)
+        errors.extend(issues.get(question, []))
+        actual = inspections.get(question, {}).get("semantic_identity_hash")
+        if actual != entry.get("semantic_identity_hash"):
+            errors.append(f"{question}: comparison baseline differs from current primary framework SIB")
+        report = inspect_plan(entry, question=question, specs=framework)
         errors.extend(f"{question}: {issue}" for issue in report["issues"])
+        if specs is not None and not isinstance(specs, str) and scope_sha256(specs) != report["scope_sha256"]:
+            errors.append(f"{question}: supplied comparison scope differs from the current framework")
         if "review_receipt_policy" in state:
             from review_receipt_consumption import evaluate_gate
 
@@ -200,6 +273,14 @@ def validate_state(
     state_path = Path(path).resolve()
     if root is None and state_path.name == "project_state.yaml" and state_path.parent.name == "state":
         root = state_path.parent.parent
+    if root is not None:
+        inspections, framework_error = read_framework_semantic_evidence(root / "模型论文框架.md")
+        blockers = pending_semantic_approval_issues(subproblems, inspections)
+        for question in selected_questions:
+            issues = blockers.get(question, [])
+            if issues and framework_error:
+                errors.append(f"{question}: {framework_error}")
+            errors.extend(issues)
     if comparison_scope:
         if root is None:
             errors.append("comparison approval requires an explicit project root")

@@ -14,11 +14,10 @@ from jsonschema import Draft202012Validator
 
 from semantic_identity import (
     SEMANTIC_IDENTITY_SCHEMA_VERSION,
-    SemanticIdentityError,
     semantic_revision_issues,
-    inspect_question_semantics,
-    question_sections,
+    read_framework_semantic_evidence as _framework_semantic_evidence,
 )
+from validate_model_approval import pending_semantic_approval_issues
 import artifact_identity as ARTIFACT_IDENTITY
 import analysis_prerequisites as ANALYSIS_PREREQUISITES
 import analysis_comparison_gate as COMPARISON
@@ -713,32 +712,6 @@ def _classification_for_scope(
     }, ambiguities
 
 
-def _framework_semantic_evidence(
-    framework_path: Path,
-) -> tuple[dict[str, dict[str, Any]], str | None]:
-    """Parse current per-question semantic evidence using the shared canonical implementation."""
-    if not framework_path.is_file():
-        return {}, "current model framework is missing"
-    text = framework_path.read_text(encoding="utf-8")
-    rows: dict[str, dict[str, Any]] = {}
-    try:
-        sections = question_sections(text)
-    except SemanticIdentityError as exc:
-        return {}, f"current model framework is malformed: {exc}"
-    for question, section in sections.items():
-        try:
-            rows[question] = inspect_question_semantics(section, question)
-        except SemanticIdentityError as exc:
-            rows[question] = {
-                "mode": "malformed",
-                "error": str(exc),
-                "semantic_text_hash": None,
-                "semantic_identity_hash": None,
-                "semantic_identity_schema_version": None,
-            }
-    return rows, None
-
-
 def _uses_structured_identity(item: dict[str, Any]) -> bool:
     return any(name in item for name in STRUCTURED_IDENTITY_FIELDS)
 
@@ -1008,6 +981,8 @@ def hydrate_project_context(
     framework_path = root / FRAMEWORK_RELATIVE_PATH
     semantic_evidence, framework_error = _framework_semantic_evidence(framework_path)
     subproblems = state.get("subproblems", {})
+    approval_issues = (pending_semantic_approval_issues(subproblems, semantic_evidence)
+                       if not framework_error else {})
     scoped_items = {
         q: (
             subproblems.get(q, {})
@@ -1026,6 +1001,12 @@ def hydrate_project_context(
         for q in questions
     ]
     for question, row in zip(questions, semantic_rows):
+        if question in approval_issues:
+            if row["status"] == "verified":
+                row["status"] = "stale"
+                row["reason"] = "; ".join(approval_issues[question])
+            else:
+                row["reason"] += "; " + "; ".join(approval_issues[question])
         rejection = structured_rejections.get(str(question), {})
         if rejection.get("blocks_model"):
             prior_reason = str(row.get("reason") or "").strip()

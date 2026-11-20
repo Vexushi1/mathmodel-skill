@@ -394,6 +394,30 @@ assert 'openpyxl' not in sys.modules
                              hashlib.sha256(primary.read_bytes()).hexdigest())
             self.assertNotIn(workbook.relative_to(root).as_posix(), delivery["observed_sources"]["project"])
 
+    def test_comparison_uses_captured_upstream_revision_when_caller_supplies_old_state(self):
+        from tests.test_v900_semantic_governance import framework, identity_payload
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            fixture, state, _, _, _ = self.project(root)
+            state["subproblems"]["Q1"]["depends_on"] = ["Q2"]
+            upstream = dict(identity_payload(), question="Q2")
+            with (root / "模型论文框架.md").open("a", encoding="utf-8") as stream:
+                stream.write(framework(upstream, question="Q2"))
+            digest = smoke.semantic_identity.semantic_identity_hash(upstream)
+            state["subproblems"]["Q2"] = {
+                "semantic_identity_hash": digest, "validated_semantic_identity_hash": digest,
+                "semantic_revision": 1, "validated_semantic_revision": 1,
+                "semantic_change_categories": ["objective"],
+            }
+            fixture.write_state(root, state)
+            self.assertEqual(gate.inspect_gate(root, state, "Q1", boundary="plan")["issues"], [])
+            caller = deepcopy(state)
+            state["subproblems"]["Q2"]["semantic_revision"] = 2
+            fixture.write_state(root, state)
+            issues = gate.inspect_gate(root, caller, "Q1", boundary="plan")["issues"]
+            self.assertTrue(any("Q2" in issue and "validated_semantic_revision" in issue for issue in issues), issues)
+
     def test_caller_cannot_forge_captured_scope_approval_or_permissions(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
