@@ -609,8 +609,8 @@
     },
     {
       "path": "core/full_reading/volumes/121.md",
-      "bytes": 11210,
-      "sha256": "ee998db3a2ff9a1200a7753dfc9f3b66fcc14bbcba8ca57fae9b7558c4ba35f3"
+      "bytes": 11474,
+      "sha256": "95391b746c63062be126e4c05ffaf3f7ed1d4149f5dc8df010633226a9881ddd"
     },
     {
       "path": "core/full_reading/volumes/122.md",
@@ -634,8 +634,8 @@
     },
     {
       "path": "core/full_reading/volumes/126.md",
-      "bytes": 12093,
-      "sha256": "e9d7d8b630e0b0b8a48f7929b9fb69bd08a567dc4ffbbe8b63e42b37655986f4"
+      "bytes": 12191,
+      "sha256": "04b2a30d7267d57c188ca30e26de9ab0514eb81e9a82ac639406d596644004cd"
     },
     {
       "path": "core/full_reading/volumes/127.md",
@@ -3780,19 +3780,19 @@
       "path": "templates/plot/python/README.md",
       "role": "conditional_template",
       "aliases": [],
-      "bytes": 6475,
-      "sha256": "7347e0b4f6dd69976f25fdc470e6b78d7425421f54610af133e39d51d7424eea",
-      "git_blob_sha1": "58d373a42bd7debdd4512253ecf266d8ba2b9e27",
+      "bytes": 6739,
+      "sha256": "e01db4dfd630f51b8ba5d1294a4ac3e7454330c5af4399c0e1a74c55395c84f2",
+      "git_blob_sha1": "87bcb970fed93339e437ef3c7cf47c5585894267",
       "parts": [
         {
           "volume": "core/full_reading/volumes/121.md",
           "start": 0,
-          "end": 6475,
+          "end": 6739,
           "line_start": 1,
           "line_end": 56,
           "volume_start": 119,
-          "volume_end": 6594,
-          "sha256": "7347e0b4f6dd69976f25fdc470e6b78d7425421f54610af133e39d51d7424eea"
+          "volume_end": 6858,
+          "sha256": "e01db4dfd630f51b8ba5d1294a4ac3e7454330c5af4399c0e1a74c55395c84f2"
         }
       ]
     },
@@ -3810,8 +3810,8 @@
           "end": 684,
           "line_start": 1,
           "line_end": 14,
-          "volume_start": 6727,
-          "volume_end": 7411,
+          "volume_start": 6991,
+          "volume_end": 7675,
           "sha256": "27cc5aa93d21cfefc1f53f601f558e88d43ba14defdaf2dc8d866c6c0279ba3c"
         }
       ]
@@ -3830,8 +3830,8 @@
           "end": 1804,
           "line_start": 1,
           "line_end": 18,
-          "volume_start": 7548,
-          "volume_end": 9352,
+          "volume_start": 7812,
+          "volume_end": 9616,
           "sha256": "969ae5e48b0964a9f12987fe8699643e05085e1b922eebad97ec06fa03fccaeb"
         }
       ]
@@ -3850,8 +3850,8 @@
           "end": 860,
           "line_start": 1,
           "line_end": 16,
-          "volume_start": 9491,
-          "volume_end": 10351,
+          "volume_start": 9755,
+          "volume_end": 10615,
           "sha256": "2efaf5ed27ace5670af4d4249302a462f4104076d05898dfa9632824bbbea123"
         }
       ]
@@ -3870,8 +3870,8 @@
           "end": 736,
           "line_start": 1,
           "line_end": 7,
-          "volume_start": 10474,
-          "volume_end": 11210,
+          "volume_start": 10738,
+          "volume_end": 11474,
           "sha256": "78865fca598630dde5f496388c7e8d3f184040b961c937be29cf1d5a34392057"
         }
       ]
@@ -4220,9 +4220,9 @@
       "path": "templates/plot/python/data_process.py",
       "role": "implementation_use_conditions",
       "aliases": [],
-      "bytes": 8606,
-      "sha256": "3919793c111754bff5bbfb7300b6b309c32f5bf23cf455b7a54d14372b171a05",
-      "git_blob_sha1": "6bf874069eddf51b9f7c8e4a9b3d97a3cd8f3e5d",
+      "bytes": 9065,
+      "sha256": "635aaddbd466074c070a17a9ec9d45df8237b0eb2bdcd44ec9fab2f6450b8a2a",
+      "git_blob_sha1": "499f599d01eaa630086de2b52c47bbb50d4a33dd",
       "parts": [
         {
           "volume": "core/full_reading/volumes/126.md",
@@ -4240,19 +4240,19 @@
       "path": "templates/plot/python/q1_plot.py",
       "role": "implementation_use_conditions",
       "aliases": [],
-      "bytes": 7607,
-      "sha256": "aeb61931bf4ad0a832d9a2dd1ffd009e8e7dc410eeb32d7e25bc6d71da0bfa08",
-      "git_blob_sha1": "6447e3f21e03939a84fc5bf80954e93105b49ebf",
+      "bytes": 8066,
+      "sha256": "06bba07b5a64f9fd5e2f38ca2d610d7edd086526d88d094a21ac42af7e7989dd",
+      "git_blob_sha1": "14d0871e18327d681460cf9cd2e08d7ba551eecb",
       "parts": [
         {
           "volume": "core/full_reading/volumes/126.md",
           "start": 0,
-          "end": 1351,
+          "end": 1449,
           "line_start": 1,
-          "line_end": 33,
+          "line_end": 35,
           "volume_start": 3506,
-          "volume_end": 4857,
-          "sha256": "59b22bbdac0bde9d5f4e5e72ba9aafae217823ca1fdbe3d1fa84f77b10b7898d"
+          "volume_end": 4955,
+          "sha256": "3712b0258caf8083e8fd927a573b1e9893cf1db1f20c3f8fcee146913a7d3635"
         }
       ]
     },
@@ -4270,8 +4270,8 @@
           "end": 610,
           "line_start": 1,
           "line_end": 4,
-          "volume_start": 4989,
-          "volume_end": 5599,
+          "volume_start": 5087,
+          "volume_end": 5697,
           "sha256": "44dd75c254c00048508e87302f2b2f230a918662f3bf3dc16f465030d58de244"
         }
       ]
@@ -4290,8 +4290,8 @@
           "end": 717,
           "line_start": 1,
           "line_end": 4,
-          "volume_start": 5735,
-          "volume_end": 6452,
+          "volume_start": 5833,
+          "volume_end": 6550,
           "sha256": "147a79f688d1d6b5ae05fe1dcebb43b80fdb3ca185262b43d2d4bceb041887c4"
         }
       ]
@@ -4310,8 +4310,8 @@
           "end": 838,
           "line_start": 1,
           "line_end": 4,
-          "volume_start": 6620,
-          "volume_end": 7458,
+          "volume_start": 6718,
+          "volume_end": 7556,
           "sha256": "c8db7ae4ecd880b0ee846631a367ba412de69fa84650356aed86ae015a48882e"
         }
       ]
@@ -4330,8 +4330,8 @@
           "end": 1607,
           "line_start": 1,
           "line_end": 12,
-          "volume_start": 7576,
-          "volume_end": 9183,
+          "volume_start": 7674,
+          "volume_end": 9281,
           "sha256": "e4ac35157c6544558d48a8252345f3e1b9b11e74250d8cb3a73b460ed8cadb9c"
         }
       ]
@@ -4350,8 +4350,8 @@
           "end": 1283,
           "line_start": 1,
           "line_end": 11,
-          "volume_start": 9311,
-          "volume_end": 10594,
+          "volume_start": 9409,
+          "volume_end": 10692,
           "sha256": "e223cd7167ef92b3cad95546434c88f1c42d31d3f5d6a89833cc4939d4b9a617"
         }
       ]
@@ -4370,8 +4370,8 @@
           "end": 1383,
           "line_start": 1,
           "line_end": 48,
-          "volume_start": 10710,
-          "volume_end": 12093,
+          "volume_start": 10808,
+          "volume_end": 12191,
           "sha256": "17e7e896f84dd827afdd149ac17967179636e8618f1b4637db0114532f971dc2"
         }
       ]
