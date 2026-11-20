@@ -27,6 +27,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
+from claim_tex import _active_command, _balanced_group, _mask_nonprose
 from audit_v8_writing_surface import audit_text as audit_v8_surface_text
 
 SEVERITY_ORDER = {"pass": 0, "warning": 1, "review_required": 2, "blocking": 3}
@@ -35,12 +36,11 @@ PARAGRAPH_START_RE = re.compile(r"^(?:本文|本问|该模型)(?:认为|采用|�
 QUESTION_SECTION_RE = re.compile(r"\\section\{问题[一二三四五六七八九十百0-9]+模型建立及求解\}")
 SECTION_RE = re.compile(r"\\section\{([^{}]+)\}")
 SUBSECTION_RE = re.compile(r"\\subsection\{([^{}]+)\}")
-LABEL_ANY_RE = re.compile(r"\\label\{([^{}]+)\}")
-FIGTAB_LABEL_RE = re.compile(r"\\label\{((?:fig|tab):[^{}]+)\}")
-REF_RE = re.compile(r"\\(?:ref|autoref|cref|Cref|eqref)\{([^{}]+)\}")
-CITE_RE = re.compile(r"\\(?:cite|citep|citet|parencite|textcite)\*?(?:\[[^\]]*\])?\{([^{}]+)\}")
-NOCITE_ALL_RE = re.compile(r"\\nocite\{\*\}")
-REF_TEMPLATE = r"\\(?:ref|autoref|cref|Cref|eqref)\{{{label}\}}"
+LABEL_COMMAND = re.compile(r"\\label\s*\{\s*([^\s{}]+)\s*\}")
+NOTE_START = re.compile(r"\s*\[")
+REFERENCE_COMMAND = re.compile(r"\\(?:ref|autoref|cref|Cref|eqref)(?![A-Za-z@])\*?")
+CITATION_COMMAND = re.compile(r"\\(?:cite|citep|citet|parencite|textcite)(?![A-Za-z@])\*?")
+NOCITE_ALL_RE = re.compile(r"\\nocite\s*\{\s*\*\s*\}")
 DERIVATION_STOCK_PATTERNS = ("进一步可得", "同理可得", "容易得到", "不难得到")
 META_NAV_PATTERNS = ("本节主要", "下面将", "下文将", "为了便于", "为了更好地")
 STRONG_CLAIM_PATTERNS = {
@@ -182,46 +182,71 @@ def _formula_run_warning(main: str) -> Finding | None:
     return None
 
 
-def _citation_keys(tex: str) -> set[str]:
-    keys: set[str] = set()
-    for group in CITE_RE.findall(tex):
-        keys.update(item.strip() for item in group.split(",") if item.strip())
-    return keys
-
-
-def _ref_keys(tex: str) -> list[str]:
-    keys: list[str] = []
-    for group in REF_RE.findall(tex):
-        keys.extend(item.strip() for item in group.split(",") if item.strip())
-    return keys
-
-
-def _find_reference_position(text: str, label: str) -> list[int]:
-    pattern = re.compile(REF_TEMPLATE.format(label=re.escape(label)))
-    return [match.start() for match in pattern.finditer(text)]
+def _key_positions(text: str, command: re.Pattern[str], *, notes: int = 0) -> dict[str, list[int]]:
+    """Index literal command arguments in already masked TeX using source offsets."""
+    positions: dict[str, list[int]] = {}
+    for match in command.finditer(text):
+        if not _active_command(text, match.start()):
+            continue
+        cursor = match.end()
+        for _ in range(notes):
+            # A closing bracket inside a braced note is literal TeX content.
+            option = NOTE_START.match(text, cursor)
+            if not option:
+                break
+            cursor = option.end()
+            while cursor < len(text):
+                if text[cursor] == "{" and _active_command(text, cursor):
+                    group = _balanced_group(text, cursor, "{", "}")
+                    if group is None:
+                        cursor = len(text)
+                        break
+                    cursor = group[1] + 1
+                    continue
+                if text[cursor] == "]" and _active_command(text, cursor):
+                    cursor += 1
+                    break
+                cursor += 1
+        group = _balanced_group(text, cursor, "{", "}")
+        if group is None:
+            continue
+        literal = text[group[0]:group[1]]
+        if any(char in literal for char in "\\{}#"):
+            continue  # The static audit cannot resolve computed keys.
+        for item in literal.split(","):
+            key = item.strip()
+            if key:
+                positions.setdefault(key, []).append(match.start())
+    return positions
 
 
 def _audit_cross_references(main: str) -> list[Finding]:
     findings: list[Finding] = []
-    labels = LABEL_ANY_RE.findall(main)
+    references = _key_positions(main, REFERENCE_COMMAND)
+    labels: dict[str, list[int]] = {}
+    for match in LABEL_COMMAND.finditer(main):
+        if _active_command(main, match.start()):
+            labels.setdefault(match.group(1), []).append(match.start())
     label_set = set(labels)
-    for ref in sorted(set(_ref_keys(main)) - label_set):
+    for label in sorted(key for key, positions in labels.items() if len(positions) > 1):
+        findings.append(Finding("blocking", "duplicate_label", f"正文存在重复 LaTeX label：{label}", label))
+    for ref in sorted(set(references) - label_set):
         findings.append(Finding("blocking", "missing_ref_label", f"正文交叉引用指向不存在的 label：{ref}", ref))
 
     for label in sorted(label_set):
-        refs = _find_reference_position(main, label)
+        refs = references.get(label, [])
         if not refs and (label.startswith(("fig:", "tab:", "eq:", "prop:", "thm:"))):
             findings.append(Finding("warning", "unreferenced_label", f"编号对象 {label} 未在正文显式引用；请确认该编号是否必要。", label))
 
-    for label in FIGTAB_LABEL_RE.findall(main):
-        label_match = re.search(rf"\\label\{{{re.escape(label)}\}}", main)
-        ref_positions = _find_reference_position(main, label)
-        if not label_match or not ref_positions:
+    for label, positions in labels.items():
+        ref_positions = references.get(label, [])
+        if not label.startswith(("fig:", "tab:")) or not ref_positions:
             continue
+        label_position = positions[0]
         first_ref = min(ref_positions)
-        if first_ref > label_match.start() + 800:
+        if first_ref > label_position + 800:
             findings.append(Finding("warning", "figure_table_first_reference_after_object", f"{label} 首次正文引用明显晚于图表出现位置；请确认图表是否先被说明再出现。", label))
-        distance = min(abs(position - label_match.start()) for position in ref_positions)
+        distance = min(abs(position - label_position) for position in ref_positions)
         if distance > 3000:
             findings.append(Finding("warning", "figure_table_reference_distance", f"{label} 与最近正文引用距离较大；请确认核心证据解释是否足够邻近。", f"{label}: {distance} chars"))
     return findings
@@ -282,7 +307,8 @@ def _caption_length_warnings(main: str) -> list[Finding]:
 
 def audit_bibliography(tex_text: str, bib_text: str | None) -> list[Finding]:
     findings: list[Finding] = []
-    cite_keys = _citation_keys(_strip_comments(tex_text))
+    active, _ = _mask_nonprose(tex_text)
+    cite_keys = set(_key_positions(active, CITATION_COMMAND, notes=2))
     if bib_text is None:
         if cite_keys:
             findings.append(Finding("blocking", "bibliography_missing", "正文存在 citation，但未提供可检查的 references.bib。"))
@@ -307,7 +333,7 @@ def audit_bibliography(tex_text: str, bib_text: str | None) -> list[Finding]:
         preview = ", ".join(unused[:10]) + (" ..." if len(unused) > 10 else "")
         findings.append(Finding("warning", "unused_bib_entries", f"检测到 {len(unused)} 个未在正文引用的 BibTeX 条目；请确认是否为必要保留。", preview))
 
-    if NOCITE_ALL_RE.search(tex_text):
+    if any(_active_command(active, m.start()) for m in NOCITE_ALL_RE.finditer(active)):
         findings.append(Finding("warning", "nocite_all", "检测到 \\nocite{*}；正式论文应确认不是为了批量填充参考文献。"))
     return findings
 
@@ -566,11 +592,9 @@ def audit_text(text: str) -> list[Finding]:
     findings: list[Finding] = []
     findings.extend(_audit_cumcm_heading_structure(main, body))
 
-    labels = LABEL_ANY_RE.findall(body)
-    duplicates = sorted({label for label in labels if labels.count(label) > 1})
-    for label in duplicates:
-        findings.append(Finding("blocking", "duplicate_label", f"正文存在重复 LaTeX label：{label}", label))
-    findings.extend(_audit_cross_references(body))
+    active_body, _ = _mask_nonprose(text)
+    active_body = _document_body(active_body)
+    findings.extend(_audit_cross_references(active_body))
     findings.extend(_audit_float_caption_positions(main))
     findings.extend(_audit_abstract_and_keywords(body))
     findings.extend(_caption_length_warnings(main))
@@ -622,9 +646,12 @@ def audit_text(text: str) -> list[Finding]:
     if QUESTION_SECTION_RE.search(main) and question_count == 0:
         findings.append(Finding("warning", "question_section_parse", "检测到问题模型章节但未能完成逐问结构解析。"))
 
-    for label in FIGTAB_LABEL_RE.findall(main):
-        refs = len(_find_reference_position(main, label))
-        if refs == 0:
+    active_main = _main_text_before_appendix(active_body)
+    references = _key_positions(active_main, REFERENCE_COMMAND)
+    for match in LABEL_COMMAND.finditer(active_main):
+        label = match.group(1)
+        if (_active_command(active_main, match.start()) and label.startswith(("fig:", "tab:"))
+                and label not in references):
             kind = "图" if label.startswith("fig:") else "表"
             findings.append(Finding("warning", "unreferenced_figure_table", f"正文{kind}标签 {label} 没有显式交叉引用；核心图表应在邻近正文中解释。", label))
 

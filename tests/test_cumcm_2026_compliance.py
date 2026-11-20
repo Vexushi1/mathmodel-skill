@@ -78,6 +78,29 @@ class Cumcm2026FormalComplianceTests(unittest.TestCase):
                                               r"\begin{not_appendices}")),
         )
 
+    def test_appendix_material_and_heading_must_be_inside_the_environment(self):
+        self._state()
+        start, end, heading = r"\begin{appendices}", r"\end{appendices}", r"\section*{附录}"
+        for source in (self._paper().replace(start + "\n" + heading, heading + "\n" + start),
+                       self._paper().replace(heading, "").replace(end, end + "\n" + heading)):
+            self.assertIn("cumcm_2026_appendix_missing_or_order", self._codes(source))
+        self.assertIn("cumcm_2026_appendix_empty", self._codes(
+            self._paper(appendix="").replace(end, end + "\n真正材料在环境外。")))
+        self.assertIn("cumcm_2026_appendix_empty", self._codes(
+            self._paper(appendix="% do not count this comment")))
+        self.assertIn("cumcm_2026_appendix_empty", self._codes(
+            self._paper(appendix="\\begin{comment}\n\\begin{verbatim}\nvalue\n\\end{verbatim}\n\\end{comment}")))
+
+    def test_input_expansion_preserves_real_listing_as_appendix_material(self):
+        from audit_latex_project import discover_tex_graph, flatten_tex
+        self._state()
+        self.main.write_text(self._paper(appendix=r"\input{code}"), encoding="utf-8")
+        child = self.main.with_name("code.tex")
+        child.write_text("\\begin{verbatim}\n\\section*{附录} % example\n\\end{verbatim}", encoding="utf-8")
+        files, findings = discover_tex_graph(self.main)
+        self.assertFalse(findings)
+        self.assertEqual(set(), self._codes(flatten_tex(self.main, files, preserve_source=True)))
+
     def test_edition_unknown_cannot_qualify_and_historical_not_forced(self):
         self._state(None)
         # Missing edition means no year-specific rules are inferred; it does

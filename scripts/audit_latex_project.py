@@ -13,14 +13,11 @@ import yaml
 
 from audit_paper_prose import Finding, audit_bibliography, audit_framework_consistency, audit_text, overall_status
 from claim_consumption import formal_figure_gate, formal_text_gate
+from claim_tex import _active_command, _mask_nonprose
 from latex_delivery import formal_assembly_issues, sha256_file, source_bundle_snapshot
 
 INCLUDE_RE = re.compile(r"\\(?:input|include)\s*\{([^{}]+)\}")
 FORBIDDEN_CHILD_RE = re.compile(r"\\documentclass|\\begin\s*\{document\}|\\end\s*\{document\}")
-VERBATIM_ENV_RE = re.compile(
-    r"\\begin\{(?:verbatim|Verbatim|lstlisting|minted)\}.*?\\end\{(?:verbatim|Verbatim|lstlisting|minted)\}",
-    re.S,
-)
 PAPER_FRAGMENT_HEADING = "### Paper Fragment Dependency Map"
 DOCUMENT_BODY_RE = re.compile(r"\\begin\s*\{document\}(.*?)\\end\s*\{document\}", re.S)
 DEEP_FORMAL_HEADING_RE = re.compile(
@@ -94,25 +91,8 @@ def _figure_snapshot_options(project: Path, gate: dict) -> dict:
     }
 
 
-def strip_comments(text: str) -> str:
-    lines: list[str] = []
-    for line in text.splitlines(keepends=True):
-        out: list[str] = []
-        escaped = False
-        for char in line:
-            if char == "%" and not escaped:
-                break
-            out.append(char)
-            if char == "\\":
-                escaped = not escaped
-            else:
-                escaped = False
-        lines.append("".join(out))
-    return "".join(lines)
-
-
 def executable_tex(text: str) -> str:
-    return strip_comments(VERBATIM_ENV_RE.sub("\n", text))
+    return _mask_nonprose(text)[0]
 
 
 def audit_formal_heading_depth(flattened: str) -> list[Finding]:
@@ -190,7 +170,10 @@ def discover_tex_graph(main_file: Path) -> tuple[list[Path], list[Finding]]:
                 f"子文件 {relative} 不得声明 documentclass/document 环境。",
                 relative,
             ))
-        for target in INCLUDE_RE.findall(code):
+        for match in INCLUDE_RE.finditer(code):
+            if not _active_command(code, match.start()):
+                continue
+            target = match.group(1)
             child = resolve_include(root, target)
             if child is None:
                 relative = resolved.relative_to(root).as_posix()
@@ -209,7 +192,7 @@ def discover_tex_graph(main_file: Path) -> tuple[list[Path], list[Finding]]:
     return order, findings
 
 
-def flatten_tex(main_file: Path, files: list[Path]) -> str:
+def flatten_tex(main_file: Path, files: list[Path], *, preserve_source: bool = False) -> str:
     root = main_file.parent.resolve()
     cache = {
         path.resolve(): path.read_text(encoding="utf-8-sig", errors="strict")
@@ -223,20 +206,23 @@ def flatten_tex(main_file: Path, files: list[Path]) -> str:
             return ""
         stack.append(resolved)
         text = cache.get(resolved, "")
-        code = executable_tex(text)
+        active = executable_tex(text)
         cursor = 0
         chunks: list[str] = []
-        for match in INCLUDE_RE.finditer(code):
-            chunks.append(code[cursor:match.start()])
+        for match in INCLUDE_RE.finditer(active):
+            if not _active_command(active, match.start()):
+                continue
+            chunks.append(text[cursor:match.start()])
             child = resolve_include(root, match.group(1))
             if child is not None and child.resolve() in cache:
                 chunks.append("\n" + expand(child) + "\n")
             cursor = match.end()
-        chunks.append(code[cursor:])
+        chunks.append(text[cursor:])
         stack.pop()
         return "".join(chunks)
 
-    return expand(main_file.resolve())
+    source = expand(main_file.resolve())
+    return source if preserve_source else executable_tex(source)
 
 
 def _framework_section(text: str, heading: str) -> str:
@@ -346,6 +332,12 @@ def audit_cumcm_2026_compliance(main_file: Path, flattened: str) -> list[Finding
         return [Finding("blocking", "cumcm_2026_rules_unverified",
                         "2026 CUMCM 官方格式和 AI 规则未核验或项目届次不匹配。")]
 
+    listing_offsets: list[int] = []
+    flattened, _ = _mask_nonprose(flattened, listing_material=listing_offsets)
+    document = DOCUMENT_BODY_RE.search(flattened)
+    if document:
+        listing_offsets = [offset - document.start(1) for offset in listing_offsets]
+        flattened = document.group(1)
     findings: list[Finding] = []
     ai_heading = r"\section*{AI工具使用声明}"
     reference = r"\printbibliography"
@@ -377,14 +369,14 @@ def audit_cumcm_2026_compliance(main_file: Path, flattened: str) -> list[Finding
             or flattened.count(appendix_heading) != 1
             or reference not in flattened
             or flattened.index(appendix_begin) <= flattened.index(reference)
-            or flattened.index(appendix_end) <= flattened.index(appendix_begin)):
+            or not (flattened.index(appendix_begin) < flattened.index(appendix_heading)
+                    < flattened.index(appendix_end))):
         findings.append(Finding("blocking", "cumcm_2026_appendix_missing_or_order",
                                 "2026 CUMCM 必须在参考文献后保留一级附录和相应实际内容。"))
     else:
-        body = flattened[
-            flattened.index(appendix_heading) + len(appendix_heading):
-            flattened.index(appendix_end)
-        ]
+        body_start = flattened.index(appendix_heading) + len(appendix_heading)
+        body_end = flattened.index(appendix_end)
+        body = flattened[body_start:body_end]
         if any(token in body for token in ("【待填写", "TODO", "【据实填写")):
             findings.append(Finding("blocking", "cumcm_2026_appendix_unfilled",
                                     "附录尚有维护占位；必须填入真实材料和完整源程序或官方无材料说明。"))
@@ -393,7 +385,8 @@ def audit_cumcm_2026_compliance(main_file: Path, flattened: str) -> list[Finding
             r"\\(?:begin|end)\{appendices\}|\\(?:subsection|section)\*?\{[^{}]+\}",
             "", body,
         ).strip()
-        if not nonstructural:
+        listing_material = any(body_start <= offset < body_end for offset in listing_offsets)
+        if not nonstructural and not listing_material:
             findings.append(Finding("blocking", "cumcm_2026_appendix_empty",
                                     "附录不得仅包含标题；无程序或无支撑材料时须明确书面说明。"))
     return findings
@@ -413,9 +406,10 @@ def audit_project(
     if any(item.severity == "blocking" for item in findings):
         return findings
 
-    flattened = flatten_tex(main_file, files)
+    source = flatten_tex(main_file, files, preserve_source=True)
+    flattened = executable_tex(source)
     if formal:
-        findings.extend(audit_cumcm_2026_compliance(main_file, flattened))
+        findings.extend(audit_cumcm_2026_compliance(main_file, source))
     findings.extend(audit_formal_heading_depth(flattened))
     findings.extend(audit_text(flattened))
 

@@ -36,6 +36,29 @@ class TestV745ProseAudit(unittest.TestCase):
     def setUpClass(cls):
         cls.audit = load_audit_module()
 
+    def test_citation_notes_and_literal_keys(self):
+        tex = r"""\parencite* [see {chapter ] 2}] % annotation
+            [p.~17] {known, missing}
+            % \cite{comment}
+            \verb|\cite{example}|
+            \begin{lstlisting}
+            \cite{code}
+            \end{lstlisting}
+            """
+        rows = self.audit.audit_bibliography(tex, "@article{known,\n title = {Test}\n}")
+        self.assertEqual([("missing_bib_key", "missing")],
+                         [(row.code, row.evidence) for row in rows])
+
+    def test_grouped_reference_preserves_positions_and_distinct_keys(self):
+        text = r"""\cref {fig:b, fig:a} and \Cref{fig:unknown}.
+            \label{fig:a}\label{fig:b}
+            % \ref{fig:unseen}
+            \verb|\ref{fig:unseen}| \label{fig:unseen}
+            """
+        findings = self.audit.audit_text(text)
+        self.assertEqual({"fig:unknown"}, {f.evidence for f in findings if f.code == "missing_ref_label"})
+        self.assertEqual({"fig:unseen"}, {f.evidence for f in findings if f.code == "unreferenced_label"})
+
     def test_clean_cumcm_fragment_passes(self):
         tex = r"""
 \begin{document}
