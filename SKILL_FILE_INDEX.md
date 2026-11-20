@@ -471,6 +471,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/fixtures/v10351_approved_source_spans.json`
 - `tests/fixtures/v10352_approved_source_spans.json`
 - `tests/fixtures/v10353_approved_source_spans.json`
+- `tests/fixtures/v11_candidate_source_spans.json`
 - `tests/fixtures/v900_phase_h_empty_sync_golden.yaml`
 - `tests/fixtures/v900_phase_i_migration_matrix.yaml`
 - `tests/fixtures/v900_phase_i_writer_retirement_inventory.yaml`
@@ -669,6 +670,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_v10_recovery_read_boundaries.py`
 - `tests/test_v10_retired_artifact_isolation.py`
 - `tests/test_v11_figure_routing.py`
+- `tests/test_v11_project_migration.py`
 - `tests/test_v631_contract_closure.py`
 - `tests/test_v632_delivery_gate_closure.py`
 - `tests/test_v633_gate_hardening.py`
@@ -785,6 +787,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `docs/phase_i_v9_release_carrier_transition.md`
 - `docs/phase_i_v9_release_closure.md`
 - `docs/semantic_state_runtime_refactor_plan.md`
+- `docs/v11_0_0_migration.md`
 - `docs/v8_writing_migration.md`
 - `docs/v970_solver_backends_migration.md`
 
