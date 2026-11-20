@@ -1,6 +1,13 @@
 from __future__ import annotations
 
+import hashlib
+import io
+import sys
+import tempfile
 import unittest
+from contextlib import redirect_stdout
+from types import SimpleNamespace
+from unittest.mock import patch
 from pathlib import Path
 
 import yaml
@@ -51,6 +58,29 @@ class TestGeneratedWorkflowHardening(unittest.TestCase):
         commands = "\n".join(step.get("run", "") for step in ci_job["steps"])
         self.assertIn(path, commands)
         self.assertIn("git ls-files --others --exclude-standard --", commands)
+
+    def test_full_reading_directory_is_staged_checked_and_uploaded(self):
+        path = "core/full_reading"
+        events = self.workflow.get("on", self.workflow.get(True))
+        ignored = events["push"]["paths-ignore"]
+        self.assertIn(f"{path}/manifest.json", ignored)
+        self.assertIn(f"{path}/volumes/[0-9][0-9][0-9].md", ignored)
+        step = next(step for step in self.jobs["refresh-feature-branch"]["steps"]
+                    if step.get("name") == "Commit generated metadata and validate final head")
+        for operation in ("git add ", "git status --porcelain"):
+            self.assertIn(path, next(line for line in step["run"].splitlines() if operation in line))
+        jobs = yaml.safe_load(self.ci_text)["jobs"]
+        steps = jobs["generated-files"]["steps"]
+        uploaded = next(step for step in steps if step.get("name") == "Upload regenerated metadata")
+        self.assertIn(path, uploaded["with"]["path"].splitlines())
+        checks = next(step for step in steps if step.get("name") == "Reject stale generated files")["run"]
+        tracked, untracked = checks.split("git ls-files --others --exclude-standard --")
+        self.assertIn(path, tracked)
+        self.assertIn(path, untracked)
+        targeted = next(step for step in jobs["python-targeted"]["steps"]
+                        if step.get("name") == "Run affected development tests")
+        for module in ("test_rule_corpus", "test_formal_reading"):
+            self.assertIn(module, targeted["run"])
 
     def test_every_corpus_generator_job_installs_only_its_light_dependencies(self):
         ci_job = yaml.safe_load(self.ci_text)["jobs"]["generated-files"]
@@ -138,6 +168,69 @@ class TestGeneratedWorkflowHardening(unittest.TestCase):
         self.assertIn('.name == "Python 3.10"', script)
         self.assertIn('.name == "Windows Python 3.14"', script)
         self.assertIn('.conclusion == "success"', script)
+
+
+class FullReadingOutputLifecycleTests(unittest.TestCase):
+    """Exercise the real generator and CLI around a deterministic, resizing corpus."""
+
+    def setUp(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("full_reading_generator", ROOT / "scripts/generate_indexes.py")
+        self.generator = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.generator)
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name)
+        outputs = {key: self.root / getattr(self.generator, key).relative_to(ROOT) for key in
+                   ("BOOTSTRAP", "SKILL_INDEX", "TEMPLATE_INDEX", "LEGACY_SKILL_INDEX",
+                    "LEGACY_TEMPLATE_INDEX", "MANIFEST")}
+        outputs["BOOTSTRAP"].parent.mkdir()
+        outputs["BOOTSTRAP"].write_text("skill_version: 10.35.3\n", encoding="utf-8")
+        patched_paths = patch.multiple(self.generator, ROOT=self.root, **outputs)
+        patched_paths.start()
+        self.addCleanup(patched_paths.stop)
+        self.directory = self.root / "core/full_reading"
+        self.first = self.directory / "volumes/001.md"
+        self.second = self.directory / "volumes/002.md"
+        self.generated = {self.directory / "manifest.json": "{}\n", self.first: "甲\n", self.second: "乙\n"}
+        corpus = SimpleNamespace(generated_payloads=lambda root: self.generated.copy())
+        patched_builder = patch.dict(sys.modules, {"rule_corpus": corpus})
+        patched_builder.start()
+        self.addCleanup(patched_builder.stop)
+
+    def run_generator(self, *args):
+        with patch.object(sys, "argv", ["generate_indexes.py", *args]), redirect_stdout(io.StringIO()):
+            return self.generator.main()
+
+    def test_add_retire_check_without_writes_and_rerun(self):
+        self.assertEqual(self.run_generator("--check"), 1)
+        self.assertFalse(self.directory.exists())
+        self.assertEqual(self.run_generator(), 0)
+        self.assertEqual(self.run_generator("--check"), 0)
+        digest = hashlib.sha256(self.generated[self.first].encode("utf-8")).hexdigest()
+        manifest = self.generator.MANIFEST.read_text(encoding="utf-8")
+        self.assertIn(f"{digest}  core/full_reading/volumes/001.md\n", manifest)
+        self.assertEqual(self.second.read_text(encoding="utf-8"), "乙\n")
+        del self.generated[self.second]
+        self.assertEqual(self.run_generator("--check"), 1)
+        self.assertTrue(self.second.is_file())
+        self.assertEqual(self.run_generator(), 0)
+        self.assertFalse(self.second.exists())
+        for index in (self.generator.SKILL_INDEX, self.generator.MANIFEST):
+            self.assertNotIn("core/full_reading/volumes/002.md", index.read_text(encoding="utf-8"))
+        self.assertEqual(self.run_generator("--check"), 0)
+
+    def test_exact_returned_bytes_and_unowned_paths(self):
+        self.assertEqual(self.run_generator(), 0)
+        self.first.write_bytes("甲\r\n".encode("utf-8"))
+        self.assertEqual(self.run_generator("--check"), 1)
+        self.assertEqual(self.run_generator(), 0)
+        self.assertEqual(self.first.read_bytes(), self.generated[self.first].encode("utf-8"))
+        unrelated = self.first.with_name("notes.md")
+        unrelated.write_text("保留", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "unexpected file"):
+            self.run_generator()
+        self.assertEqual(unrelated.read_text(encoding="utf-8"), "保留")
 
 
 if __name__ == "__main__":

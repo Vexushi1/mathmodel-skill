@@ -6,6 +6,10 @@ This is a source and conditional pointer inventory, not source text,
 a duplicate phase registry, proof of reading, an approval, or a gate result.
 Resolve current project facts and use the selected commit of the original Authority.
 
+For a candidate formal start or recovery, follow `core/bootstrap.yaml#startup_contract`
+and open `core/full_reading/manifest.json` at the same pinned commit. The formal
+reader is `scripts/read_stage.py formal`. Use the stage sources below for scoped work.
+
 ## Common source selectors
 
 - read_now: `core/bootstrap.yaml`

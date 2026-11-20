@@ -1996,6 +1996,16 @@ def approved_v10263_release_carrier_change(identifier, old, new, candidate_autho
     return projected, review_changes + changes
 
 
+# The P3 candidate still carries 10.35.3. Only this reviewed tuple may use
+# the historical comparison for the default route. The executable bytes are
+# checked again below alongside the rows in the plan; the fixture stays frozen.
+V11_P3_DEFAULT_READER_HASHES = {
+    "scripts/resolve_runtime.py": "9ff66ad41d0a65a501a8af0eb40b7cef03533459d5cca61a1d880cbf8bcf43a4",
+    "scripts/reading_plan.py": "53d463ac5091074e51abdcfb6228b7f1aa6f117c65a497e9c846fe9751aeb2d9",
+    "scripts/read_stage.py": "1f5bf49a5aed466c7b01b5bbd745760b8bd66750512dd7b1804d433298dbf45f",
+}
+
+
 def runtime_consistency_predecessor(identifier, new, candidate_authority_versions):
     """Reverse only measured repair leaves, preserving all unrelated differences.
 
@@ -2004,6 +2014,8 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
     """
     fixture = RUNTIME_CONSISTENCY_PROJECTION
     original = deepcopy(new)
+    if "startup_reading" in original:
+        return original, []
     # Only the exact patch release carrier may reuse the frozen v10.27.0
     # inverse; no other field, source fingerprint, or historical fixture is waived.
     accepted_carriers = (
@@ -2172,6 +2184,14 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
             ):
                 resolver_hashes["scripts/resolve_workflow.py"] = "6a57aa603ba6e300a9ce9521f62771d2de60bee76ae82277ce06387645f7dce2"
                 approval = "v10.35.2 reviewed affirmative full-workflow routing patch"
+            if matched_carrier == V10353_LITERATURE_QUERY_COVERAGE_AUTHORITY_VERSIONS:
+                observed_readers = {
+                    row["path"]: row["sha256"] for row in fingerprint["sources"]
+                    if row["path"] in V11_P3_DEFAULT_READER_HASHES
+                }
+                if observed_readers == V11_P3_DEFAULT_READER_HASHES:
+                    resolver_hashes.update(V11_P3_DEFAULT_READER_HASHES)
+                    approval = "v11 P3 reviewed default-route reader and resolver identities"
             predecessor_hashes = {
                 row["path"]: row["sha256"] for row in fixture["fingerprint"]["candidate"]
                 if row["path"] in resolver_hashes

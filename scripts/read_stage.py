@@ -11,6 +11,7 @@ import hashlib
 import json
 import re
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -193,7 +194,7 @@ def select_sources(
 
 def verify_writing_source_commit(
     root: Path, row: dict[str, Any], selected_commit: str,
-) -> None:
+) -> bytes:
     """Bind selected Skill source bytes to the pinned Git commit.
 
     Keep the compatibility name for existing callers. Every reading surface
@@ -212,6 +213,7 @@ def verify_writing_source_commit(
         raise ValueError(f"selected commit source could not be verified: {row['path']}")
     if hashlib.sha256(result.stdout).hexdigest() != row["sha256"]:
         raise ValueError(f"source SHA-256 differs from selected commit: {row['path']}")
+    return result.stdout
 
 
 def source_chunks(
@@ -281,7 +283,7 @@ def extract(
             raise ValueError("project snapshot changed or belongs to another root; rerun resolve_runtime")
         source_root, source_commit = snapshot.root, None
     else:
-        verify_writing_source_commit(root, row, selected_commit)
+        expected_source = verify_writing_source_commit(root, row, selected_commit)
     review_binding = validate_review_rows(root, rows)
     if review_binding is not None:
         # Legacy-plan rows cannot invent leaf hashes at extraction time. New
@@ -296,13 +298,15 @@ def extract(
                            project_snapshot=snapshot.describe() if snapshot else None)
     if snapshot is not None:
         snapshot.assert_current()
-        fresh = SourceReader(source_root, "project").describe({"path": row["path"]})
+        project_source = SourceReader(source_root, "project")
+        fresh = project_source.describe({"path": row["path"]})
+        expected_source = project_source.cache[row["path"]][0]
         if fresh["sha256"] != row["sha256"]:
             raise ValueError("project source changed during reading; rerun resolve_runtime")
     if chunk_index < 0 or chunk_index >= len(chunks):
         raise ValueError("chunk_index out of range")
     emitted = chunks[chunk_index]
-    coverage = validate_chunk_coverage(row["ranges"], [emitted])
+    coverage = validate_chunk_coverage(row["ranges"], [emitted], expected_source=expected_source)
     return {
         "status": "source_text_returned_not_stage_or_gate_passed",
         "surface": surface,
@@ -330,7 +334,13 @@ def extract(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    if sys.argv[1:2] == ["formal"]:
+        from formal_reading import main as formal_main
+        return formal_main(sys.argv[2:], ROOT, verify_checkout)
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        epilog="For formal startup without a resolver plan, see: read_stage.py formal --help",
+    )
     parser.add_argument("--plan", required=True, type=Path, help="existing resolve_runtime YAML output")
     parser.add_argument("--root", type=Path, default=ROOT)
     parser.add_argument("--source-commit", required=True)

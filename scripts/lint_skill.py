@@ -90,7 +90,7 @@ def _markdown_fragment_exists(path: Path, fragment: str) -> bool:
 
 def _active_markdown_surfaces() -> list[Path]:
     paths = {path.resolve() for path in _ROOT_ACTIVE_MARKDOWN if path.is_file()}
-    paths.update(path.resolve() for path in checks.active_files() if path.suffix.lower() == ".md")
+    paths.update(path.resolve() for path in checks.authored_markdown())
     return sorted(paths)
 
 

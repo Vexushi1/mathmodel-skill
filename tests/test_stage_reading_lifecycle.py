@@ -144,6 +144,33 @@ class StageReadingLifecycleTests(unittest.TestCase):
         _, returned = self.consume(plan, "modules/02_model_design.md")
         self.assertEqual(returned[0]["gate_status"], "not_executed_by_reader")
 
+    def test_candidate_resolver_selects_the_pinned_reader_without_changing_gates(self):
+        arguments = dict(objective="optimization", question="Q1")
+        original = resolve_runtime("new_problem_design", **arguments)
+        self.assertNotIn("startup_reading", original)
+        for event, profile in (("formal_single_question", "formal"),
+                               ("visual_only_edit", "scoped"),
+                               ("formal_context_lost", "recovery")):
+            with self.subTest(event=event):
+                candidate = resolve_runtime("new_problem_design", **arguments,
+                                            candidate_startup_event=event, source_commit=self.commit)
+                selection = candidate.pop("startup_reading")
+                self.assertEqual(candidate, original)
+                self.assertEqual(selection["profile"], profile)
+                self.assertEqual(selection["source_commit"], self.commit)
+                self.assertEqual(selection["status"], "selection_only")
+                if profile == "scoped":
+                    self.assertNotIn("manifest", selection)
+                else:
+                    self.assertEqual(selection["manifest"], "core/full_reading/manifest.json")
+                    self.assertEqual(selection["reader"], "scripts/read_stage.py")
+        for extra in (dict(candidate_startup_event="new_contest"),
+                      dict(source_commit=self.commit),
+                      dict(candidate_startup_event="unknown", source_commit=self.commit),
+                      dict(candidate_startup_event="new_contest", source_commit="0" * 40)):
+            with self.subTest(extra=extra), self.assertRaises(ValueError):
+                resolve_runtime("new_problem_design", **arguments, **extra)
+
     def test_preprocessing_dispositions_keep_their_original_execution_pause(self):
         for decision in ("not_needed", "question_local", "project_level"):
             with self.subTest(decision=decision):

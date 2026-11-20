@@ -362,3 +362,6 @@ utility_gates:
     - Explicit 1.3.0 or 1.4.0 enforce_latex_text_and_figure_chain projects also require the current bounded Figure gate and v5 proof of its exact included image inputs before a package can pass; this is not visual adequacy or whole-caption semantic approval.
     - Exact 1.5.0 selected LaTeX packages recheck the declared entrypoint, current machine claim/Figure gate and its exact v2/v5 source, image, PDF, recorder and log identities; selected DOCX submission fails closed until a separate supported rendered-delivery proof contract exists.
     - Exact opt-in review_receipt_policy 1.0.0/enforce_scoped projects recheck scoped final_review_and_delivery receipts on direct package validation under core/review_receipt_consumption_contract.yaml; receipt status never replaces the existing package, PDF, or human review evidence.
+
+# Formal-startup corpus membership and physical aliases. Stage resolution uses this manifest as before.
+rule_corpus: core/rule_corpus_sources.yaml
