@@ -147,7 +147,7 @@ class HistoricalProjectionTests(unittest.TestCase):
         self.assertEqual(plan_evidence.runtime_consistency_predecessor(
             record["id"], scoped, record["authority_versions"]), (scoped, []))
 
-    def test_p4b_projection_checks_execution_source_and_preserves_template_changes(self):
+    def test_candidate_projection_checks_execution_source_and_preserves_template_changes(self):
         record = plan_evidence.worker(ROOT, 0)
         current = plan_evidence.legacy_projection(record["plan"])
 
@@ -156,7 +156,9 @@ class HistoricalProjectionTests(unittest.TestCase):
                 record["id"], plan, record["authority_versions"])
 
         predecessor, changes = project(current)
-        contract = plan_evidence.V11_P4B_EXECUTION_CONTRACT
+        contract_path = plan_evidence.V11_P4B_EXECUTION_CONTRACT["path"]
+        contract = {"path": contract_path,
+                    "sha256": plan_evidence.V11_P5_DEFAULT_SOURCE_HASHES[contract_path]}
         self.assertIn((f"assurance.authority_fingerprint.sources.{contract['path']}", contract["sha256"]),
                       [(change["path"], change.get("candidate")) for change in changes])
         previous = deepcopy(current)
@@ -178,6 +180,35 @@ class HistoricalProjectionTests(unittest.TestCase):
         predecessor["load_order"].append(template)
         self.assertEqual(project(changed)[0], predecessor)
 
+    def test_p5_projection_requires_the_exact_reader_and_both_applicability_sources(self):
+        record = plan_evidence.worker(ROOT, 0)
+        current = plan_evidence.legacy_projection(record["plan"])
+        old = {
+            "scripts/reading_plan.py": plan_evidence.V11_P4_DEFAULT_READER_HASHES["scripts/reading_plan.py"],
+            "core/user_execution_contract.yaml": plan_evidence.V11_P4B_EXECUTION_CONTRACT["sha256"],
+            "core/code_quality_contract.yaml": "8152402e1fa0fb0018dae7d7ba3a951ec254a60a48761bc818c44ea27de60191",
+        }
+
+        def project(plan):
+            return plan_evidence.runtime_consistency_predecessor(
+                record["id"], plan, record["authority_versions"])
+
+        _, changes = project(current)
+        for path, previous_hash in old.items():
+            with self.subTest(source=path):
+                self.assertIn((f"assurance.authority_fingerprint.sources.{path}",
+                               plan_evidence.V11_P5_DEFAULT_SOURCE_HASHES[path]),
+                              [(change["path"], change.get("candidate")) for change in changes])
+                mixed = deepcopy(current)
+                row = next(row for row in mixed["assurance"]["authority_fingerprint"]["sources"]
+                           if row["path"] == path)
+                row["sha256"] = previous_hash
+                self.assertEqual(project(mixed), (mixed, []))
+                read_bytes = Path.read_bytes
+                with mock.patch.object(Path, "read_bytes",
+                                       lambda item: read_bytes(item) + (b" " if item == ROOT / path else b"")):
+                    self.assertEqual(project(current), (current, []))
+
     def test_frozen_v10270_inverse_still_accepts_only_exact_carrier(self):
         after = plan_evidence.worker(ROOT, 0)
         self.assertEqual(after["authority_versions"]["skill"], "10.35.3")
@@ -188,7 +219,7 @@ class HistoricalProjectionTests(unittest.TestCase):
         # Simulate the exact v10.27.0 source identities.
         sources = old_carrier["plan"]["assurance"]["authority_fingerprint"]["sources"]
         pinned = plan_evidence.RUNTIME_CONSISTENCY_PROJECTION["fingerprint"]["candidate"]
-        for path in ("core/output_contract.yaml", "core/user_execution_contract.yaml",
+        for path in ("core/output_contract.yaml", "core/user_execution_contract.yaml", "core/code_quality_contract.yaml",
                      "scripts/resolve_runtime.py", "scripts/resolve_workflow.py",
                      "scripts/reading_plan.py", "scripts/read_stage.py"):
             actual_row = [row for row in sources if row["path"] == path]

@@ -5,6 +5,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 from copy import deepcopy
 from pathlib import Path
 
@@ -372,6 +373,57 @@ class ChunkCoverageTests(unittest.TestCase):
         self.assertTrue(result["complete"])
         self.assertEqual(result["missing_ranges"], [])
         self.assertEqual(result["issues"], [])
+
+    def test_two_argument_reads_exact_historical_git_object_and_retry_range(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            def git(*args):
+                return subprocess.check_output(["git", "-C", str(root), *args]).decode().strip()
+            git("init", "-q")
+            git("config", "user.name", "test")
+            git("config", "user.email", "test@example.invalid")
+            git("config", "core.autocrlf", "false")
+            git("config", "commit.gpgsign", "false")
+            path = "条件.md"
+            original = "假设\r\n界限 123\r\n第三行\r\n最后适用条件".encode()
+            (root / path).write_bytes(original)
+            git("add", "--", path)
+            git("commit", "-qm", "old source")
+            pin = git("rev-parse", "HEAD")
+            blob = git("rev-parse", f"{pin}:{path}")
+            (root / path).write_bytes(original.replace(b"123", b"456"))
+            git("commit", "-qam", "new source")
+            new_pin = git("rev-parse", "HEAD")
+            (root / path).write_bytes(b"uncommitted replacement")
+            digest = hashlib.sha256(original).hexdigest()
+            lines = original.decode().splitlines(keepends=True)
+            first = self.chunk(1, 2, "".join(lines[:2]), sha=digest, blob=blob, commit=pin, path=path)
+            last = self.chunk(4, 4, lines[-1], sha=digest, blob=blob, commit=pin, path=path)
+            ranges = [[1, 2], [4, 4]]
+            with patch.object(READING, "_SOURCE_ROOT", root):
+                result = READING.validate_chunk_coverage(ranges, [first, last])
+                self.assertTrue(result["complete"], result)
+                self.assertEqual(result["byte_verification"], "verified")
+                for reported_hash in (None, digest.upper()):
+                    checked = READING.validate_chunk_coverage([[1, 2]], [dict(first, source_sha256=reported_hash)])
+                    self.assertTrue(checked["complete"], checked)
+                    self.assertEqual(checked["byte_verification"], "verified")
+                for text in (lines[-1][:-1], lines[-1][:-1] + "假"):
+                    result = READING.validate_chunk_coverage(ranges, [first, dict(last, text=text)])
+                    self.assertFalse(result["complete"], result)
+                    self.assertEqual(result["missing_ranges"], [[4, 4]])
+                    self.assertEqual(result["byte_verification"], "failed")
+                for change in ({"path": "不存在.md"}, {"path": "../条件.md"}, {"source_blob_sha": "b" * 40},
+                               {"source_sha256": "0" * 64}, {"source_commit": new_pin},
+                               {"source_commit": blob}):
+                    with self.subTest(change=change):
+                        result = READING.validate_chunk_coverage([[1, 2]], [dict(first, **change)])
+                        self.assertFalse(result["complete"], result)
+                        self.assertEqual(result["byte_verification"], "failed")
+                        self.assertEqual(result["missing_ranges"], [[1, 2]])
+                unknown = READING.validate_chunk_coverage([[1, 2]], [dict(first, source_commit="0" * 40)])
+                self.assertTrue(unknown["complete"], unknown)
+                self.assertEqual(unknown["byte_verification"], "unavailable")
 
     def test_original_bytes_distinguish_equal_line_counts_and_report_exact_retry(self):
         raw = "first\r\n最末条件 ≥ 3".encode("utf-8")

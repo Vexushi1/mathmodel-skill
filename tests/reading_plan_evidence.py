@@ -2019,6 +2019,16 @@ V11_P4B_EXECUTION_CONTRACT = {
 }
 
 
+# The candidate retains the stage-scoped default after the P5 applicability
+# changes and independent Git-blob verification for the old two-argument reader.
+V11_P5_DEFAULT_SOURCE_HASHES = {
+    **V11_P4_DEFAULT_READER_HASHES,
+    "scripts/reading_plan.py": "c0da676439af8c7466a90a8a59f097da8f5ff5e5b1c3248fb3b0892e163f08e0",
+    "core/user_execution_contract.yaml": "1b018787540da4f7a9adbc21d85655c194e80eedeb34622aeb3bfe05ff2d9306",
+    "core/code_quality_contract.yaml": "d203441e5793a45c05871d0f6feb6488aa2ce3c3efbd3d1f0d74708d9d214b0a",
+}
+
+
 def runtime_consistency_predecessor(identifier, new, candidate_authority_versions):
     """Reverse only measured repair leaves, preserving all unrelated differences.
 
@@ -2229,6 +2239,11 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
                             and identifier in {case[0] for case in CASES}):
                         resolver_hashes[V11_P4B_EXECUTION_CONTRACT["path"]] = V11_P4B_EXECUTION_CONTRACT["sha256"]
                         approval = "v11 P4b default-route comparison on exact execution and reader sources"
+                p5_sources = {row["path"]: row["sha256"] for row in fingerprint["sources"]
+                              if row["path"] in V11_P5_DEFAULT_SOURCE_HASHES}
+                if p5_sources == V11_P5_DEFAULT_SOURCE_HASHES and identifier in {case[0] for case in CASES}:
+                    resolver_hashes.update(V11_P5_DEFAULT_SOURCE_HASHES)
+                    approval = "v11 P5 exact staged reader and applicability contracts for the default route"
             predecessor_hashes = {
                 row["path"]: row["sha256"] for row in fixture["fingerprint"]["candidate"]
                 if row["path"] in resolver_hashes
