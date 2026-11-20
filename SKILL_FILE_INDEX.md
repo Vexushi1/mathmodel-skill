@@ -338,6 +338,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/fixtures/v10352_approved_source_spans.json`
 - `tests/fixtures/v10353_approved_source_spans.json`
 - `tests/fixtures/v11_business_baseline.yaml`
+- `tests/fixtures/v11_p6_observations.xlsx`
 - `tests/fixtures/v11_web_app_cases.yaml`
 - `tests/fixtures/v11_web_app_rubric.yaml`
 - `tests/fixtures/v900_phase_h_empty_sync_golden.yaml`
@@ -629,6 +630,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/v10270_action_observation.py`
 - `tests/v10270_runtime_measurement.py`
 - `tests/v11_business_baseline.py`
+- `tests/v11_client_trial.py`
 - `tests/v11_evidence_observations.py`
 - `tests/v11_model_observations.py`
 - `tests/v11_plot_observations.py`
@@ -719,6 +721,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `docs/v10_27_runtime_nonregression_closeout.md`
 - `docs/v10_27_runtime_nonregression_optimization_plan.md`
 - `docs/v10_32_0_release_notes.md`
+- `docs/v11_client_trial.md`
 - `docs/v801_chapter_capability_preservation_audit.md`
 - `docs/v801_skill_health_remediation_plan.md`
 - `docs/v801_skill_health_remediation_status.md`
