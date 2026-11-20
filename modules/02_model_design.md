@@ -630,7 +630,9 @@ selected_models
 
 当前 `semantic_revision` 或 structured `semantic_identity_hash` 改变时，旧 `model_challenge_status`、`human_model_approval_status` 与 `locked_model_spec` 同时变 stale；必须重新完成必要的语义闭环、Complexity Sanity、Model Challenge 和 Human Approval。Markdown 排版、纯措辞、图注、公式编号、小节标题压缩或不改变 SIB identity 的 LaTeX 文件拆分只更新 text provenance，不触发重新审批。无 SIB 的 legacy `semantic_hash` 仅用于迁移期只读兼容。
 
-若已验收 structured identity 变化，`scripts/validate_semantic_governance.py` 先将本问及依赖后问相关产物标记 stale。旧结果在重新求解和验收前保持 stale。代码前再由 `scripts/validate_model_approval.py` 核验 challenge/approval 与当前 revision/identity 的绑定关系。
+在 SIB 的 `dependencies` 中保留每项依赖的选择器，在项目状态的 `depends_on` 中按上游题号和类型登记传播关系。例如 Q2 用到 Q1 同一类型的两个选择器，在状态中只需登记一条对应的边。语义治理和运行时按 `core/state_transition_contract.yaml#dependency_alignment` 核对两处登记；遇到矛盾时，按诊断修正对应依赖后再使用受影响小问的批准。
+
+若已验证的模型身份或语义修订号变化，`scripts/validate_semantic_governance.py` 在更新基线前，按依赖类型将本问及受影响后问的相应产物标记 stale。旧结果在重新求解和验收前保持 stale。代码前再由 `scripts/validate_model_approval.py` 核验 challenge/approval 与当前 revision/identity 的绑定关系。
 
 ## 9. 命题与证明规划
 

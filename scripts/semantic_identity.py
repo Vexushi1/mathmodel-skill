@@ -10,6 +10,7 @@ import hashlib
 import json
 import re
 from collections.abc import Mapping
+from pathlib import Path
 from typing import Any
 
 import yaml
@@ -383,3 +384,114 @@ def inspect_question_semantics(section: str, question: str) -> dict[str, Any]:
         "semantic_identity_schema_version": str(identity["schema_version"]),
         "identity": identity,
     }
+
+
+def read_framework_semantic_evidence(
+    framework_path: Path,
+) -> tuple[dict[str, dict[str, Any]], str | None]:
+    """Parse current per-question semantic evidence using the shared canonical implementation."""
+    if not framework_path.is_file():
+        return {}, "current model framework is missing"
+    return framework_semantic_evidence(framework_path.read_text(encoding="utf-8"))
+
+
+def framework_semantic_evidence(text: str) -> tuple[dict[str, dict[str, Any]], str | None]:
+    """Inspect captured framework text without reading the file again."""
+    rows: dict[str, dict[str, Any]] = {}
+    try:
+        sections = question_sections(text)
+    except SemanticIdentityError as exc:
+        return {}, f"current model framework is malformed: {exc}"
+    for question, section in sections.items():
+        try:
+            rows[question] = inspect_question_semantics(section, question)
+        except SemanticIdentityError as exc:
+            rows[question] = {
+                "mode": "malformed",
+                "error": str(exc),
+                "semantic_text_hash": None,
+                "semantic_identity_hash": None,
+                "semantic_identity_schema_version": None,
+            }
+    return rows, None
+
+
+def validated_semantic_changes(entry: Mapping[str, Any], inspection: Mapping[str, Any]) -> tuple[bool, bool]:
+    """Compare an established structured identity and its validated revision independently."""
+    previous_hash = str(entry.get("validated_semantic_identity_hash", "")).strip()
+    if inspection.get("mode") != "semantic_identity_v1" or not previous_hash:
+        return False, False
+    revision = entry.get("semantic_revision")
+    previous_revision = entry.get("validated_semantic_revision")
+    # An absent historical revision can be initialized. Once recorded, an invalid
+    # endpoint (including True == 1 in Python) cannot verify a downstream approval.
+    revision_changed = "validated_semantic_revision" in entry and (
+        not is_semantic_revision(previous_revision) or not is_semantic_revision(revision)
+        or revision != previous_revision
+    )
+    return previous_hash != inspection["semantic_identity_hash"], revision_changed
+
+
+def past_approval_conflict(entry: Mapping[str, Any], inspection: Mapping[str, Any]) -> bool:
+    """Detect a recorded approval that an older writer failed to retire before advancing its baseline."""
+    if inspection.get("mode") != "semantic_identity_v1" or entry.get("human_model_approval_status") != "approved":
+        return False
+    identity = inspection["semantic_identity_hash"]
+    revision = entry.get("semantic_revision")
+    validated_revision = entry.get("validated_semantic_revision")
+    if (identity != entry.get("semantic_identity_hash") or identity != entry.get("validated_semantic_identity_hash")
+            or not is_semantic_revision(revision) or not is_semantic_revision(validated_revision)
+            or revision != validated_revision):
+        return False
+    approved_hash = entry.get("approved_semantic_identity_hash")
+    approved_revision = entry.get("approved_semantic_revision")
+    if (not isinstance(approved_hash, str) or re.fullmatch(r"[0-9a-fA-F]{64}", approved_hash) is None
+            or not is_semantic_revision(approved_revision)):
+        return False
+    return approved_hash != identity or approved_revision != revision
+
+
+def dependency_alignment_issues(
+    subproblems: Mapping[str, Any], inspections: Mapping[str, Mapping[str, Any]]
+) -> dict[str, list[str]]:
+    """Compare typed endpoints, retaining selectors in identity and historical string edges in State."""
+    conflicts: dict[str, list[str]] = {}
+    for question, entry in subproblems.items():
+        if not isinstance(entry, Mapping):
+            continue
+        dependencies = entry.get("depends_on", [])
+        if not isinstance(dependencies, list):
+            conflicts[question] = [f"{question}: State depends_on must be a list"]
+            continue
+        inspection = inspections.get(question, {})
+        if inspection.get("mode") != "semantic_identity_v1":
+            continue
+        expected = {(str(dep["question"]).strip(), str(dep["kind"]).strip())
+                    for dep in inspection["identity"]["dependencies"]}
+        typed: set[tuple[str, str]] = set()
+        legacy: set[str] = set()
+        issues: list[str] = []
+        for index, dep in enumerate(dependencies):
+            if isinstance(dep, str) and QUESTION_RE.fullmatch(dep):
+                legacy.add(dep)
+            elif isinstance(dep, Mapping):
+                source = dep.get("question")
+                kind = dep.get("kind")
+                if (isinstance(source, str) and QUESTION_RE.fullmatch(source)
+                        and isinstance(kind, str) and kind in DEPENDENCY_KINDS):
+                    typed.add((source, kind))
+                else:
+                    issues.append(f"{question}: invalid State depends_on[{index}] ({source!r}, {kind!r})")
+            else:
+                issues.append(f"{question}: invalid State depends_on[{index}]")
+        for source, kind in sorted(expected - typed):
+            if source not in legacy:
+                issues.append(f"{question}: SIB dependency {source}/{kind} missing from State depends_on")
+        for source, kind in sorted(typed - expected):
+            issues.append(f"{question}: State dependency {source}/{kind} missing from SIB dependencies")
+        for source, kind in sorted(expected):
+            if source not in subproblems:
+                issues.append(f"{question}: SIB dependency {source}/{kind} refers to an unknown State question")
+        if issues:
+            conflicts[question] = issues
+    return conflicts

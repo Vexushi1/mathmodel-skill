@@ -337,5 +337,98 @@ class TestV712RuntimeAssurance(unittest.TestCase):
         self.assertEqual(plan["pause_state"], "awaiting_model_approval")
 
 
+class CurrentDependencyApprovalTests(unittest.TestCase):
+    def setUp(self):
+        from tests.test_v900_semantic_governance import SEMANTIC, dependency_project
+
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name)
+        self.path = dependency_project(self.root)
+        self.frame = self.root / "模型论文框架.md"
+        report = SEMANTIC.validate_project(self.root, write=True, strict=True)
+        self.assertEqual(report["status"], "passed", report["issues"])
+        self.state = yaml.safe_load(self.path.read_bytes())
+        self.entries = self.state["subproblems"]
+        for entry in self.entries.values():
+            entry.update(model_challenge_status="passed", human_model_approval_status="approved",
+                         approved_semantic_revision=entry["validated_semantic_revision"],
+                         approved_semantic_identity_hash=entry["validated_semantic_identity_hash"])
+
+    def check_locks(self, blocked):
+        from runtime_assurance import hydrate_project_context
+        from validate_model_approval import validate_state
+
+        self.path.write_text(yaml.safe_dump(self.state, allow_unicode=True), encoding="utf-8")
+        before = self.path.read_bytes()
+        rows = hydrate_project_context(self.root)["artifact_evidence"]
+        locks = {row["scope"]: row for row in rows if row["artifact"] == "locked_model_spec"}
+        self.assertEqual({q for q, row in locks.items() if row["status"] != "verified"}, set(blocked), locks)
+        for q in self.entries:
+            errors = validate_state(self.path, [q], project_root=self.root)
+            self.assertEqual(bool(errors), q in blocked, (q, errors))
+        self.assertEqual(self.path.read_bytes(), before)
+        return locks
+
+    def test_dependency_mismatch_blocks_only_its_model_chain_at_read_time(self):
+        self.check_locks([])
+        target = self.entries["Q2"]
+        for bad_edges in ([], [{"question": "Q1", "kind": "result"}], 7):
+            with self.subTest(depends_on=bad_edges):
+                target["depends_on"] = bad_edges
+                locks = self.check_locks(["Q2", "Q3"])
+                for q in ("Q2", "Q3"):
+                    self.assertIn("Q2", locks[q]["reason"])
+                    self.assertIn("Q1/model" if isinstance(bad_edges, list) else "depends_on", locks[q]["reason"])
+        target["depends_on"] = ["Q1"]
+        self.check_locks([])
+
+    def test_scoped_resolver_waits_for_dependent_approval_only(self):
+        self.entries["Q2"]["depends_on"] = []
+        self.path.write_text(yaml.safe_dump(self.state, allow_unicode=True), encoding="utf-8")
+        runtime = load_runtime()
+        for question, paused in (("Q3", True), ("Q4", False)):
+            plan = runtime.resolve_runtime("full_solution", project_root=self.root, question=question)
+            self.assertEqual(plan["pause_for_model_approval"], paused)
+            effective = plan["assurance"]["artifact_assurance"]["effective_artifacts"]
+            self.assertEqual("locked_model_spec" in effective, not paused)
+
+    def test_unsynchronized_revision_or_identity_invalidates_only_model_approval_edges(self):
+        q1 = self.entries["Q1"]
+        for current, validated in ((2, 1), (1, 2)):
+            with self.subTest(current=current, validated=validated):
+                q1.update(semantic_revision=current, validated_semantic_revision=validated,
+                          approved_semantic_revision=current)
+                locks = self.check_locks(["Q1", "Q2", "Q3"])
+                self.assertIn("validated_semantic_revision", locks["Q3"]["reason"])
+        del q1["semantic_revision"]
+        self.check_locks(["Q1", "Q2", "Q3"])
+        q1.update(semantic_revision=1, validated_semantic_revision=1, approved_semantic_revision=1)
+        framework = self.frame.read_text(encoding="utf-8")
+        self.frame.write_text(framework.replace("当前模型说明", "新排版说明"), encoding="utf-8")
+        self.check_locks([])
+        self.frame.write_text(framework.replace("sense: minimize", "sense: maximize", 1), encoding="utf-8")
+        self.check_locks(["Q1", "Q2", "Q3"])
+
+    def test_old_writer_advanced_validation_while_leaving_the_previous_approval(self):
+        entry = self.entries["Q1"]
+        entry.update(semantic_revision=2, validated_semantic_revision=2, approved_semantic_revision=1)
+        self.check_locks(["Q1", "Q2", "Q3"])
+        entry.update(approved_semantic_revision=2, approved_semantic_identity_hash="0" * 64)
+        self.check_locks(["Q1", "Q2", "Q3"])
+
+    def test_established_upstream_sib_cannot_disappear_before_a_downstream_read(self):
+        from tests.test_v900_semantic_governance import framework
+
+        text = self.frame.read_text(encoding="utf-8")
+        tail = text[text.index("### Q2："):]
+        for remaining in (framework(None) + tail, tail):
+            with self.subTest(first_line=remaining.splitlines()[0]):
+                self.frame.write_text(remaining, encoding="utf-8")
+                self.check_locks(["Q1", "Q2", "Q3"])
+        self.frame.unlink()
+        self.check_locks(self.entries)
+
+
 if __name__ == "__main__":
     unittest.main()

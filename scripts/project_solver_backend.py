@@ -209,7 +209,7 @@ _PREVIEW_SOURCES = (
     "scripts/artifact_fingerprint.py", "scripts/runtime_assurance.py",
     "scripts/validate_user_execution.py", "scripts/validate_numerical_evidence.py",
     "scripts/analysis_prerequisites.py", "scripts/artifact_identity.py",
-    "scripts/validate_model_approval.py", "scripts/semantic_identity.py",
+    "scripts/validate_model_approval.py", "scripts/validate_semantic_governance.py", "scripts/semantic_identity.py",
     "scripts/state_transitions.py", "scripts/sync_project.py",
     "scripts/project_snapshot.py", "scripts/submission_requirements.py",
     "scripts/validate_code_delivery.py", "scripts/validate_project_state.py",
@@ -801,22 +801,22 @@ def migrate_project_backend(
     # delivered but has not yet produced an accepted workbook. Check approval,
     # necessity, and the actual structured semantic identity before archiving.
     retained_rows = [row for row in report["stages"] if row["action"] == "retain_candidate"]
-    try:
-        sections = semantic_identity.question_sections(framework_text)
-    except semantic_identity.SemanticIdentityError as exc:
-        raise ProjectBackendMigrationError(f"current framework question scopes are invalid: {exc}") from exc
+    inspections, framework_error = semantic_identity.framework_semantic_evidence(framework_text)
+    if framework_error:
+        raise ProjectBackendMigrationError(framework_error)
+    blockers = approval.pending_semantic_approval_issues(
+        candidate["subproblems"], inspections, transition_contract=contract,
+    ) if retained_rows else {}
     for question in sorted({row["question"] for row in retained_rows}):
         entry = candidate["subproblems"][question]
         issues = approval.validate_question(question, entry)
         if issues:
             raise ProjectBackendMigrationError("retained numerical stage lacks current Model Approval: " + "; ".join(issues))
-        section = sections.get(question)
-        if section is None:
+        inspected = inspections.get(question)
+        if inspected is None:
             raise ProjectBackendMigrationError(f"{question}: retained numerical stage lacks its framework section")
-        try:
-            inspected = semantic_identity.inspect_question_semantics(section, question)
-        except semantic_identity.SemanticIdentityError as exc:
-            raise ProjectBackendMigrationError(f"{question}: current structured semantic identity is invalid: {exc}") from exc
+        if inspected["mode"] == "malformed":
+            raise ProjectBackendMigrationError(f"{question}: current structured semantic identity is invalid: {inspected['error']}")
         if inspected["mode"] != "semantic_identity_v1" or any(
             str(entry.get(field, "")).lower() != str(inspected[observed]).lower()
             for field, observed in (("semantic_identity_schema_version", "semantic_identity_schema_version"),
@@ -828,6 +828,8 @@ def migrate_project_backend(
             raise ProjectBackendMigrationError(
                 f"{question}: retained stage requires a current framework SIB matching validated and approved state identity"
             )
+        if question in blockers:
+            raise ProjectBackendMigrationError("retained numerical stage lacks current Model Approval: " + "; ".join(blockers[question]))
     for row in retained_rows:
         if row["stage"] != "analysis":
             continue

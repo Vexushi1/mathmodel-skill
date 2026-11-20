@@ -389,6 +389,18 @@ class HistoricalAcceptedMigrationTests(unittest.TestCase):
             backend.migrate_project_backend(self.root, **confirmed_kwargs(report))
         self.assertEqual(project_files(self.root), before)
 
+    def test_retention_requires_the_last_validated_semantic_revision(self):
+        state = load_state(self.root)
+        entry = state["subproblems"]["Q1"]
+        entry.update(validated_semantic_revision=1, semantic_revision=2, approved_semantic_revision=2)
+        save_state(self.root, state)
+        report = preview(self.root, "python")
+        self.assertEqual(report["stages"][0]["action"], "retain_candidate")
+        before = project_files(self.root)
+        with self.assertRaisesRegex(backend.ProjectBackendMigrationError, "validated_semantic_revision"):
+            backend.migrate_project_backend(self.root, **confirmed_kwargs(report))
+        self.assertEqual(project_files(self.root), before)
+
     def test_state_only_approved_hash_does_not_replace_framework_sib(self):
         state = load_state(self.root)
         entry = state["subproblems"]["Q1"]
