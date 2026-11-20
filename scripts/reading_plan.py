@@ -6,7 +6,9 @@ Selections name exact source ranges; they are not a record of completed reading.
 from __future__ import annotations
 
 import hashlib
+import os
 import re
+import subprocess
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
@@ -47,6 +49,44 @@ def _merge_ranges(ranges: list[tuple[int, int]]) -> list[tuple[int, int]]:
     return merged
 
 
+_SOURCE_ROOT = Path(__file__).resolve().parents[1]
+
+
+def _pinned_chunk_source(chunk: dict[str, Any]) -> bytes | None:
+    """Read the exact local commit and path. An unknown pin has no independent bytes here."""
+    commit = chunk["source_commit"]
+    if chunk.get("origin", "skill") != "skill" or not re.fullmatch(r"[0-9a-fA-F]{40}", commit):
+        return None
+    git = ["git", "--no-replace-objects", "--literal-pathspecs", "-C", str(_SOURCE_ROOT)]
+    environment = {**os.environ, "GIT_NO_LAZY_FETCH": "1"}
+    try:
+        commit_type = subprocess.run([*git, "cat-file", "-t", commit], capture_output=True, env=environment)
+    except OSError:
+        return None
+    if commit_type.returncode:
+        return None
+    if commit_type.stdout.strip() != b"commit":
+        raise ValueError("selected Git object is not a commit")
+
+    path = chunk["path"]
+    if "\0" in path or "\\" in path or any(part in ("", ".", "..") for part in path.split("/")):
+        raise ValueError("source path must be a repository-relative file in the selected commit")
+    tree = subprocess.run([*git, "ls-tree", "-z", "--full-tree", commit, "--", path], capture_output=True, env=environment)
+    if tree.returncode:
+        return None
+    metadata, separator, stored_path = tree.stdout.partition(b"\t")
+    if not separator or stored_path != path.encode("utf-8") + b"\0":
+        raise ValueError("source path is absent from the selected commit")
+    mode, kind, blob = metadata.split()
+    if kind != b"blob" or mode not in (b"100644", b"100755"):
+        raise ValueError("selected Git path is not a regular source file")
+    blob_id = blob.decode("ascii")
+    if chunk["source_blob_sha"] is not None and chunk["source_blob_sha"].lower() != blob_id:
+        raise ValueError("source blob ID differs from the selected commit and path")
+    result = subprocess.run([*git, "cat-file", "blob", blob_id], capture_output=True, env=environment)
+    return result.stdout if result.returncode == 0 else None
+
+
 def validate_chunk_coverage(
     expected_ranges: list[list[int] | tuple[int, int]],
     chunks: list[dict[str, Any]],
@@ -54,12 +94,13 @@ def validate_chunk_coverage(
 ) -> dict[str, Any]:
     """Validate returned source chunks against a planned 1-based inclusive read set.
 
-    This pure helper validates transport completeness only. It neither fetches text nor
-    establishes semantic review, approval, artifact acceptance, or delivery-gate status.
+    Coverage describes transport only, independently of any review or delivery gate.
     Each chunk must carry path, selected commit, an explicit SHA-256 value (or None when
     unavailable), a separately named blob ID, its inclusive line range, and returned text.
-    The two-argument form reports structural coverage. Supply independently obtained
-    original bytes to detect in-line loss or substitution and identify the range to retry.
+    With no explicit original, use local Git objects at the selected Skill commit when
+    available. Structural coverage alone retains its prior result and reports byte_verification
+    as unavailable. A verified byte result covers returned chunks; missing_ranges still
+    identifies outstanding intervals. Never build expected bytes from the response.
     """
     issues: list[str] = []
     expected_raw: list[tuple[int, int]] = []
@@ -77,6 +118,7 @@ def validate_chunk_coverage(
         return {
             "complete": False,
             "missing_ranges": [],
+            "byte_verification": "unavailable",
             "issues": issues + ["no valid required ranges declared"],
         }
 
@@ -84,8 +126,6 @@ def validate_chunk_coverage(
         (start + 1, end)
         for start, end in _merge_ranges([(start - 1, end) for start, end in expected_raw])
     ]
-    expected_lines = expected_source.decode("utf-8").splitlines(keepends=True) if expected_source is not None else None
-    expected_sha = hashlib.sha256(expected_source).hexdigest() if expected_source is not None else None
     normalized_chunks: list[tuple[int, int, int, dict[str, Any]]] = []
     identities: set[tuple[Any, ...]] = set()
     required_fields = {
@@ -142,12 +182,6 @@ def validate_chunk_coverage(
                 f"chunk {index} line count mismatch for {start}-{end}: "
                 f"expected {declared_lines}, received {actual_lines}"
             )
-        if expected_lines is not None and (
-            source_sha256 != expected_sha or end > len(expected_lines)
-            or chunk["text"] != "".join(expected_lines[start - 1:end])
-        ):
-            issues.append(f"chunk {index} differs from independent source bytes at {start}-{end}")
-            continue
         identities.add((
             chunk["path"], chunk["source_commit"], source_sha256, chunk["source_blob_sha"],
             origin, chunk.get("project_root"),
@@ -158,6 +192,37 @@ def validate_chunk_coverage(
 
     if len(identities) > 1:
         issues.append("source identity differs across chunks")
+    explicit_source = expected_source is not None
+    byte_verification = "unavailable"
+    if expected_source is None and normalized_chunks and not issues:
+        try:
+            expected_source = _pinned_chunk_source(normalized_chunks[0][3])
+        except ValueError as exc:
+            issues.append(str(exc))
+            normalized_chunks.clear()
+            byte_verification = "failed"
+    if expected_source is not None:
+        expected_sha = hashlib.sha256(expected_source).hexdigest()
+        try:
+            expected_lines = expected_source.decode("utf-8").splitlines(keepends=True)
+        except UnicodeDecodeError:
+            issues.append("independent source is not UTF-8 text")
+            normalized_chunks.clear()
+            expected_lines = []
+        verified = []
+        for item in normalized_chunks:
+            start, end, index, chunk = item
+            reported_sha = chunk["source_sha256"]
+            hash_conflict = ((explicit_source or reported_sha is not None)
+                             and str(reported_sha).lower() != expected_sha)
+            if (hash_conflict or end > len(expected_lines)
+                    or chunk["text"] != "".join(expected_lines[start - 1:end])):
+                issues.append(f"chunk {index} differs from independent source bytes at {start}-{end}")
+            else:
+                verified.append(item)
+        normalized_chunks = verified
+        byte_verification = "failed" if issues or not verified else "verified"
+
     for start, end, index, _ in normalized_chunks:
         if not any(left <= start and end <= right for left, right in expected):
             issues.append(f"chunk {index} range {start}-{end} is outside the required ranges")
@@ -188,6 +253,7 @@ def validate_chunk_coverage(
     ]
     return {
         "complete": bool(normalized_chunks) and not missing_ranges and not issues,
+        "byte_verification": byte_verification,
         "missing_ranges": missing_ranges,
         "issues": issues,
     }
