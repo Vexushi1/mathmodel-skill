@@ -40,6 +40,9 @@ def material_files(material: dict) -> dict[str, bytes]:
             return {relative_path(name): archive.read(name) for name in names if name not in omitted}
 
     name = relative_path(material["path"])
+    if "file" in material:
+        source = FIXTURES / relative_path(material["file"])
+        return {name: check_digest(source.read_bytes(), material["sha256"])}
     if "text" in material:
         return {name: material["text"].encode("utf-8")}
     encoded = "".join(material["base64"].split())

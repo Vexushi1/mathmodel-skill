@@ -1,6 +1,9 @@
 """Acceptance of the maintenance packet and its separation from evaluation material."""
 
+from collections import Counter
 from hashlib import sha256
+import json
+import subprocess
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
@@ -11,6 +14,7 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from v11_web_app_packet import CATALOG, FIXTURES, export_packet, packet_files
+from v11_client_trial import CLIENTS, lock_budget, prepare
 
 
 class WebAppPacketTests(unittest.TestCase):
@@ -52,6 +56,71 @@ class WebAppPacketTests(unittest.TestCase):
                         self.assertEqual(first.read_bytes(), second.read_bytes())
                         first.unlink()
                         second.unlink()
+
+    def test_trial_schedule_is_balanced_blind_and_unmeasured(self):
+        root = Path(__file__).resolve().parents[1]
+        commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip()
+        with TemporaryDirectory() as temporary:
+            folder = Path(temporary) / "new_trial"
+            prepare(commit, folder)
+            schedule = json.loads((folder / "private_schedule.json").read_bytes())
+            sessions = schedule["sessions"]
+            counts = Counter((s["client"], s["group"], s["case"]) for s in sessions)
+            self.assertEqual(len(counts), len(self.cases) * len(CLIENTS) * 3)
+            self.assertEqual(set(counts.values()), {self.rubric["trial_design"]["repeats_per_client_group_case"]})
+            blind = json.loads((folder / "blind_scores.json").read_bytes())
+            self.assertEqual({s["id"] for s in sessions}, {r["id"] for r in blind})
+            self.assertTrue(all("group" not in r and "client" not in r and r["judgment"] is None for r in blind))
+            self.assertTrue(all(r["state"] == "not_run" for c in CLIENTS
+                                for r in json.loads((folder / f"{c}_observations.json").read_bytes())))
+            with self.assertRaisesRegex(ValueError, "real, located"):
+                lock_budget(folder, "web")
+            self.assertFalse((folder / "web_budget.json").exists())
+            with self.assertRaisesRegex(ValueError, "new trial directory"):
+                prepare(commit, folder)
+
+    def test_budget_freezes_only_untouched_candidate_and_located_baseline(self):
+        with TemporaryDirectory() as temporary:
+            folder = Path(temporary)
+            schedule = {"sessions": [{"id": g, "client": "web", "case": "intake", "group": g}
+                                     for g in "ABC"], "repeats": 1, "turns": {"intake-1": {}}}
+            (folder / "private_schedule.json").write_text(json.dumps(schedule), encoding="utf-8")
+            path = folder / "web_observations.json"
+            rows = [{"id": g, "state": "completed", "session_locator": "synthetic-test-only",
+                     "turns": [{"first_correct_seconds": t, "request_time_utc": "2026-01-01T00:00:00Z",
+                                "response_locator": "synthetic-test-only"}]} for g, t in zip("ABC", [12, 20, 11])]
+            path.write_text(json.dumps(rows), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "already started"):
+                lock_budget(folder, "web")
+            rows[2].update(state="not_run", session_locator=None,
+                           turns=[{"request_time_utc": None, "response_locator": None}])
+            rows[2]["turns"][0]["first_correct_seconds"] = 0
+            path.write_text(json.dumps(rows), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "already started"):
+                lock_budget(folder, "web")
+            rows[2]["turns"][0]["first_correct_seconds"] = None
+            rows[1]["turns"][0]["first_correct_seconds"] = None
+            path.write_text(json.dumps(rows), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "both A and B"):
+                lock_budget(folder, "web")
+            self.assertFalse((folder / "web_budget.json").exists())
+            rows[1]["turns"][0]["first_correct_seconds"] = 20
+            path.write_text(json.dumps(rows), encoding="utf-8")
+            lock_budget(folder, "web")
+            budget = json.loads((folder / "web_budget.json").read_bytes())
+            self.assertEqual(budget["per_turn"]["intake-1"], {"limit_seconds": 20, "measured": 2, "scheduled": 2})
+            with self.assertRaises(FileExistsError):
+                lock_budget(folder, "web")
+
+    def test_frozen_hard_and_planted_criteria_exist_in_the_corresponding_turn(self):
+        criteria = {f"{c['id']}-{n}": set(t["criteria"]) for c in self.rubric["cases"]
+                    for n, t in enumerate(c["turns"], 1)}
+        design = self.rubric["trial_design"]
+        self.assertEqual(set(design["hard_criteria"]), set(criteria))
+        for key in ("hard_criteria", "planted_errors"):
+            for turn, ids in design[key].items():
+                self.assertEqual(len(ids), len(set(ids)))
+                self.assertLessEqual(set(ids), criteria[turn])
 
     def test_invalid_case_or_turn_cannot_export_another_turn(self):
         for case, number in (("unknown-case", 1), ("intake", 0), ("intake", 999)):
