@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import importlib.util
 import json
 import sys
 import unittest
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import yaml
 
@@ -171,7 +173,19 @@ pending
 
     def test_review_template_hydrates_from_current_bootstrap_and_scores(self):
         report = self._hydrated_review_report()
-        result = self.scorer.score_submission(self.review_config, report)
+        from pypdf import PdfWriter
+
+        with TemporaryDirectory() as temporary:
+            pdf = Path(temporary) / "current.pdf"
+            writer = PdfWriter()
+            writer.add_blank_page(300, 300)
+            writer.write(pdf)
+            digest = hashlib.sha256(pdf.read_bytes()).hexdigest()
+            report["review_context"]["compiled_pdf_sha256"] = digest
+            surface = next(row for row in report["coverage"] if row["check_family"] == "rendered_page_surface")
+            surface["page_review"].update(method="assistant_visual", pdf_sha256=digest, page_count=1,
+                                          viewed_ranges=[[1, 1]], uncovered_ranges=[])
+            result = self.scorer.score_submission(self.review_config, report, pdf_path=pdf)
         self.assertEqual(report["review_context"]["skill_version"], str(self.bootstrap["skill_version"]))
         self.assertEqual(result["review_status"], "passed")
 
