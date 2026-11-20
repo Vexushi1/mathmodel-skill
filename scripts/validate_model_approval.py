@@ -205,26 +205,28 @@ def validate_comparison_approval(
     A recorded scope verdict is not a numerical acceptance or a replacement for
     the current primary lock. Opt-in C review qualification remains separately owned.
     """
-    from analysis_comparison import enabled, inspect_plan
+    from analysis_comparison import enabled, inspect_plan, scope_sha256
 
     if not enabled(entry):
         return []
     errors = validate_question(question, dict(entry))
     try:
-        if specs is None:
-            specs = (Path(project_root) / "模型论文框架.md").read_text(encoding="utf-8")
-        if isinstance(specs, str):
-            inspections, framework_error = framework_semantic_evidence(specs)
-            if framework_error:
-                errors.append(framework_error)
-            issues = pending_semantic_approval_issues(state.get("subproblems", {}), inspections,
-                                                    transition_contract=transition_contract)
-            errors.extend(issues.get(question, []))
-            actual = inspections.get(question, {}).get("semantic_identity_hash")
-            if actual != entry.get("semantic_identity_hash"):
-                errors.append(f"{question}: comparison baseline differs from current primary framework SIB")
-        report = inspect_plan(entry, question=question, specs=specs)
+        # Extracted comparison specs contain no primary SIB or upstream sections.
+        framework = (specs if isinstance(specs, str)
+                     else (Path(project_root) / "模型论文框架.md").read_text(encoding="utf-8"))
+        inspections, framework_error = framework_semantic_evidence(framework)
+        if framework_error:
+            errors.append(framework_error)
+        issues = pending_semantic_approval_issues(state.get("subproblems", {}), inspections,
+                                                transition_contract=transition_contract)
+        errors.extend(issues.get(question, []))
+        actual = inspections.get(question, {}).get("semantic_identity_hash")
+        if actual != entry.get("semantic_identity_hash"):
+            errors.append(f"{question}: comparison baseline differs from current primary framework SIB")
+        report = inspect_plan(entry, question=question, specs=framework)
         errors.extend(f"{question}: {issue}" for issue in report["issues"])
+        if specs is not None and not isinstance(specs, str) and scope_sha256(specs) != report["scope_sha256"]:
+            errors.append(f"{question}: supplied comparison scope differs from the current framework")
         if "review_receipt_policy" in state:
             from review_receipt_consumption import evaluate_gate
 
