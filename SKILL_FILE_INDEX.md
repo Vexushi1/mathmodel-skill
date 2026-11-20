@@ -661,6 +661,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `docs/figure_paper_handoff_plan.md`
 - `docs/figure_technique_and_handoff_refactor_plan.md`
 - `docs/final_acceptance_traceability_matrix.md`
+- `docs/full_skill_reading_architecture_plan.md`
 - `docs/literature_p6_evaluation_protocol.md`
 - `docs/literature_p6_historical_case_catalog.json`
 - `docs/literature_p6b_real_case_preflight.md`
