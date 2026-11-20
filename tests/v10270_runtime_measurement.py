@@ -215,6 +215,7 @@ def approved_source_span_migrations(path: Path | None) -> dict[str, Any] | None:
         ("v10.35.0_execution_scale_commitments", "10.35.0"),
         ("v10.35.1_ordinary_analysis_coverage", "10.35.1"),
         ("v10.35.2_affirmative_full_workflow", "10.35.2"),
+        ("v10.35.3_literature_query_coverage", "10.35.3"),
     }
     allowed = (
         ("v10.28.0_p1_source_only_read_ranges", "10.28.0"),
@@ -229,14 +230,15 @@ def approved_source_span_migrations(path: Path | None) -> dict[str, Any] | None:
         ("v10.35.0_execution_scale_commitments", "10.35.0"),
         ("v10.35.1_ordinary_analysis_coverage", "10.35.1"),
         ("v10.35.2_affirmative_full_workflow", "10.35.2"),
+        ("v10.35.3_literature_query_coverage", "10.35.3"),
     )
     fields = {"schema_version", "scope", "version", "authorizing_reason",
               "required_case_ids", "migrations"}
     if model_intake_carrier:
         fields.add("model_intake")
-    if data.get("version") in {"10.34.0", "10.35.0", "10.35.1", "10.35.2"}:
+    if data.get("version") in {"10.34.0", "10.35.0", "10.35.1", "10.35.2", "10.35.3"}:
         fields.add("pqs_full_source_spans")
-    if data.get("version") in {"10.31.0", "10.32.0", "10.32.1", "10.32.2", "10.33.0", "10.34.0", "10.35.0", "10.35.1", "10.35.2"}:
+    if data.get("version") in {"10.31.0", "10.32.0", "10.32.1", "10.32.2", "10.33.0", "10.34.0", "10.35.0", "10.35.1", "10.35.2", "10.35.3"}:
         fields.update(("output_read_shift", "output_conditional_shift"))
     if (set(data) != fields or data.get("schema_version") != SCHEMA
             or (data.get("scope"), data.get("version")) not in allowed
@@ -291,7 +293,7 @@ def approved_source_span_migrations(path: Path | None) -> dict[str, Any] | None:
                              / source["path"]).read_bytes())
             if actual != source["candidate_sha256"]:
                 raise ValueError("literature intake source bytes changed")
-    if data.get("version") in {"10.31.0", "10.32.0", "10.32.1", "10.32.2", "10.33.0", "10.34.0", "10.35.0", "10.35.1", "10.35.2"}:
+    if data.get("version") in {"10.31.0", "10.32.0", "10.32.1", "10.32.2", "10.33.0", "10.34.0", "10.35.0", "10.35.1", "10.35.2", "10.35.3"}:
         shift = data["output_read_shift"]
         expected_ids = ["review_word_readonly", "natural_language_two_actions_probe"]
         if (not isinstance(shift, dict)
@@ -312,7 +314,7 @@ def approved_source_span_migrations(path: Path | None) -> dict[str, Any] | None:
                     or not isinstance(item["historical_ranges"], list)
                     or item["current_ranges"] == item["historical_ranges"]):
                 raise ValueError("output read shift scope or range invalid")
-    if data.get("version") in {"10.31.0", "10.32.0", "10.32.1", "10.32.2", "10.33.0", "10.34.0", "10.35.0", "10.35.1", "10.35.2"}:
+    if data.get("version") in {"10.31.0", "10.32.0", "10.32.1", "10.32.2", "10.33.0", "10.34.0", "10.35.0", "10.35.1", "10.35.2", "10.35.3"}:
         conditional = data["output_conditional_shift"]
         if (not isinstance(conditional, dict)
                 or set(conditional) != {"path", "candidate_sha256", "current_ranges",
@@ -327,10 +329,10 @@ def approved_source_span_migrations(path: Path | None) -> dict[str, Any] | None:
                     "two_carrier_legacy_protected", "explicit_figure_scope"
                 ]):
             raise ValueError("conditional output source migration must match four historical reads")
-    if data.get("version") in {"10.34.0", "10.35.0", "10.35.1", "10.35.2"}:
+    if data.get("version") in {"10.34.0", "10.35.0", "10.35.1", "10.35.2", "10.35.3"}:
         paths = ["core/user_execution_contract.yaml",
                  "core/numerical_verification_contract.yaml"]
-        if data["version"] in {"10.35.0", "10.35.1", "10.35.2"}:
+        if data["version"] in {"10.35.0", "10.35.1", "10.35.2", "10.35.3"}:
             paths.append("core/workbook_schema.yaml")
         declared = data["pqs_full_source_spans"]
         if (not isinstance(declared, list)
