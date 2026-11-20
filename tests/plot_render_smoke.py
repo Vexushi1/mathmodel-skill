@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import importlib.util
 import os
+import shutil
 from pathlib import Path
 import tempfile
 import unittest
@@ -43,6 +44,14 @@ def cjk_family():
     raise unittest.SkipTest("The export check needs a CJK font (HSK_TEST_CJK_FONT)")
 
 
+def keep_ci_sample(path):
+    directory = os.environ.get("HSK_CJK_EXPORT_EVIDENCE")
+    if directory:
+        target = Path(directory)
+        target.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(path, target / path.name)
+
+
 def assert_svg_labels(test, path, labels, family):
     parser = ElementTree.XMLParser(target=ElementTree.TreeBuilder(insert_comments=True))
     root = ElementTree.parse(path, parser=parser).getroot()
@@ -73,6 +82,7 @@ def assert_svg_labels(test, path, labels, family):
             outlines[char] = outline
     test.assertTrue(outlines, "expected Chinese labels")
     test.assertEqual(len(set(outlines.values())), len(outlines), "distinct Chinese glyph outlines")
+    keep_ci_sample(path)
 
 
 class PlotRenderingSmoke(unittest.TestCase):
@@ -156,11 +166,18 @@ class PlotRenderingSmoke(unittest.TestCase):
                                 plot.main()
                         self.assertEqual(output.read_bytes(), b"prior export")
                         self.assertEqual(set(directory.iterdir()), before)
+                        with mock.patch("matplotlib.figure.Figure.savefig",
+                                        side_effect=lambda path, **kwargs: Path(path).touch()):
+                            with self.assertRaisesRegex(OSError, "No Figure data"):
+                                plot.main()
+                        self.assertEqual(output.read_bytes(), b"prior export")
+                        self.assertEqual(set(directory.iterdir()), before)
                         plot.main()
                         plot.EXPORT_FILE = name + ".png"
                         plot.main()
                         pixels = mpl_image.imread(directory / plot.EXPORT_FILE)
                         self.assertGreater(float(pixels[..., :3].std()), .01)
+                        keep_ci_sample(directory / plot.EXPORT_FILE)
                     assert_svg_labels(self, output, labels, family)
                 finally:
                     plt.close("all")

@@ -589,6 +589,7 @@ def resolve_runtime(
         # Backend projection follows the actual resumed stage, not the request intent.
         solver_backend=None,
         project_result_prerequisites=project_result_prerequisites,
+        figure_request=request,
     )
     actual_stage = ("primary" if "modules/03_solve_validate.md" in plan["modules"] else
                     "analysis" if "modules/03_result_analysis.md" in plan["modules"] else None)
@@ -760,8 +761,18 @@ def resolve_runtime(
         "dependency_closure": dependency,
         "authority_fingerprint": fingerprint,
     }
+    if "figure_composition" in plan:
+        verified = set(hydration.get("verified_artifacts", []))
+        intent_diagnostics["selected_intents"] = list(plan["intents"])
+        for delivery in plan["figure_composition"]["deliveries"]:
+            missing = [item for item in delivery["required_verified_artifacts"] if item not in verified]
+            delivery["missing_verified_artifacts"] = missing
+            if hydration.get("loaded"):
+                delivery["evidence_status"] = "missing_current_inputs" if missing else "base_inputs_verified"
     if startup_reading is not None:
         plan["startup_reading"] = startup_reading
+        if plan.get("writing_runtime") and startup_reading["profile"] in {"formal", "recovery"}:
+            plan["writing_runtime"]["resource_order_semantics"] = load_yaml(WRITING_RUNTIME_PATH)["candidate_formal_reading"]["stage_reading"]
     plan["reading_plan"] = build_reading_plan(
         ROOT, plan, router, manifest, request or "", state_snapshot=state_snapshot
     )

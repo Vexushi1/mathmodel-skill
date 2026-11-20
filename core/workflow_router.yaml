@@ -29,6 +29,22 @@ project_memory_contract:
   read_before_modules: [data_preprocessing, solve_validate, result_analysis, figure_evidence, writing_docx, writing_latex, review_delivery]
   targeted_read_sections: [当前有效口径, relevant_subproblem, required_dependencies, Model Challenge, Human Model Approval, relevant_result_summary, Algorithm Trace, Terminology Registry, Numeric Profile, 待办与缺口]
   full_read_when: [cross_chat_handoff, long_context_recovery, full_paper_writing, cross_question_synthesis, final_review]
+  full_read_signals:
+    cross_chat_handoff:
+      startup_events: [cross_chat_formal_resume]
+      request_pattern: '(?:跨(?:聊天|会话)|新(?:聊天|会话)).{0,12}(?:接续|交接|恢复|继续)|(?:handoff|resume).{0,12}(?:another|new) (?:chat|session)'
+    long_context_recovery:
+      startup_events: [formal_context_lost]
+      request_pattern: '(?:上下文|对话记录).{0,10}(?:丢失|压缩|中断|恢复)|(?:恢复|重建).{0,8}(?:完整上下文|项目上下文)|context (?:loss|recovery)'
+    full_paper_writing:
+      intents: [latex, docx, full_workflow]
+      request_pattern: '(?:撰写|写|起草|生成|完成|组装|编写).{0,12}(?:全文|全篇|整篇|整稿|完整(?:的)?(?:论文|文稿))|(?:全文|全篇|整篇|整稿|论文全稿).{0,8}(?:写作|撰写|起草|组装)|(?:write|draft|assemble).{0,12}(?:entire|whole|full|complete) (?:paper|manuscript)'
+    cross_question_synthesis:
+      request_pattern: '(?:跨问|跨题|各问|各小问|所有问题).{0,10}(?:综合|归纳|汇总|综合分析)|(?:综合|归纳|汇总).{0,10}(?:跨问|跨题|各问|各小问|所有问题)|cross.question synthesis'
+    final_review:
+      intents: [review, full_workflow, full_submission]
+      request_pattern: '(?:全文|全篇|整篇|全稿|整稿|完整论文).{0,8}(?:终审|评审|审阅|审查|复核)|(?:终审|评审|审阅|审查|复核).{0,8}(?:全文|全篇|整篇|全稿|整稿|完整论文)|(?:^|[，。；\s])(?:请|开始|进行|做)?(?:论文)?终审(?:$|[。！；\s])|final review (?:of )?(?:the )?(?:entire |whole |full )?(?:paper|manuscript)'
+  scoped_writing_headings: [当前写作选择, 逐问写作能力预检, 正文章节与交付映射, Paper Fragment Dependency Map, Chapter Handoff Map, Algorithm Trace]
   numeric_fact_source: accepted_standard_workbooks
   machine_state_source: state/project_state.yaml
   rules:
@@ -366,7 +382,7 @@ routing:
 
   figures:
     triggers: [图表, 可视化, 机理图, 推导图, Nature, SCI, MATLAB图标题, 数据预处理图, 处理前后对比图, 局部放大, 分面图, 联合诊断图]
-    infer_keywords: [Python绘图, Python 绘图, MATLAB绘图, MATLAB 绘图, SCI图, Nature风格绘图, 结果图, 敏感性图, 鲁棒性图, 机理图, 推导图, 可视化, 图表, data_process, 预处理图, 局部放大, inset, small multiples, 分面图, 联合诊断]
+    infer_keywords: [Python绘图, Python 绘图, MATLAB绘图, MATLAB 绘图, SCI图, Nature风格绘图, 结果图, 敏感性图, 鲁棒性图, 机理图, 推导图, 可视化, 图表, 机理草图, 误差图, 误差分布图, 残差图, data_process, 预处理图, 局部放大, inset, small multiples, 分面图, 联合诊断]
     load: [modules/04_figure_evidence.md, packs/artifact/figure.md, templates/figure/chart_selection.md, templates/figure/figure_enhancement_patterns.md]
     terminal_outputs: [preprocessing_matlab_script, preprocessing_figures, matlab_scripts, figure_contracts, approved_figures, model_paper_framework]  # MATLAB historical projection
     project_plotting_outputs:
@@ -421,6 +437,22 @@ routing:
     terminal_outputs: [review_report]
 
 # P2 is a content-reading projection only. Legacy route selection/load_order is unchanged.
+# Identify the physical outputs before deciding their separately applicable Figure evidence.
+figure_delivery_policy:
+  mechanism_figure: '(?:机理|机制|推导|约束关系|临界状态)(?:示意|草|结构|示意草)?图|几何示意图|(?:draw\.io|drawio)(?:机理)?图|mechanism (?:diagram|sketch)'
+  result_figure: '(?:(?:预测|拟合|模拟|观测|数值|绝对|相对)?(?:误差|残差|敏感性|鲁棒性|稳健性|结果)(?:分布|变化|对比|比较|诊断|结果|曲线|散点|热力)?图|(?:error|residual|result) (?:plot|chart|figure))'
+  numerical_evidence: '(?:result_evidence|误差值|残差值|实测值|预测值|数值结果|工作簿数值|(?:标注|叠加|显示|标出|着色|注明).{0,12}(?:误差|残差)|(?:误差|残差).{0,8}(?:着色|标注|叠加)|error values?|numerical results?)'
+  editable_backend: '(?:draw\.io|drawio|可编辑(?:机理|机制|推导)图)'
+  semantic_change: '(?<!不)(?<!勿)(?<!无需)(?:改变|修改|重定|更换|调整|重建)(?:模型|参数(?:值)?|假设|数据口径|约束|目标函数)|(?<!不)(?:重新求解|重算模型)'
+  numeric_mechanism: '(?:机理|机制|推导)(?:示意|草)?图(?:本身|内|中|上|也|要|须|应|需要){0,3}(?:标注|展示|叠加|显示|使用|读取|引用|消费|绘入|标出|依据).{0,12}(?:误差|残差|结果|数值|工作簿|result_evidence)|result_evidence\s*(?:非空|已绑定)'
+  same_output: '(?:同一[张幅个]?图|同一[张幅]|合[为成并].{0,5}一[张幅个]|只(?:画|绘制|做)一[张幅个]|叠加[在到至]|作为.{0,4}(?:图层|子图|面板)|(?:same|single) (?:figure|diagram)|overlay)'
+  separate_outputs: '(?:两[张幅]独立|独立的两[张幅]|分[开别](?:绘制|画|作图|交付|导出)|各(?:绘制|画|做)一[张幅]|separate (?:figures|outputs))'
+  between_outputs: '\s*(?:[，,]?(?:和|与|及|以及)|、|，再|，另|；另|并(?:另)?|[,;]?\s*and)\s*(?:(?:再|另|同时)?(?:设计|绘制|画|制作|导出|生成|做))?\s*(?:(?:另)?一[张幅个]|这[张幅]|一份|本问的)?\s*'
+  negated_output: '(?:不要|不必|无需|不(?:再)?)(?:另行|单独)?(?:设计|绘制|画|生成|导出|做).{0,8}(?:误差|残差|结果图|机理图|机制图)'
+  requirements:
+    mechanism: [locked_model_spec]
+    figures: [locked_model_spec, accepted_solution_workbook, validated_results]
+
 reading_policy:
   schema_version: 1.1.0
   authority: core/runtime_assurance_contract.yaml#reading_plan

@@ -267,6 +267,7 @@ project_sync:
   stage_requirements_authority: core/output_contract.yaml#project_sync.stage_requirements
   stage_requirements_semantics: exact_scope
   mechanism_scope: Pure nonnumerical draw.io delivery rechecks current approved model, bound Spec/source/preview and registered real exports read-only via the existing synchronizer; it never grants human visual approval. Numerical result_evidence uses figures scope.
+  mechanism_spec_selector: With an explicit mechanism scope, --mechanism-spec binds one current figures/source/*.mechanism.yaml to its original read-only checks. Without that selector, all discovered mechanism specs remain in scope.
   conditional_stage_requirements_semantics: additive_when_condition_true_without_changing_base_exact_scope
   formal_state_requirements:
     result_quality_status: passed

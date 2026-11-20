@@ -122,6 +122,30 @@ class HistoricalProjectionTests(unittest.TestCase):
         self.assertEqual(changes, [])
         self.assertEqual(projected, changed)
 
+    def test_p4_default_projection_rejects_p3_mixes_and_per_figure_plans(self):
+        record = plan_evidence.worker(ROOT, 0)
+        current = plan_evidence.legacy_projection(record["plan"])
+        previous = {
+            **plan_evidence.V11_P3_DEFAULT_READER_HASHES,
+            "scripts/resolve_workflow.py": "6a57aa603ba6e300a9ce9521f62771d2de60bee76ae82277ce06387645f7dce2",
+        }
+        changed_paths = [path for path, digest in previous.items()
+                         if digest != plan_evidence.V11_P4_DEFAULT_READER_HASHES[path]]
+        self.assertTrue(changed_paths)
+        for size in range(1, len(changed_paths) + 1):
+            for replaced in itertools.combinations(changed_paths, size):
+                with self.subTest(replaced=replaced):
+                    mixed = deepcopy(current)
+                    for row in mixed["assurance"]["authority_fingerprint"]["sources"]:
+                        if row["path"] in replaced:
+                            row["sha256"] = previous[row["path"]]
+                    self.assertEqual(plan_evidence.runtime_consistency_predecessor(
+                        record["id"], mixed, record["authority_versions"]), (mixed, []))
+        scoped = deepcopy(current)
+        scoped["figure_composition"] = {"deliveries": [{"delivery_scope": "mechanism"}, {"delivery_scope": "figures"}]}
+        self.assertEqual(plan_evidence.runtime_consistency_predecessor(
+            record["id"], scoped, record["authority_versions"]), (scoped, []))
+
     def test_frozen_v10270_inverse_still_accepts_only_exact_carrier(self):
         after = plan_evidence.worker(ROOT, 0)
         self.assertEqual(after["authority_versions"]["skill"], "10.35.3")

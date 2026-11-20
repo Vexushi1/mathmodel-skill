@@ -188,6 +188,8 @@ def main():
             rendered = Path(staging) / out.name
             fig.canvas.draw()
             fig.savefig(rendered, bbox_inches="tight")
+            if not rendered.stat().st_size:
+                raise OSError("No Figure data was exported")
             rendered.replace(out)
     plt.show()
 

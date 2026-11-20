@@ -1,4 +1,5 @@
 import importlib.util
+import subprocess
 import sys
 import unittest
 from pathlib import Path
@@ -129,6 +130,55 @@ class TestV800WritingRuntime(unittest.TestCase):
                     "".join(lines[start - 1:stop]) for start, stop in row["ranges"]
                 )
                 self.assertNotIn("## 14. 摘要", selected)
+
+    def test_candidate_opening_reuses_chapter_gates_and_reads_the_actual_handoff(self):
+        import read_stage
+
+        commit = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+        ).strip()
+        default = self.runtime.resolve_runtime("latex", competition="CUMCM")
+        default_semantics = default["writing_runtime"]["resource_order_semantics"]
+        candidate_semantics = self.contract["candidate_formal_reading"]["stage_reading"]
+        for event, expected in (("formal_single_question", candidate_semantics),
+                                ("cross_chat_formal_resume", candidate_semantics),
+                                ("field_explanation", default_semantics)):
+            with self.subTest(event=event):
+                plan = self.runtime.resolve_runtime("latex", competition="CUMCM",
+                                                    candidate_startup_event=event, source_commit=commit)
+                writing = plan["writing_runtime"]
+                self.assertEqual(writing["resource_order_semantics"], expected)
+                self.assertEqual(plan["reading_plan"]["delegated_writing_sequence"], writing)
+                self.assertEqual(writing["authoring_sequence"], default["writing_runtime"]["authoring_sequence"])
+                self.assertEqual(plan["pre_delivery_gates"], default["pre_delivery_gates"])
+                self.assertEqual(plan["startup_reading"]["status"], "selection_only")
+        self.assertNotEqual(default_semantics, candidate_semantics)
+
+        # The same handoff must reach the chapter author on the active carrier, including
+        # an explicit DOCX request and a contest without a dedicated template.
+        protocol = "modules/05_writing/paper_writing_protocol.md"
+        for intent, competition, progressive in (("latex", "CUMCM", True),
+                                                  ("latex", "certification cup", False),
+                                                  ("docx", "certification cup", False)):
+            with self.subTest(intent=intent, competition=competition):
+                plan = self.runtime.resolve_runtime(intent, competition=competition,
+                                                    candidate_startup_event="formal_single_question",
+                                                    source_commit=commit)
+                surface = "writing_stage" if progressive else "read_now"
+                stage = "question_model_solution_result_validation" if progressive else None
+                if not progressive:
+                    self.assertNotIn("templates/latex/cumcm/hsk/template_manifest.yaml", plan["templates"])
+                args = (plan, ROOT, commit, surface, protocol)
+                first = read_stage.extract(*args, stage_id=stage, chunk_lines=4096)
+                texts = [first["returned_chunk"]["text"]]
+                for index in range(1, first["chunk_count"]):
+                    more = read_stage.extract(*args, stage_id=stage, chunk_lines=4096, chunk_index=index)
+                    texts.append(more["returned_chunk"]["text"])
+                body = "".join(texts)
+                for phrase in ("全局证据链", "位置空缺或待定", "只能保留待办或舍弃",
+                               "真实章节／小节标题路径", "仅交付提纲", "实际锚点"):
+                    self.assertIn(phrase, body)
+                self.assertEqual(first["gate_status"], "not_executed_by_reader")
 
     def test_protocol_implements_v720_narrative_requirements(self):
         for token in (

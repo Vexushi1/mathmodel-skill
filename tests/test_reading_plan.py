@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -12,6 +13,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import read_stage
 import reading_plan as READING
 from resolve_runtime import resolve_runtime
 from reading_plan_cases import CASES, build_project
@@ -20,6 +22,98 @@ from reading_plan_cases import CASES, build_project
 def tree_hashes(root):
     return {str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest()
             for p in root.rglob("*") if p.is_file()}
+
+
+class FrameworkReadScopeTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.commit = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+        ).strip()
+
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.project = Path(temporary.name).resolve()
+        build_project(ROOT, self.project, "current")
+        self.framework = self.project / "模型论文框架.md"
+        self.state_path = self.project / "state/project_state.yaml"
+        self.state = yaml.safe_load(self.state_path.read_bytes())
+        text = self.framework.read_text(encoding="utf-8")
+        self.assertEqual(text.count("## 图表证据链"), 1)
+        text = text.replace(
+            "## 图表证据链", "F1 已登记；引用位置为空；尚未导出。\n\n"
+            "### Q2：上游依赖\nQ2独有依赖正文。\n\n"
+            "### Q3：独立问题\nQ3独有正文。\n#### 当前写作选择\nQ3专用写作内容。\n\n"
+            "## 当前写作选择\n全局论文载体说明。\n\n"
+            "## 图表证据链\nT1 已登记；正文引用待回填。")
+        self.framework.write_text(text, encoding="utf-8")
+        questions = self.state["subproblems"]
+        questions["Q2"] = {"depends_on": []}
+        questions["Q3"] = {"depends_on": []}
+        questions["Q1"]["depends_on"] = [{"question": "Q2", "kind": "model", "note": "synthetic scope"}]
+        self.state["paper_framework"]["sha256"] = hashlib.sha256(self.framework.read_bytes()).hexdigest()
+        self.state_path.write_text(yaml.safe_dump(self.state, allow_unicode=True), encoding="utf-8")
+
+    def resolve(self, intent, request, *, question="Q1", **options):
+        return resolve_runtime(intent, request=request, competition="CUMCM",
+                               project_root=self.project, question=question, **options)
+
+    def consume(self, plan):
+        first = read_stage.extract(plan, ROOT, self.commit, "read_now", "模型论文框架.md",
+                                   project_root=self.project, origin="project", chunk_lines=2048)
+        self.assertEqual(first["source_identity"]["sha256"], self.state["paper_framework"]["sha256"])
+        self.assertEqual(first["gate_status"], "not_executed_by_reader")
+        chunks = [first]
+        for index in range(1, first["chunk_count"]):
+            chunks.append(read_stage.extract(plan, ROOT, self.commit, "read_now", "模型论文框架.md",
+                                             project_root=self.project, origin="project",
+                                             chunk_lines=2048, chunk_index=index))
+        return "".join(part["returned_chunk"]["text"] for part in chunks)
+
+    def test_full_review_writing_and_cross_question_synthesis_return_original_framework(self):
+        before = tree_hashes(self.project)
+        for intent, request, event, question in (
+            ("review", "请对论文全文进行终审。", "final_review", None),
+            ("latex", "请撰写整篇论文。", "full_paper_writing", "Q1"),
+            ("review", "请综合各问的结论。", "cross_question_synthesis", None),
+        ):
+            with self.subTest(event=event):
+                plan = self.resolve(intent, request, question=question)
+                self.assertEqual(plan["reading_plan"]["framework_read"],
+                                 {"scope": "full", "event": event, "status": "planned"})
+                self.assertEqual(self.consume(plan).encode("utf-8"), self.framework.read_bytes())
+        self.assertEqual(tree_hashes(self.project), before)
+
+    def test_local_review_and_writing_return_scoped_and_shared_records(self):
+        for intent, request in (
+            ("review", "只评阅问题一的模型，不做全文终审。"),
+            ("latex", "只修改问题一的文字说明。"),
+            ("review", "只解释「请对论文全文进行终审」这个字段。"),
+        ):
+            with self.subTest(request=request):
+                plan = self.resolve(intent, request)
+                self.assertEqual(plan["reading_plan"]["framework_read"]["scope"], "question_and_dependencies")
+                selected = self.consume(plan)
+                for included in ("F1 已登记", "T1 已登记", "Q2独有依赖正文", "全局论文载体说明"):
+                    self.assertIn(included, selected)
+                self.assertNotIn("Q3独有正文", selected)
+                self.assertNotIn("Q3专用写作内容", selected)
+
+    def test_recovery_needs_current_framework_and_rejects_changed_source(self):
+        for startup, event in (("cross_chat_formal_resume", "cross_chat_handoff"),
+                               ("formal_context_lost", "long_context_recovery")):
+            plan = self.resolve("review", "继续。", question=None, candidate_startup_event=startup,
+                                source_commit=self.commit)
+            self.assertEqual(plan["reading_plan"]["framework_read"]["event"], event)
+            self.assertEqual(self.consume(plan).encode("utf-8"), self.framework.read_bytes())
+        self.framework.write_bytes(self.framework.read_bytes() + b"changed")
+        with self.assertRaisesRegex(ValueError, "differs from reading plan"):
+            self.consume(plan)
+        refreshed = self.resolve("review", "请对论文全文进行终审。", question=None)
+        self.assertEqual(refreshed["reading_plan"]["framework_read"]["status"], "evidence_required")
+        self.assertFalse(any(row["origin"] == "project" and row["path"] == "模型论文框架.md"
+                             for row in refreshed["reading_plan"]["read_now"]))
 
 
 class SelectorTests(unittest.TestCase):

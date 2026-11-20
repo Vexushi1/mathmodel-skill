@@ -639,8 +639,15 @@ def _figure_binding(root: Path, state: dict[str, Any], question: str) -> list[st
     return []
 
 
-def _scope(plan: dict[str, Any], request: str, policy: dict[str, Any]) -> tuple[str, str, list[str]]:
+def _scope(plan: dict[str, Any], request: str, policy: dict[str, Any],
+           figure_policy: dict[str, Any] | None = None) -> tuple[str, str, list[str]]:
     intents = plan.get("intents", [])
+    composition = plan.get("figure_composition") or {}
+    if (composition.get("layout") in {"separate", "single_numeric"} and intents
+            and set(intents) <= {"figures", "editable_mechanism_diagram"}):
+        # Each delivery keeps its own qualification. Both source contracts apply
+        # even when numerical evidence is still missing.
+        return "figure_composition", "planned", []
     if len(intents) != 1 or plan["assurance"]["status"] != "pass":
         return "full", "conservative_fallback", ["mixed intents or unresolved assurance diagnostics"]
     intent = intents[0]
@@ -662,6 +669,9 @@ def _scope(plan: dict[str, Any], request: str, policy: dict[str, Any]) -> tuple[
             return "framework_result_sync", "candidate", []
         return "full", "needs_adjudication", ["framework update scope is not explicitly limited"]
     if intent == "editable_mechanism_diagram" or (intent == "figures" and re.search(signals["mechanism"], request)):
+        semantic_change = (figure_policy or {}).get("semantic_change")
+        if semantic_change and re.search(semantic_change, clean, re.IGNORECASE):
+            return "full", "semantic_change_or_adjudication", ["figure request also changes mathematical semantics"]
         return "mechanism", "planned", []
     if intent == "figures":
         style = bool(re.search(signals["style_only"], request))
@@ -715,38 +725,92 @@ def _project_backend_navigation(
     return authority, interface
 
 
+def _framework_event(plan: dict[str, Any], request: str, memory: dict[str, Any]) -> str | None:
+    """Classify a whole-framework request using the router's registered events."""
+    selected = plan.get("startup_reading") or {}
+    signals = memory.get("full_read_signals", {})
+    events = memory.get("full_read_when", [])
+    for event in events:
+        if selected.get("event") in signals.get(event, {}).get("startup_events", []):
+            return event
+    if selected.get("profile") == "scoped":
+        return None
+
+    # Titles and quoted example prompts describe text; only an affirmative
+    # action in the surrounding request selects a project-wide event.
+    action = re.sub(r'“[^”]*”|‘[^’]*’|「[^」]*」|『[^』]*』|"[^"]*"|`[^`]*`',
+                    " ", request)
+    clauses = re.split(r"[，,。；;！？!\n]+", action)
+    intents = set(plan.get("intents", []))
+    for event in events:
+        signal = signals.get(event, {})
+        if signal.get("intents") and not intents.intersection(signal["intents"]):
+            continue
+        pattern = signal.get("request_pattern")
+        if not pattern:
+            continue
+        for clause in clauses:
+            for match in re.finditer(pattern, clause, re.IGNORECASE):
+                prefix = clause[:match.start()].rstrip()
+                negative = re.search(r"(?:无需|无须|暂缓|跳过|(?:暂|先)?不(?:要|必|用|需|再)?|"
+                                     r"\b(?:without|skip|do not|don't))\s*"
+                                     r"(?:(?:对|做|作|进行|重做|开始|重新|这篇|该|论文|稿件|the)\s*)*$",
+                                     prefix, re.IGNORECASE)
+                postponed = re.match(r"\s*(?:留(?:待|到)|以后再|稍后再)", clause[match.end():])
+                if not negative and not postponed:
+                    return event
+    return None
+
+
 def _project_reads(
-    root: Path, state: dict[str, Any], question: str, *, style: bool,
-    state_snapshot: ProjectStateSnapshot,
+    root: Path, state: dict[str, Any], question: str | None, *, style: bool,
+    state_snapshot: ProjectStateSnapshot, memory: dict[str, Any], whole: bool,
+    writing: bool,
 ) -> list[dict[str, Any]]:
     state_snapshot.assert_current(root)
     if state_snapshot.raw is None:
-        raise ProjectStateReadError("invalid_project_state", "a narrow read requires captured state bytes")
+        raise ValueError("current project state is unavailable for framework reading")
     reader = SourceReader(root, "project")
     reader.seed(STATE_RELATIVE_PATH, state_snapshot.raw)
-    text = _inside(root, "模型论文框架.md").read_text(encoding="utf-8")
-    scoped = {question}
-    pending = [question]
-    valid_dependencies = True
-    while pending:
-        current = pending.pop()
-        for dependency in state.get("subproblems", {}).get(current, {}).get("depends_on", []):
-            target = dependency.get("question") if isinstance(dependency, dict) else None
-            if not target or target not in state.get("subproblems", {}):
-                valid_dependencies = False
+    framework_path = memory.get("project_file", "模型论文框架.md")
+    record = state.get("paper_framework") or {}
+    if record.get("sync_status") != "current":
+        raise ValueError("framework current status is missing or stale")
+    framework = reader.describe({"path": framework_path})
+    if not framework["source_bytes"] or record.get("sha256") != framework["sha256"]:
+        raise ValueError("framework bytes differ from the current project-state record")
+    if not whole:
+        known = _headings(reader.cache[framework_path][1])
+        titles = {"## 当前有效口径", "## 图表证据链", "## 待办与缺口"}
+        writing_titles = set(memory.get("scoped_writing_headings", [])) if writing else set()
+        headings = []
+        question_level = None
+        for _, level, heading in known:
+            if question_level and level <= question_level:
+                question_level = None
+            if re.match(r"^#{2,6}\s+Q\d+[：:]", heading):
+                question_level = level
+            if not question_level and (heading in titles or heading.lstrip("#").strip() in writing_titles):
+                headings.append(heading)
+        scoped = set()
+        pending = [question] if question else []
+        questions = state.get("subproblems", {})
+        while pending:
+            current = pending.pop()
+            if current in scoped:
                 continue
-            if target not in scoped:
-                scoped.add(target)
+            scoped.add(current)
+            if current not in questions:
+                raise ValueError(f"framework question is absent from project state: {current}")
+            matches = [s for _, _, s in known if re.match(r"^###\s+" + re.escape(current) + r"[：:]", s)]
+            headings.append(matches[0] if len(matches) == 1 else f"missing-unique-question-{current}")
+            for dependency in questions[current].get("depends_on", []):
+                target = dependency.get("question") if isinstance(dependency, dict) else None
+                if not isinstance(target, str) or target not in questions:
+                    raise ValueError(f"framework dependency for {current} is missing from project state")
                 pending.append(target)
-    headings = ["## 当前有效口径", "## 图表证据链", "## 待办与缺口"]
-    known = _headings(text.splitlines(keepends=True))
-    for target in sorted(scoped):
-        matches = [s for _, _, s in known if re.match(r"^###\s+" + re.escape(target) + r"[：:]", s)]
-        headings.append(matches[0] if len(matches) == 1 else f"missing-unique-question-{target}")
-    spec: dict[str, Any] = {"path": "模型论文框架.md"}
-    if valid_dependencies:
-        spec["headings"] = headings
-    rows = [reader.describe(spec), reader.describe({"path": "state/project_state.yaml"})]
+        framework = reader.describe({"path": framework_path, "headings": headings})
+    rows = [framework, reader.describe({"path": STATE_RELATIVE_PATH})]
     if style:
         report = PLOT_BACKEND.inspect_plotting(state)
         if report["issues"]:
@@ -764,21 +828,18 @@ def build_reading_plan(root: Path, plan: dict[str, Any], router: dict[str, Any],
         state_snapshot.assert_current(plan["assurance"]["context"]["project_root"])
     policy = router.get("reading_policy") or {}
     reader = SourceReader(root)
-    profile, status, reasons = (_scope(plan, request, policy) if policy else
+    profile, status, reasons = (_scope(plan, request, policy, router.get("figure_delivery_policy", {})) if policy else
                                 ("full", "conservative_fallback", ["no reading policy declared"]))
     profiles = policy.get("profiles", {})
     config = profiles.get(profile, {})
-    if profile == "figure_style_and_design":
-        # Reuse the existing two reading profiles; no parallel Figure Authority
-        # or copy of their selector lists is introduced.
-        style_config = profiles.get("figure_style", {})
-        design_config = profiles.get("figure_design", {})
-        if style_config.get("read_now") and design_config.get("read_now"):
+    if profile in {"figure_style_and_design", "figure_composition"}:
+        first = profiles.get("figure_style" if profile == "figure_style_and_design" else "mechanism", {})
+        design = profiles.get("figure_design", {})
+        if first.get("read_now") and design.get("read_now"):
             config = {
-                **deepcopy(style_config),
-                "read_now": deepcopy(style_config["read_now"]) + deepcopy(design_config["read_now"]),
-                "conditional": deepcopy(style_config.get("conditional", []))
-                + deepcopy(design_config.get("conditional", [])),
+                **deepcopy(first),
+                "read_now": first["read_now"] + design["read_now"],
+                "conditional": first.get("conditional", []) + design.get("conditional", []),
             }
         else:
             config = {}
@@ -790,6 +851,7 @@ def build_reading_plan(root: Path, plan: dict[str, Any], router: dict[str, Any],
         config = {}
     context = plan["assurance"]["context"]
     project_root, state, project_rows = None, {}, []
+    verified_project = False
     if config.get("needs_current_project"):
         project_root, state, issues = _current_project(plan, state_snapshot)
         evidence = plan["assurance"]["artifact_assurance"]["evidence"]
@@ -835,10 +897,41 @@ def build_reading_plan(root: Path, plan: dict[str, Any], router: dict[str, Any],
             reasons.extend(issues)
         else:
             status = "planned"
+            verified_project = True
+
+    memory = router.get("project_memory_contract") or {}
+    event = _framework_event(plan, request, memory)
+    memory_modules = {manifest["modules"][key]["path"] for key in memory.get("read_before_modules", [])
+                      if key in manifest.get("modules", {})}
+    downstream = bool(memory.get("full_read_signals") and memory_modules.intersection(plan.get("modules", [])))
+    framework_read = None
+    if state_snapshot is not None and (verified_project or event or downstream):
+        writing = bool(set(plan.get("intents", [])) & {"latex", "docx", "review", "full_workflow"})
+        scope_question = context.get("question")
+        scope = "question_and_dependencies" if scope_question else "shared_sections"
+        if event:
+            scope = "full"
+        framework_read = {"scope": scope, "event": event, "status": "planned"}
+        try:
+            if not context.get("project_state_loaded") or state_snapshot.raw is None:
+                raise ValueError("current project state was not loaded for framework reading")
+            state = state_snapshot.payload()
+            if not event and not scope_question and len(state.get("subproblems", {})) == 1:
+                scope_question = next(iter(state["subproblems"]))
+                framework_read["scope"] = "question_and_dependencies"
             project_rows = _project_reads(
-                project_root, state, context["question"], style=profile in {"figure_style", "figure_style_and_design"},
+                state_snapshot.root, state, scope_question, memory=memory, whole=bool(event), writing=writing,
+                style=verified_project and profile in {"figure_style", "figure_style_and_design"},
                 state_snapshot=state_snapshot,
             )
+            if project_rows[0]["resolution"] == "whole_file_fallback":
+                framework_read["scope"] = "whole_file_fallback"
+        except ProjectStateReadError:
+            raise
+        except (OSError, ValueError, AttributeError, TypeError, KeyError) as exc:
+            framework_read["status"] = "evidence_required"
+            reasons.append(f"current project framework unavailable: {exc}")
+            status = "evidence_required"
 
     backend_authority, backend_interface = _project_backend_navigation(plan, policy, reader)
     if profile == "full":
@@ -927,6 +1020,8 @@ def build_reading_plan(root: Path, plan: dict[str, Any], router: dict[str, Any],
             "meaning": "planned_initial_read_only_not_full_task_cost_or_observed_token_savings",
         },
     }
+    if framework_read is not None and memory.get("full_read_signals"):
+        result["framework_read"] = framework_read
     if profile == "progressive_writing":
         result["delegated_writing_sequence"] = deepcopy(plan["writing_runtime"])
     if state_snapshot is not None:

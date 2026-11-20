@@ -202,6 +202,59 @@ def matched_inference_keywords(request: str, router: dict[str, Any]) -> dict[str
     return matches
 
 
+def figure_request_layout(intents: Iterable[str], request: str, router: dict[str, Any]) -> str | None:
+    """Separate explicitly coordinated outputs. Unknown mixed geometry keeps the numerical boundary."""
+    policy = router.get("figure_delivery_policy")
+    if not policy or not request or not set(intents) or set(intents) - {"figures", "editable_mechanism_diagram"}:
+        return None
+    text = re.sub(policy["negated_output"], "", request, flags=re.IGNORECASE)
+    if re.search(policy["semantic_change"], text, re.IGNORECASE):
+        return None
+    mechanism = list(re.finditer(policy["mechanism_figure"], text, re.IGNORECASE))
+    results = list(re.finditer(policy["result_figure"], text, re.IGNORECASE))
+    if not mechanism or not (results or re.search(policy["numerical_evidence"], text, re.IGNORECASE)):
+        return None
+    if (not results or re.search(policy["same_output"], text, re.IGNORECASE)
+            or re.search(policy["numeric_mechanism"], text, re.IGNORECASE)):
+        return "single_numeric"
+    if re.search(policy["separate_outputs"], text, re.IGNORECASE):
+        return "separate"
+    for left in mechanism:
+        for right in results:
+            first, last = sorted((left, right), key=lambda match: match.start())
+            if first.end() <= last.start() and re.fullmatch(
+                policy["between_outputs"], text[first.end():last.start()], re.IGNORECASE,
+            ):
+                return "separate"
+    return "single_numeric"
+
+
+def figure_delivery_plan(layout, router, manifest, preprocessing_decision):
+    """Use the owning router and gate manifest for each requested physical output."""
+    scopes = ["mechanism", "figures"] if layout == "separate" else ["figures"]
+    deliveries = []
+    for scope in scopes:
+        requirements = list(router["figure_delivery_policy"]["requirements"][scope])
+        if scope == "figures" and preprocessing_decision == "project_level":
+            requirements.append("accepted_preprocessing_workbook")
+        gates = gate_plan(router["execution_contract"]["formal_delivery_gates"], manifest, scope)
+        if scope == "mechanism":
+            for gate in gates:
+                if gate["name"] == "project_sync":
+                    gate["command"] += ' --mechanism-spec "<spec_source>"'
+        deliveries.append({
+            "delivery_scope": scope,
+            "required_verified_artifacts": requirements,
+            "missing_verified_artifacts": list(requirements),
+            "evidence_status": "not_verified",
+            "gate_condition": ("after_nonnumerical_drawio_backend_and_current_spec_are_selected"
+                               if scope == "mechanism" else "after_current_figure_contract_evidence_is_verified"),
+            "pre_delivery_gates": gates,
+        })
+    return {"layout": layout, "deliveries": deliveries, "gate_execution": "not_assessed_by_router",
+            "completion": "each_requested_output_requires_its_own_applicable_evidence_and_checks"}
+
+
 def infer_intents(request: str, router: dict[str, Any]) -> list[str]:
     matches: list[tuple[int, str]] = []
     for name, keywords in matched_inference_keywords(request, router).items():
@@ -596,6 +649,7 @@ def resolve_workflow(
     preprocessing_decision: str | None = None,
     solver_backend: str | None = None,
     project_result_prerequisites: tuple[str, ...] = (),
+    figure_request: str | None = None,
     router_path: Path = ROUTER_PATH,
     manifest_path: Path = MANIFEST_PATH,
     taxonomy_path: Path = TAXONOMY_PATH,
@@ -630,6 +684,13 @@ def resolve_workflow(
         raise ValueError("explicit intent conflicts with review-only request; resolve review without write actions")
     if not resolved_intents:
         raise ValueError("no workflow intent resolved; pass an intent or --request")
+    figure_text = figure_request or request or ""
+    layout = figure_request_layout(resolved_intents, figure_text, router)
+    if layout and "figures" not in resolved_intents:
+        resolved_intents.append("figures")
+    if (layout == "separate" and "editable_mechanism_diagram" not in resolved_intents
+            and re.search(router["figure_delivery_policy"]["editable_backend"], figure_text, re.IGNORECASE)):
+        resolved_intents.append("editable_mechanism_diagram")
     unknown_intents = [name for name in resolved_intents if name not in router.get("routing", {})]
     if unknown_intents:
         valid = ", ".join(sorted(router.get("routing", {})))
@@ -779,6 +840,13 @@ def resolve_workflow(
         if delivery_scope != "design":
             explicit_gates.extend(router.get("execution_contract", {}).get("formal_delivery_gates", []))
     gates = gate_plan(explicit_gates, manifest, delivery_scope)
+    composition = figure_delivery_plan(layout, router, manifest, preprocessing_decision) if layout else None
+    if layout == "separate" and "editable_mechanism_diagram" in resolved_intents:
+        # Shared semantic governance runs once; recheck each requested physical output in its own scope.
+        mechanism_sync = next(gate for gate in composition["deliveries"][0]["pre_delivery_gates"]
+                              if gate["name"] == "project_sync")
+        numeric_sync_index = next(index for index, gate in enumerate(gates) if gate["name"] == "project_sync")
+        gates.insert(numeric_sync_index, mechanism_sync)
 
     missing, produced_after_modules = prerequisite_report(
         module_paths, available_set, manifest, preprocessing_decision,
@@ -832,6 +900,8 @@ def resolve_workflow(
         "pause_state": pause_state,
         "task_code_execution_allowed": False,
     }
+    if composition:
+        plan["figure_composition"] = composition
     if resource_fallbacks:
         plan["resource_fallbacks"] = resource_fallbacks
     if solver_backend is None:

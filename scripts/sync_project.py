@@ -1260,7 +1260,9 @@ def _verify_sync_question_sources(
             raise PROJECT_TX.ReadSetConflictError(f"sync observation differs from captured source: {relative}")
 
 
-def inspect_mechanism_delivery(root: Path, snapshot, output_contract, *, write_requested: bool) -> dict[str, Any]:
+def inspect_mechanism_delivery(
+    root: Path, snapshot, output_contract, *, write_requested: bool, mechanism_spec: str | None = None,
+) -> dict[str, Any]:
     """Recheck existing nonnumerical draw.io evidence without numeric discovery.
 
     This scope never writes or promotes approval. Numerical Figure dependencies
@@ -1285,9 +1287,19 @@ def inspect_mechanism_delivery(root: Path, snapshot, output_contract, *, write_r
         return raw
 
     read("模型论文框架.md")
-    specs = sorted(root.glob("figures/source/*.mechanism.yaml"))
+    def selected_specs():
+        if mechanism_spec is None:
+            return sorted(root.glob("figures/source/*.mechanism.yaml"))
+        if not isinstance(mechanism_spec, str) or not re.fullmatch(
+            r"figures/source/[^/\\:]+\.mechanism\.yaml", mechanism_spec,
+        ):
+            raise ValueError("mechanism_spec must name one project-relative figures/source/*.mechanism.yaml")
+        selected = PROJECT_TX._guarded_path(root, mechanism_spec)
+        return [selected] if selected.is_file() else []
+
+    specs = selected_specs()
     if not specs:
-        issues.append("mechanism交付缺少figures/source/*.mechanism.yaml")
+        issues.append(f"mechanism交付缺少{mechanism_spec or 'figures/source/*.mechanism.yaml'}")
     approved = set((state.get("artifacts") or {}).get("approved_figures") or [])
     for path in specs:
         relative = path.relative_to(root).as_posix()
@@ -1321,13 +1333,14 @@ def inspect_mechanism_delivery(root: Path, snapshot, output_contract, *, write_r
                     raise ValueError("mechanism导出必须为当前approved_figures中的真实图片: " + exported)
         except (OSError, ValueError, TypeError, KeyError, yaml.YAMLError) as exc:
             issues.append(f"{relative}: {exc}")
-    if specs != sorted(root.glob("figures/source/*.mechanism.yaml")):
+    if specs != selected_specs():
         raise PROJECT_TX.ReadSetConflictError("mechanism source discovery changed")
     snapshot.assert_current()
     PROJECT_TX._check_read_set(root, observed)
     return {"status": "failed" if issues else "passed", "delivery_scope": "mechanism",
             "formal_delivery_scope": True, "issues": issues, "warnings": [],
             "write_requested": write_requested, "write": False, "write_performed": False,
+            **({"mechanism_spec": mechanism_spec} if mechanism_spec is not None else {}),
             "observed_sources": observed, "semantic_visual_review": "not_assessed_by_machine"}
 
 
@@ -1337,9 +1350,12 @@ def synchronize(
     write: bool = False,
     strict: bool = False,
     delivery_scope: str | None = None,
+    mechanism_spec: str | None = None,
     schema_path: Path = DEFAULT_SCHEMA_PATH,
     output_contract_path: Path = DEFAULT_OUTPUT_CONTRACT_PATH,
 ) -> dict[str, Any]:
+    if mechanism_spec is not None and delivery_scope != "mechanism":
+        raise ValueError("mechanism_spec requires explicit mechanism delivery scope")
     root = Path(project_root).resolve()
     state_path = root / "state/project_state.yaml"
     framework_path = root / "模型论文框架.md"
@@ -1365,7 +1381,8 @@ def synchronize(
     schema = load_yaml(Path(schema_path))
     output_contract = load_yaml(Path(output_contract_path))
     if delivery_scope == "mechanism":
-        return inspect_mechanism_delivery(root, state_snapshot, output_contract, write_requested=write)
+        return inspect_mechanism_delivery(root, state_snapshot, output_contract, write_requested=write,
+                                          mechanism_spec=mechanism_spec)
     phase = str((state.get("project") or {}).get("current_phase", "model_design"))
     explicit_delivery_scope = delivery_scope is not None
     scope = delivery_scope or PHASE_SCOPE.get(phase, "design")
@@ -1993,6 +2010,7 @@ def main() -> int:
     parser.add_argument("project_root", nargs="?", default=".")
     parser.add_argument("--write", action="store_true")
     parser.add_argument("--strict", action="store_true")
+    parser.add_argument("--mechanism-spec", help="project-relative path to the one nonnumerical draw.io Spec")
     parser.add_argument(
         "--delivery-scope",
         choices=["design", "mechanism", "code", "results", "figures", "docx", "latex", "submission"],
@@ -2001,9 +2019,9 @@ def main() -> int:
     try:
         report = synchronize(
             Path(args.project_root), write=args.write, strict=args.strict,
-            delivery_scope=args.delivery_scope,
+            delivery_scope=args.delivery_scope, mechanism_spec=args.mechanism_spec,
         )
-    except (RUNTIME_ASSURANCE.ProjectStateReadError, PROJECT_TX.TransactionRecoveryError) as exc:
+    except (ValueError, RUNTIME_ASSURANCE.ProjectStateReadError, PROJECT_TX.ProjectTransactionError) as exc:
         print(f"- {exc}")
         return 2
     for item in report["issues"]:
