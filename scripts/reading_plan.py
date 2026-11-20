@@ -19,6 +19,7 @@ from artifact_fingerprint import combined_hash, sha256_file
 from runtime_assurance import ProjectStateReadError, ProjectStateSnapshot
 from project_transaction import STATE_RELATIVE_PATH
 from state_transitions import dependency_edges
+from validate_model_paper_framework import sha256_text
 import plot_backend as PLOT_BACKEND
 
 
@@ -545,6 +546,12 @@ def describe_resources(
     return rows
 
 
+def _framework_hash_matches(record: dict[str, Any], text: str) -> bool:
+    # The state validator binds normalized UTF-8 text. Transport and project
+    # read-set identities continue to bind the exact bytes captured on disk.
+    return str(record.get("sha256") or "").lower() == sha256_text(text)
+
+
 def _current_project(
     plan: dict[str, Any], state_snapshot: ProjectStateSnapshot | None,
 ) -> tuple[Path | None, dict[str, Any], list[str]]:
@@ -560,7 +567,8 @@ def _current_project(
         state = state_snapshot.payload()
         framework = _inside(root, "模型论文框架.md")
         record = state.get("paper_framework") or {}
-        if record.get("sync_status") != "current" or record.get("sha256") != sha256_file(framework):
+        if (record.get("sync_status") != "current"
+                or not _framework_hash_matches(record, framework.read_text(encoding="utf-8"))):
             return root, state, ["framework current status/hash is missing or changed"]
         question = state["subproblems"][context["question"]]
         if question.get("artifacts_stale") or question.get("stale_layers"):
@@ -778,11 +786,12 @@ def _project_reads(
     if record.get("sync_status") != "current":
         raise ValueError("framework current status is missing or stale")
     framework = reader.describe({"path": framework_path})
-    if not framework["source_bytes"] or record.get("sha256") != framework["sha256"]:
+    framework_lines = reader.cache[framework_path][1]
+    if not framework["source_bytes"] or not _framework_hash_matches(record, "".join(framework_lines)):
         raise ValueError("framework bytes differ from the current project-state record")
     missing_sections = []
     if not whole:
-        known = _headings(reader.cache[framework_path][1])
+        known = _headings(framework_lines)
         titles = {"## 当前有效口径", "## 图表证据链", "## 待办与缺口"}
         writing_titles = set(memory.get("scoped_writing_headings", [])) if writing else set()
         headings = []

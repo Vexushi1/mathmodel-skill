@@ -16,6 +16,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import read_stage
 import reading_plan as READING
 from resolve_runtime import resolve_runtime
+from validate_model_paper_framework import sha256_text
 from reading_plan_cases import CASES, build_project
 
 
@@ -52,7 +53,7 @@ class FrameworkReadScopeTests(unittest.TestCase):
         questions["Q2"] = {"depends_on": []}
         questions["Q3"] = {"depends_on": []}
         questions["Q1"]["depends_on"] = [{"question": "Q2", "kind": "model", "note": "synthetic scope"}]
-        self.state["paper_framework"]["sha256"] = hashlib.sha256(self.framework.read_bytes()).hexdigest()
+        self.state["paper_framework"]["sha256"] = sha256_text(self.framework.read_text(encoding="utf-8"))
         self.state_path.write_text(yaml.safe_dump(self.state, allow_unicode=True), encoding="utf-8")
 
     def resolve(self, intent, request, *, question="Q1", **options):
@@ -62,7 +63,7 @@ class FrameworkReadScopeTests(unittest.TestCase):
     def consume(self, plan):
         first = read_stage.extract(plan, ROOT, self.commit, "read_now", "模型论文框架.md",
                                    project_root=self.project, origin="project", chunk_lines=2048)
-        self.assertEqual(first["source_identity"]["sha256"], self.state["paper_framework"]["sha256"])
+        self.assertEqual(first["source_identity"]["sha256"], hashlib.sha256(self.framework.read_bytes()).hexdigest())
         self.assertEqual(first["gate_status"], "not_executed_by_reader")
         chunks = [first]
         for index in range(1, first["chunk_count"]):
@@ -108,7 +109,7 @@ class FrameworkReadScopeTests(unittest.TestCase):
         text = self.framework.read_text(encoding="utf-8").replace(
             "## 图表证据链", "### Q4：数据来源\n依赖问的数据定义。\n\n## 图表证据链")
         self.framework.write_text(text, encoding="utf-8")
-        self.state["paper_framework"]["sha256"] = hashlib.sha256(self.framework.read_bytes()).hexdigest()
+        self.state["paper_framework"]["sha256"] = sha256_text(self.framework.read_text(encoding="utf-8"))
         self.state_path.write_text(yaml.safe_dump(self.state, allow_unicode=True), encoding="utf-8")
         request = "分别画 Q1 的机理图和 Q2 的误差图。"
         for context in ("Q1", None):
@@ -149,7 +150,7 @@ class FrameworkReadScopeTests(unittest.TestCase):
 
     def test_missing_shared_headings_do_not_expand_to_all_questions(self):
         self.framework.write_text("# 项目\n### Q1：一\n局部正文\n### Q2：二\n其他问正文\n", encoding="utf-8")
-        self.state["paper_framework"]["sha256"] = hashlib.sha256(self.framework.read_bytes()).hexdigest()
+        self.state["paper_framework"]["sha256"] = sha256_text(self.framework.read_text(encoding="utf-8"))
         self.state_path.write_text(yaml.safe_dump(self.state, allow_unicode=True), encoding="utf-8")
         plan = self.resolve("review", "只核查术语。", question=None)
         reading = plan["reading_plan"]
@@ -158,6 +159,50 @@ class FrameworkReadScopeTests(unittest.TestCase):
         self.assertTrue(any("no shared framework section" in reason for reason in reading["reasons"]))
         self.assertFalse(any(row["origin"] == "project" for row in reading["read_now"]))
         self.assertTrue(any(row["origin"] == "skill" for row in reading["read_now"]))
+
+    def test_crlf_formal_and_scoped_reads_keep_exact_bytes_and_detect_drift(self):
+        # Use one currently qualified question, including its style and result
+        # evidence. The extra framework sections still distinguish a local read.
+        self.state["subproblems"]["Q1"]["depends_on"] = []
+        text = self.framework.read_text(encoding="utf-8")
+        raw = text.replace("\n", "\r\n").encode("utf-8")
+        self.framework.write_bytes(raw)
+        canonical = sha256_text(text)
+        self.assertNotEqual(canonical, hashlib.sha256(raw).hexdigest())
+        self.state["paper_framework"]["sha256"] = canonical.upper()
+        self.state_path.write_text(yaml.safe_dump(self.state, allow_unicode=True), encoding="utf-8")
+        for intent, request, startup, profile in (
+            ("review", "请对论文全文进行终审。", "promote_to_formal", None),
+            ("review", "请对论文全文进行终审。", "formal_context_lost", None),
+            ("framework_sync", "仅同步已验收结果摘要，不修改模型。", None, "framework_result_sync"),
+            ("figures", "只改现有图的配色与线宽，保持数据和坐标口径不变。", None, "figure_style"),
+        ):
+            with self.subTest(intent=intent, startup=startup):
+                options = {"candidate_startup_event": startup, "source_commit": self.commit} if startup else {}
+                plan = self.resolve(intent, request, **options)
+                reading = plan["reading_plan"]
+                self.assertEqual(reading["framework_read"]["status"], "planned")
+                selected = self.consume(plan).encode("utf-8")
+                if profile:
+                    self.assertEqual(reading["profile"], profile)
+                    self.assertIn(b"\r\n", selected)
+                    self.assertIn("F1 已登记".encode(), selected)
+                    self.assertNotIn("Q3独有正文".encode(), selected)
+                else:
+                    self.assertEqual(reading["framework_read"]["scope"], "full")
+                    self.assertEqual(selected, raw)
+
+        # Newline-only changes preserve the state's logical text identity,
+        # but a previous plan cannot silently return different bytes.
+        self.framework.write_bytes(text.encode("utf-8"))
+        with self.assertRaisesRegex(ValueError, "differs from reading plan"):
+            self.consume(plan)
+        refreshed = self.resolve("review", "请对论文全文进行终审。")
+        self.assertEqual(self.consume(refreshed).encode("utf-8"), text.encode("utf-8"))
+        for changed in (b"\xef\xbb\xbf" + raw, raw + "变更".encode("utf-8")):
+            self.framework.write_bytes(changed)
+            fresh = self.resolve("review", "请对论文全文进行终审。")
+            self.assertEqual(fresh["reading_plan"]["framework_read"]["status"], "evidence_required")
 
     def test_recovery_needs_current_framework_and_rejects_changed_source(self):
         for startup, event in (("cross_chat_formal_resume", "cross_chat_handoff"),

@@ -2009,7 +2009,7 @@ V11_P3_DEFAULT_READER_HASHES = {
 V11_P4_DEFAULT_READER_HASHES = {
     "scripts/resolve_workflow.py": "88c06bfd1af7bc9d147f84304524402f884c2dd19eee3a7d20dd80efa18a3629",
     "scripts/resolve_runtime.py": "ea898ad8bb67272414ec3840d2fe8028c6201b182f0bb896c00435a50298b54e",
-    "scripts/reading_plan.py": "8f0d470e0ad03813435faafb7199dd9bcab8305b1239f816ec755f263f5225ba",
+    "scripts/reading_plan.py": "7250cac816ac53f439b7eca826f8f052ae955fc2d89ae62a8d00f3ed6845b67d",
     "scripts/read_stage.py": V11_P3_DEFAULT_READER_HASHES["scripts/read_stage.py"],
 }
 

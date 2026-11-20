@@ -419,7 +419,7 @@ class MechanismScopeTests(unittest.TestCase):
         state["preprocessing"] = {"decision": "not_needed", "status": "not_applicable"}
         text = framework_text().replace("### Q1\n", framework(model).split("# 模型论文框架\n\n", 1)[1])
         (root / "模型论文框架.md").write_text(text, encoding="utf-8")
-        state["paper_framework"]["sha256"] = hashlib.sha256(text.encode()).hexdigest()
+        state["paper_framework"]["sha256"] = sync_project.sha256_text(text)
         spec = base_spec()
         spec["semantic_anchors"]["code"] = []
         image = b'<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><rect width="10" height="10"/></svg>'
@@ -517,8 +517,8 @@ class MechanismScopeTests(unittest.TestCase):
             text = original.replace("## 图表证据链", f"| Figure ID |\n|---|\n| {spec['figure_id']} |\n\n"
                                     f"## 图表证据链\n\n| 图号 | 导出文件 |\n|---|---|\n"
                                     f"| {spec['figure_id']} | {alternate} |")
-            framing.write_text(text, encoding="utf-8")
-            state["paper_framework"]["sha256"] = hashlib.sha256(framing.read_bytes()).hexdigest()
+            framing.write_text(text, encoding="utf-8", newline="\r\n")
+            state["paper_framework"]["sha256"] = sync_project.sha256_text(text)
             state_path.write_text(yaml.safe_dump(state, allow_unicode=True), encoding="utf-8")
             options = {"delivery_scope": "mechanism", "mechanism_spec": artifact["spec_source"]}
             unbound = sync_project.synchronize(root, **options)
@@ -530,6 +530,9 @@ class MechanismScopeTests(unittest.TestCase):
             before = file_bytes(root)
             bound = sync_project.synchronize(root, **options)
             self.assertEqual(bound["status"], "passed", bound["issues"])
+            raw_framework_hash = hashlib.sha256(framing.read_bytes()).hexdigest()
+            self.assertNotEqual(raw_framework_hash, state["paper_framework"]["sha256"])
+            self.assertEqual(bound["observed_sources"][framing.name], raw_framework_hash)
             self.assertEqual(file_bytes(root), before)
             (root / alternate).write_bytes(png + b"updated export metadata")
             changed = sync_project.synchronize(root, **options)
@@ -549,8 +552,8 @@ class MechanismScopeTests(unittest.TestCase):
             section = framework(model).split("# 模型论文框架\n\n", 1)[1].replace("Q1", "Q2").replace("第一问", "第二问")
             framing = root / "模型论文框架.md"
             text = framing.read_text(encoding="utf-8").replace("## 图表证据链", section + "\n## 图表证据链")
-            framing.write_text(text, encoding="utf-8")
-            state["paper_framework"]["sha256"] = hashlib.sha256(framing.read_bytes()).hexdigest()
+            framing.write_text(text, encoding="utf-8", newline="\r\n")
+            state["paper_framework"]["sha256"] = sync_project.sha256_text(text)
             inspected = semantic_identity.inspect_question_semantics(semantic_identity.question_sections(text)["Q2"], "Q2")
             q2 = deepcopy(state["subproblems"]["Q1"])
             q2.update(framework_section="### Q2：第二问", semantic_text_hash=inspected["semantic_text_hash"])

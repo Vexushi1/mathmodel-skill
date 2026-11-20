@@ -120,7 +120,8 @@ def build_project(repo: Path, root: Path, mode: str) -> None:
     q["matlab_script"] = str(script.relative_to(root))
     q["validated_artifact_hashes"].update(matlab_script=digest(script), figure_bundle=combined_hash([figure], root))
     state["artifacts"] = {"approved_figures": [str(figure.relative_to(root))]}
-    state["paper_framework"] = {"sync_status": "current", "sha256": digest(framework)}
+    from validate_model_paper_framework import sha256_text
+    state["paper_framework"] = {"sync_status": "current", "sha256": sha256_text(text)}
     if mode == "stale_framework":
         state["paper_framework"]["sync_status"] = "stale"
     elif mode == "data_drift":
