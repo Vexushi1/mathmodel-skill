@@ -1,7 +1,7 @@
 """Shared workbook contract validation for writers, artifact checks and project sync."""
 from __future__ import annotations
 
-from contextlib import closing
+from contextlib import closing, nullcontext
 import math
 import io
 from numbers import Real
@@ -109,11 +109,14 @@ def _check_optional_metric_formulas(source: BinaryIO, headers: list[str], rows: 
 
 
 def read_workbook_tables(
-    path: Path | bytes, *, only_sheets: set[str] | None = None, allow_empty: bool = False,
+    path: Path | bytes | BinaryIO, *, only_sheets: set[str] | None = None, allow_empty: bool = False,
 ) -> dict[str, pd.DataFrame]:
-    source = io.BytesIO(path) if isinstance(path, bytes) else Path(path).open("rb")
+    if hasattr(path, "read"):
+        handle = nullcontext(path)
+    else:
+        handle = io.BytesIO(path) if isinstance(path, bytes) else Path(path).open("rb")
     tables: dict[str, pd.DataFrame] = {}
-    with source, closing(load_workbook(source, read_only=True, data_only=True)) as workbook:
+    with handle as source, closing(load_workbook(source, read_only=True, data_only=True)) as workbook:
         for worksheet in workbook.worksheets:
             if only_sheets is not None and worksheet.title not in only_sheets:
                 continue

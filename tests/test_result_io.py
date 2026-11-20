@@ -145,6 +145,9 @@ class TestResultIO(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "问题一求解结果.xlsx"
             MOD.write_workbook(path, tables)
+            with io.BytesIO(path.read_bytes()) as captured:
+                self.assertIn("核心指标", MOD.WORKBOOK_VALIDATION.read_workbook_tables(captured))
+                self.assertFalse(captured.closed)
             restored = dict(MOD.validate_workbook_file(path, "solution"))["核心指标"].to_dict("records")
             self.assertEqual(restored[0]["数值"], 0)
             self.assertIsNot(restored[0]["数值"], False)
