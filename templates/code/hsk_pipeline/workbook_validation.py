@@ -5,7 +5,7 @@ import math
 import io
 from numbers import Real
 from pathlib import Path
-from typing import Any, Callable, Mapping, Sequence
+from typing import Any, Callable, Mapping, NamedTuple, Sequence
 
 import pandas as pd
 from openpyxl import load_workbook
@@ -358,69 +358,106 @@ def _observation_present(row: Mapping[str, Any], columns: Sequence[str]) -> bool
                for column in columns)
 
 
+def _historical_experiment_issues(
+    tables: Mapping[str, pd.DataFrame], section: Mapping[str, Any], ordinary_sheets: set[str],
+) -> list[str]:
+    """Only explicit registrations in active ordinary methods identify historical experiments."""
+    design = tables.get("分析设计")
+    if design is None or "检验ID" not in design or "方法" not in design:
+        return []
+    issues = []
+    mapping = section.get("ordinary_method_sheets", {})
+    for row in design.to_dict("records"):
+        sheet = mapping.get(row["方法"])
+        identifier = row["检验ID"]
+        if sheet not in ordinary_sheets or not isinstance(identifier, str) or not identifier.strip():
+            continue
+        details = _experiment_rows(tables.get(sheet), identifier)
+        columns = section["sheet_schemas"][sheet]["required_columns"]
+        if not any(_observation_present(item, columns) for item in details):
+            issues.append(f"{identifier}: 缺少{sheet}实质观测")
+    return issues
+
+
+def _unregistered_claim_issues(
+    summary: pd.DataFrame | None, registered_ids: set[str], comparison_methods: Mapping[str, Any],
+) -> list[str]:
+    if summary is None or "主张处置" not in summary:
+        return []
+    issues = []
+    for row in summary.to_dict("records"):
+        identifier = row.get("检验ID")
+        if (row.get("分析方法") not in comparison_methods and identifier not in registered_ids
+                and _substantive(row.get("主张处置"))):
+            issues.append(f"{identifier}: 未登记的普通实验不能处置主张 {row.get('核心结论')}")
+    return issues
+
+
+def _registered_claim_issues(
+    claims: Sequence[Mapping[str, Any]], experiment: Mapping[str, Any], section: Mapping[str, Any], sheet: str,
+) -> list[str]:
+    if len(claims) != 1:
+        return ["缺少唯一主张及处置"]
+    claim = claims[0]
+    mapping = section["ordinary_method_sheets"]
+    issues = []
+    if (claim.get("核心结论") != experiment["claim"] or mapping.get(claim.get("分析方法")) != sheet
+            or claim.get("证据工作表") != sheet or not _substantive(claim.get("稳定范围"))):
+        issues.append("主张、方法、证据工作表或稳定范围不匹配")
+    disposition, retained = claim.get("主张处置"), _as_bool(claim.get("是否保持"))
+    if disposition not in section["ordinary_experiment_protocol"]["dispositions"] or retained is None:
+        issues.append("缺少有效主张处置或是否保持")
+    elif (disposition == "support" and not retained) or (disposition == "reject" and retained):
+        issues.append("主张处置与是否保持矛盾")
+    return issues
+
+
+def _registered_experiment_issues(
+    tables: Mapping[str, pd.DataFrame], section: Mapping[str, Any], experiment: Mapping[str, Any],
+) -> list[str]:
+    identifier = experiment["id"]
+    mapping = section["ordinary_method_sheets"]
+    sheet = mapping[experiment["method"]]
+    comparison_methods = section.get("comparison_method_sheets", {})
+    designs = [row for row in _experiment_rows(tables.get("分析设计"), identifier)
+               if row.get("方法") not in comparison_methods]
+    claims = [row for row in _experiment_rows(tables.get("结论稳定性汇总"), identifier)
+              if row.get("分析方法") not in comparison_methods]
+    details = _experiment_rows(tables.get(sheet), identifier)
+    statuses = section["ordinary_experiment_protocol"]["observation_statuses"]
+    evidence_columns = section["sheet_schemas"][sheet]["required_columns"]
+    issues = []
+    if any(row.get("观测状态") not in statuses for row in details):
+        issues.append("未知或缺少观测状态")
+    observed = [_observation_present(row, evidence_columns) for row in details
+                if row.get("观测状态") == "completed"]
+    if not all(observed):
+        issues.append("completed行缺少实质观测")
+    # An optional failed/exploratory attempt carries no scientific verdict.
+    if not experiment.get("required", True) and not any(_substantive(row.get("主张处置")) for row in claims):
+        return issues
+    design_columns = section["sheet_schemas"]["分析设计"]["required_columns"]
+    if (len(designs) != 1 or mapping.get(designs[0].get("方法")) != sheet
+            or designs[0].get("分析问题") != experiment["target"]
+            or not all(_substantive(designs[0].get(column)) for column in design_columns)):
+        issues.append("缺少与预登记方法和目标一致的唯一设计")
+    if not any(observed):
+        issues.append(f"缺少{sheet}的completed实质观测")
+    issues.extend(_registered_claim_issues(claims, experiment, section, sheet))
+    return issues
+
+
 def _check_experiment_coverage(tables: Mapping[str, pd.DataFrame], section: Mapping[str, Any],
                                ordinary_sheets: set[str], experiments: Sequence[Mapping[str, Any]] | None) -> None:
-    mapping = section.get("ordinary_method_sheets", {})
-    design = tables.get("分析设计")
-    summary = tables.get("结论稳定性汇总")
-    issues = []
     if experiments is None:
-        # Only explicit registrations in an active ordinary method can identify
-        # a historical experiment. Dedicated comparisons own their own IDs.
-        if design is None or "检验ID" not in design or "方法" not in design:
-            return
-        for row in design.to_dict("records"):
-            sheet = mapping.get(row["方法"])
-            identifier = row["检验ID"]
-            if sheet not in ordinary_sheets or not isinstance(identifier, str) or not identifier.strip():
-                continue
-            detail = _experiment_rows(tables.get(sheet), identifier)
-            if not any(_observation_present(item, section["sheet_schemas"][sheet]["required_columns"]) for item in detail):
-                issues.append(f"{identifier}: 缺少{sheet}实质观测")
+        issues = _historical_experiment_issues(tables, section, ordinary_sheets)
     else:
-        protocol = section["ordinary_experiment_protocol"]
-        comparison_methods = section.get("comparison_method_sheets", {})
-        registered_ids = {experiment["id"] for experiment in experiments}
-        if summary is not None and "主张处置" in summary:
-            for row in summary.to_dict("records"):
-                identifier = row.get("检验ID")
-                if (row.get("分析方法") not in comparison_methods and identifier not in registered_ids
-                        and _substantive(row.get("主张处置"))):
-                    issues.append(f"{identifier}: 未登记的普通实验不能处置主张 {row.get('核心结论')}")
+        issues = _unregistered_claim_issues(
+            tables.get("结论稳定性汇总"), {row["id"] for row in experiments}, section.get("comparison_method_sheets", {}),
+        )
         for experiment in experiments:
-            identifier, method = experiment["id"], experiment["method"]
-            sheet = mapping[method]
-            designs = [r for r in _experiment_rows(design, identifier) if r.get("方法") not in comparison_methods]
-            claims = [r for r in _experiment_rows(summary, identifier) if r.get("分析方法") not in comparison_methods]
-            details = _experiment_rows(tables.get(sheet), identifier)
-            prefix = f"{identifier}（主张：{experiment['claim']}）"
-            if any(r.get("观测状态") not in protocol["observation_statuses"] for r in details):
-                issues.append(f"{prefix}: 未知或缺少观测状态")
-            completed = [r for r in details if r.get("观测状态") == "completed"]
-            evidence_columns = section["sheet_schemas"][sheet]["required_columns"]
-            if any(not _observation_present(r, evidence_columns) for r in completed):
-                issues.append(f"{prefix}: completed行缺少实质观测")
-            # An optional failed/exploratory attempt carries no scientific verdict.
-            if not experiment.get("required", True) and not any(_substantive(r.get("主张处置")) for r in claims):
-                continue
-            if (len(designs) != 1 or mapping.get(designs[0].get("方法")) != sheet
-                    or designs[0].get("分析问题") != experiment["target"]
-                    or not all(_substantive(designs[0].get(c)) for c in section["sheet_schemas"]["分析设计"]["required_columns"])):
-                issues.append(f"{prefix}: 缺少与预登记方法和目标一致的唯一设计")
-            if not any(_observation_present(r, evidence_columns) for r in completed):
-                issues.append(f"{prefix}: 缺少{sheet}的completed实质观测")
-            if len(claims) != 1:
-                issues.append(f"{prefix}: 缺少唯一主张及处置")
-                continue
-            claim = claims[0]
-            if (claim.get("核心结论") != experiment["claim"] or mapping.get(claim.get("分析方法")) != sheet
-                    or claim.get("证据工作表") != sheet or not _substantive(claim.get("稳定范围"))):
-                issues.append(f"{prefix}: 主张、方法、证据工作表或稳定范围不匹配")
-            disposition, retained = claim.get("主张处置"), _as_bool(claim.get("是否保持"))
-            if disposition not in protocol["dispositions"] or retained is None:
-                issues.append(f"{prefix}: 缺少有效主张处置或是否保持")
-            elif (disposition == "support" and not retained) or (disposition == "reject" and retained):
-                issues.append(f"{prefix}: 主张处置与是否保持矛盾")
+            prefix = f"{experiment['id']}（主张：{experiment['claim']}）"
+            issues.extend(f"{prefix}: {issue}" for issue in _registered_experiment_issues(tables, section, experiment))
     if issues:
         raise ValueError("；".join(issues))
 
@@ -451,6 +488,44 @@ def _check_comparison_values(sheet: str, frame: pd.DataFrame, spec: Mapping[str,
             raise ValueError(f"比较表“{sheet}”字段“{column}”必须为真实有限数值")
 
 
+class _AnalysisOptions(NamedTuple):
+    analysis_methods: Sequence[str] = ()
+    comparison_plan: Mapping[str, Any] | None = None
+    ordinary_experiments: Sequence[Mapping[str, Any]] | None = None
+    require_ordinary_method_coverage: bool = True
+
+
+def _check_solution_profiles(
+    names: set[str], schema: Mapping[str, Any], problem_types: Sequence[str],
+    capabilities: Mapping[str, bool] | None, objective: str | None, structures: Sequence[str],
+) -> None:
+    required = _conditional_required_sheets(schema, problem_types, capabilities)
+    missing_conditional = sorted(required - names)
+    if missing_conditional:
+        active = sorted(name for name, enabled in (capabilities or {}).items() if enabled)
+        note = f"；启用的capabilities: {active}" if active else ""
+        raise ValueError(f"求解工作簿缺少必需工作表: {missing_conditional}{note}")
+    for profile, required_any in _profile_requirements(schema, objective, structures, problem_types):
+        if required_any and not names.intersection(required_any):
+            raise ValueError(f"分类剖面“{profile}”至少需要一个专项工作表: {sorted(required_any)}")
+
+
+def _check_analysis_sheet_names(
+    names: set[str], section: Mapping[str, Any], sheet_schemas: Mapping[str, Any],
+    ordinary_sheets: set[str], options: _AnalysisOptions,
+) -> None:
+    allowed_any = set(section.get("required_any_sheets", []))
+    allowed_all = set(sheet_schemas)
+    unknown_sheets = sorted(names - allowed_all)
+    if unknown_sheets:
+        raise ValueError(f"结果深化分析工作簿包含未登记工作表: {unknown_sheets}")
+    if options.require_ordinary_method_coverage:
+        _check_ordinary_sheets_present(names, ordinary_sheets)
+    if not names.intersection(allowed_any):
+        raise ValueError(f"结果深化分析工作簿至少需要一个实质分析表: {sorted(allowed_any)}")
+    _check_required_comparison_sheets(names, section, options.analysis_methods, options.comparison_plan)
+
+
 def validate_tables(
     tables: Mapping[str, Any],
     workbook_kind: str,
@@ -462,29 +537,28 @@ def validate_tables(
     structures: Sequence[str] = (),
     name_normalizer: Callable[[str], str] | None = None,
     require_quality_passed: bool = True,
-    analysis_methods: Sequence[str] = (),
-    comparison_plan: Mapping[str, Any] | None = None,
-    ordinary_experiments: Sequence[Mapping[str, Any]] | None = None,
-    require_ordinary_method_coverage: bool = True,
+    **analysis_options: Any,
 ) -> list[tuple[str, pd.DataFrame]]:
+    """Validate in-memory tables with the same analysis keywords as validate_workbook_file."""
+    options = _AnalysisOptions(**analysis_options)
     kind = _normalize_kind(workbook_kind)
-    if ordinary_experiments is not None:
+    if options.ordinary_experiments is not None:
         if kind != "result_analysis":
             raise ValueError("普通实验协议仅用于结果深化分析工作簿")
         issues = ordinary_experiment_plan_issues(
-            ordinary_experiments, schema=schema,
-            analysis_methods=analysis_methods if require_ordinary_method_coverage else (),
+            options.ordinary_experiments, schema=schema,
+            analysis_methods=options.analysis_methods if options.require_ordinary_method_coverage else (),
         )
         if issues:
             raise ValueError("；".join(issues))
-    prepared = prepare_tables(tables, name_normalizer=name_normalizer, allow_empty=ordinary_experiments is not None)
+    prepared = prepare_tables(tables, name_normalizer=name_normalizer, allow_empty=options.ordinary_experiments is not None)
     required_sheets, sheet_schemas = _required_sheet_schemas(schema, kind)
     names = {name for name, _ in prepared}
     ordinary_sheets: set[str] = set()
-    if kind == "result_analysis" and (ordinary_experiments is not None or require_ordinary_method_coverage):
+    if kind == "result_analysis" and (options.ordinary_experiments is not None or options.require_ordinary_method_coverage):
         section = schema["result_analysis_workbook"]
-        ordinary_sheets = _required_ordinary_sheets(section, analysis_methods)
-        _check_experiment_coverage(dict(prepared), section, ordinary_sheets, ordinary_experiments)
+        ordinary_sheets = _required_ordinary_sheets(section, options.analysis_methods)
+        _check_experiment_coverage(dict(prepared), section, ordinary_sheets, options.ordinary_experiments)
     if any(frame.empty for _, frame in prepared):
         raise ValueError("禁止写入空工作表")
     missing = sorted(required_sheets - names)
@@ -492,27 +566,10 @@ def validate_tables(
         label = "求解" if kind == "solution" else "结果深化分析"
         raise ValueError(f"{label}工作簿缺少必需工作表: {missing}")
     if kind == "solution":
-        required = _conditional_required_sheets(schema, problem_types, capabilities)
-        missing_conditional = sorted(required - names)
-        if missing_conditional:
-            active = sorted(name for name, enabled in (capabilities or {}).items() if enabled)
-            note = f"；启用的capabilities: {active}" if active else ""
-            raise ValueError(f"求解工作簿缺少必需工作表: {missing_conditional}{note}")
-        for profile, required_any in _profile_requirements(schema, objective, structures, problem_types):
-            if required_any and not names.intersection(required_any):
-                raise ValueError(f"分类剖面“{profile}”至少需要一个专项工作表: {sorted(required_any)}")
+        _check_solution_profiles(names, schema, problem_types, capabilities, objective, structures)
     else:
         section = schema["result_analysis_workbook"]
-        allowed_any = set(section.get("required_any_sheets", []))
-        allowed_all = set(sheet_schemas)
-        unknown_sheets = sorted(names - allowed_all)
-        if unknown_sheets:
-            raise ValueError(f"结果深化分析工作簿包含未登记工作表: {unknown_sheets}")
-        if require_ordinary_method_coverage:
-            _check_ordinary_sheets_present(names, ordinary_sheets)
-        if not names.intersection(allowed_any):
-            raise ValueError(f"结果深化分析工作簿至少需要一个实质分析表: {sorted(allowed_any)}")
-        _check_required_comparison_sheets(names, section, analysis_methods, comparison_plan)
+        _check_analysis_sheet_names(names, section, sheet_schemas, ordinary_sheets, options)
     for name, frame in prepared:
         if name in sheet_schemas:
             _check_required_columns(name, frame, sheet_schemas[name])

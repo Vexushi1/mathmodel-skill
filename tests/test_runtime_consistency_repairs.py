@@ -147,6 +147,37 @@ class HistoricalProjectionTests(unittest.TestCase):
         self.assertEqual(plan_evidence.runtime_consistency_predecessor(
             record["id"], scoped, record["authority_versions"]), (scoped, []))
 
+    def test_p4b_projection_checks_execution_source_and_preserves_template_changes(self):
+        record = plan_evidence.worker(ROOT, 0)
+        current = plan_evidence.legacy_projection(record["plan"])
+
+        def project(plan):
+            return plan_evidence.runtime_consistency_predecessor(
+                record["id"], plan, record["authority_versions"])
+
+        predecessor, changes = project(current)
+        contract = plan_evidence.V11_P4B_EXECUTION_CONTRACT
+        self.assertIn((f"assurance.authority_fingerprint.sources.{contract['path']}", contract["sha256"]),
+                      [(change["path"], change.get("candidate")) for change in changes])
+        previous = deepcopy(current)
+        entry = next(row for row in previous["assurance"]["authority_fingerprint"]["sources"]
+                     if row["path"] == contract["path"])
+        entry["sha256"] = "b61f52a6ad68f0f5234bc4dec8182d52e3bd23f3e75e6c7fe85d59f8014ba6bb"
+        self.assertEqual(project(previous), (previous, []))
+
+        read_bytes = Path.read_bytes
+        def read_changed_contract(path):
+            data = read_bytes(path)
+            return data + b"\n" if path == ROOT / contract["path"] else data
+        with mock.patch.object(Path, "read_bytes", read_changed_contract):
+            self.assertEqual(project(current), (current, []))
+
+        template = "templates/code/starter/q1_analysis.py"
+        changed = deepcopy(current)
+        changed["load_order"].append(template)
+        predecessor["load_order"].append(template)
+        self.assertEqual(project(changed)[0], predecessor)
+
     def test_frozen_v10270_inverse_still_accepts_only_exact_carrier(self):
         after = plan_evidence.worker(ROOT, 0)
         self.assertEqual(after["authority_versions"]["skill"], "10.35.3")

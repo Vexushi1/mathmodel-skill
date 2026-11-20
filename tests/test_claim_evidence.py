@@ -160,10 +160,11 @@ class ClaimCrossVersionTests(unittest.TestCase):
         self.state=yaml.safe_load((self.root/'state/project_state.yaml').read_text(encoding='utf-8'))
         install_record(self.state);save(self.root,self.state)
     def tearDown(self):self.tmp.cleanup()
-    def cli(self,script,*args):
+    def cli(self,script,*args,expected_exit=0):
         proc=subprocess.run([sys.executable,'-B',str(ROOT/'scripts'/script),str(self.root),*args],capture_output=True,text=True,encoding='utf-8')
-        self.assertEqual(proc.returncode,0,proc.stdout+proc.stderr)
-    def test_real_old_authority_fails_then_explicit_revalidation_restores_same_workbook(self):
+        self.assertEqual(proc.returncode,expected_exit,proc.stdout+proc.stderr)
+        return proc.stdout
+    def test_old_primary_revalidates_but_unregistered_analysis_requires_new_delivery(self):
         before=bytes_in(self.root);entry=self.state['subproblems']['Q1'];approval={k:entry[k] for k in entry if 'approved' in k or 'approval' in k}
         report=audit.inspect_project(self.root)
         self.assertEqual(report['status'],'blocked');self.assertEqual(bytes_in(self.root),before)
@@ -171,25 +172,41 @@ class ClaimCrossVersionTests(unittest.TestCase):
         first=report['revalidation_guidance'][0]
         self.assertNotEqual(first['old_authority_sha256'],first['current_authority_sha256'])
         workbooks={k:v for k,v in before.items() if k.endswith('.xlsx')}
-        # Only original delivery and receipt coordinators run, never the numerical scripts.
-        for stage,field,workbook in [('primary','code','solution_workbook'),('analysis','result_analysis_code','result_analysis_workbook')]:
-            if stage=='analysis':
-                current=yaml.safe_load((self.root/'state/project_state.yaml').read_text(encoding='utf-8'))
-                self.assertFalse(current['subproblems']['Q1'].get('result_analysis_requirement_reason'))
-                # Explicit synthetic author reassessment, not an automatic B1 state repair.
-                current['subproblems']['Q1']['result_analysis_requirement_reason']='Reconfirmed synthetic coefficient stress test after primary revalidation'
-                save(self.root,current)
-                guide=Sources(self.root,(self.root/'state/project_state.yaml').read_bytes(),current,
-                              yaml.safe_load((ROOT/'core/claim_evidence_contract.yaml').read_text(encoding='utf-8')))
-                self.assertTrue(guide.revalidation_guidance('Q1','analysis')[-1]['prerequisites_before_commands'])
-            self.cli('validate_code_delivery.py','--script',entry[field],'--stage',stage,'--write','--strict')
-            self.cli('validate_user_execution.py','--workbook',entry[workbook],'--write','--strict')
-        after=yaml.safe_load((self.root/'state/project_state.yaml').read_text(encoding='utf-8'))
-        self.assertEqual(approval,{k:after['subproblems']['Q1'][k] for k in approval})
+        # Requalify the original primary workbook through both current coordinators.
+        self.cli('validate_code_delivery.py','--script',entry['code'],'--stage','primary','--write','--strict')
+        self.cli('validate_user_execution.py','--workbook',entry['solution_workbook'],'--write','--strict')
+        result=audit.inspect_project(self.root)
+        self.assertEqual(result['status'],'evidence_checked',result)
+
+        state_file=self.root/'state/project_state.yaml'
+        current=yaml.safe_load(state_file.read_bytes())
+        self.assertFalse(current['subproblems']['Q1'].get('result_analysis_requirement_reason'))
+        current['subproblems']['Q1']['result_analysis_requirement_reason']='Reconfirmed synthetic coefficient stress test after primary revalidation'
+        save(self.root,current)
+        guide=Sources(self.root,state_file.read_bytes(),current,
+                      yaml.safe_load((ROOT/'core/claim_evidence_contract.yaml').read_text(encoding='utf-8')))
+        self.assertTrue(guide.revalidation_guidance('Q1','analysis')[-1]['prerequisites_before_commands'])
+
+        # Reassessment cannot supply a pre-run manifest missing from the historical source.
+        before_delivery=bytes_in(self.root)
+        delivery=self.cli('validate_code_delivery.py','--script',entry['result_analysis_code'],
+                          '--stage','analysis','--write','--strict',expected_exit=1)
+        self.assertIn('已激活普通深化方法缺少冻结实验: 参数敏感性',delivery)
+        self.assertEqual(bytes_in(self.root),before_delivery)
+        self.cli('validate_user_execution.py','--workbook',entry['result_analysis_workbook'],
+                 '--write','--strict',expected_exit=1)
+
+        after=yaml.safe_load(state_file.read_bytes())
+        question=after['subproblems']['Q1']
+        self.assertEqual(question['primary_execution_status'],'accepted')
+        self.assertNotEqual(question.get('analysis_execution_status'),'accepted')
+        self.assertEqual(approval,{k:question[k] for k in approval})
         self.assertEqual(workbooks,{k:v for k,v in bytes_in(self.root).items() if k.endswith('.xlsx')})
-        result=audit.inspect_project(self.root);self.assertEqual(result['status'],'evidence_checked',result)
+        result=audit.inspect_project(self.root)
+        self.assertEqual(result['status'],'evidence_checked',result)
         install_record(after,'analysis');save(self.root,after)
-        result=audit.inspect_project(self.root);self.assertEqual(result['status'],'evidence_checked',result)
+        result=audit.inspect_project(self.root)
+        self.assertEqual(result['status'],'blocked',result)
     def test_changed_input_cannot_be_repaired_by_revalidation_guidance(self):
         p=self.root/'constraints.json';p.write_text('{"right_hand_side_offset":99}')
         before=bytes_in(self.root);report=audit.inspect_project(self.root)

@@ -2013,6 +2013,11 @@ V11_P4_DEFAULT_READER_HASHES = {
     "scripts/read_stage.py": V11_P3_DEFAULT_READER_HASHES["scripts/read_stage.py"],
 }
 
+V11_P4B_EXECUTION_CONTRACT = {
+    "path": "core/user_execution_contract.yaml",
+    "sha256": "c6dba3775f9cc721043fbb1e62db1f3526cf267ea74ad6361e17f91ad71fa6a4",
+}
+
 
 def runtime_consistency_predecessor(identifier, new, candidate_authority_versions):
     """Reverse only measured repair leaves, preserving all unrelated differences.
@@ -2218,6 +2223,12 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
                 if p4_sources == V11_P4_DEFAULT_READER_HASHES:
                     resolver_hashes.update(V11_P4_DEFAULT_READER_HASHES)
                     approval = "v11 P4a default-route comparison on exact candidate sources"
+                    # P4b changed the contract and analysis template selection. The
+                    # recorded default cases keep all plan fields in the comparison.
+                    if (V11_P4B_EXECUTION_CONTRACT in fingerprint["sources"]
+                            and identifier in {case[0] for case in CASES}):
+                        resolver_hashes[V11_P4B_EXECUTION_CONTRACT["path"]] = V11_P4B_EXECUTION_CONTRACT["sha256"]
+                        approval = "v11 P4b default-route comparison on exact execution and reader sources"
             predecessor_hashes = {
                 row["path"]: row["sha256"] for row in fixture["fingerprint"]["candidate"]
                 if row["path"] in resolver_hashes
