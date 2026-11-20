@@ -1,0 +1,72 @@
+baseline_commit: 4f765d3e1326d3ca7555933059e9313f99b86347
+cases:
+  '01':
+    surface: two-question semantic governance and approval consumption
+    controls: {registered_allows_q2: false, independent_allows_q2: true}
+    observed_v10_35_3: {missing_edge_allows_q2: true}
+    target: {missing_edge_allows_q2: false}
+  '02':
+    surface: semantic revision change with registered model dependency
+    controls: {changed_identity_allows_q2: false, independent_revision_allows_q2: true}
+    observed_v10_35_3: {revision_only_allows_q2: true}
+    target: {revision_only_allows_q2: false}
+  '03':
+    surface: preprocessing workbook receipt with state write
+    controls: {valid: true, missing_table: false}
+    observed_v10_35_3: {self: true, missing_field: true}
+    target: {self: false, missing_field: false}
+  '04':
+    surface: primary workbook receipt, solved state and evidence hash
+    controls: {valid: true, drop_sheet: false}
+    observed_v10_35_3: {blank: true, text_infinity: true, boolean: true}
+    target: {blank: false, text_infinity: false, boolean: false}
+  '05':
+    surface: numerical evidence recomputation with approved quality specification
+    controls: {half_m: true, 500_m: false}
+    observed_v10_35_3: {half_km: true, half_second: true, 50_cm: false}
+    target: {half_km: false, half_second: false, 50_cm: true}
+  '06':
+    surface: uncertainty interval through primary receipt
+    controls: {ordered: true}
+    observed_v10_35_3: {reversed: true}
+    target: {reversed: false}
+  '07':
+    surface: instantiated Python comparison example, workbook and read-back
+    controls: {holdout_last: 16}
+    observed_v10_35_3: {holdout_first: 9}
+    target: {holdout_first: 16}
+  '08':
+    surface: workbook selection, derivation and explicit claim assertion
+    controls: {same_mean: true}
+    observed_v10_35_3: {total_vs_mean: true, permuted_mean: false}
+    target: {total_vs_mean: false, permuted_mean: true}
+  '09':
+    surface: declared literature method through snapshot inspection
+    controls: {ordinary_adapt: candidate, retracted_reject: recorded_only}
+    observed_v10_35_3: {retracted_adapt: true}
+    target: {retracted_adapt: false}
+  '10':
+    surface: two Python plotting templates reading spreadsheet cells
+    controls: {question_missing: gap, preprocessing_missing: gap, question_numeric: 3, preprocessing_numeric: 3}
+    observed_v10_35_3: {question_uncached: gap, preprocessing_uncached: gap}
+    target: {question_uncached: rejected, preprocessing_uncached: rejected}
+  '11':
+    surface: static bibliography and cross-reference audit
+    controls: {simple_missing_detected: true, single_unused: []}
+    observed_v10_35_3: {annotated_missing_detected: false, annotated_present_reported_unused: true, multi_unused: ['fig:a', 'fig:b']}
+    target: {annotated_missing_detected: true, annotated_present_reported_unused: false, multi_unused: []}
+  '12':
+    surface: CUMCM 2026 TeX appendix compliance branch
+    controls: {correct: true, empty: false}
+    observed_v10_35_3: {outside: true}
+    target: {outside: false}
+  '13':
+    surface: final review matrix aggregation without a real PDF
+    controls: {declared_unverified: false, declared_all_pages: true}
+    observed_v10_35_3: {logs_only: true, partial: true}
+    target: {logs_only: false, partial: false}
+  '14':
+    surface: strict versus legacy dispatch in numerical evidence
+    controls: {absent: true, spaces: true, real_id: false, bound: false}
+    observed_v10_35_3: {empty_cell: false}
+    target: {empty_cell: true}
