@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 import sys
 import unittest
+from tempfile import TemporaryDirectory
 from pathlib import Path
 
 from module06_sources import review_text
@@ -69,6 +71,111 @@ class TestV820FinalReviewCompliance(unittest.TestCase):
             "hard_fail": [],
             "evidence": {name: f"evidence:{name}" for name in self.config["dimensions"]},
         }
+
+    @staticmethod
+    def surface(report):
+        return next(row for row in report["coverage"] if row["check_family"] == "rendered_page_surface")
+
+    def pdf_review(self):
+        from pypdf import PdfWriter
+
+        folder = TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        pdf = Path(folder.name) / "review.pdf"
+        writer = PdfWriter()
+        for _ in range(3):
+            writer.add_blank_page(300, 300)
+        writer.write(pdf)
+        digest = hashlib.sha256(pdf.read_bytes()).hexdigest()
+        report = self.valid_report()
+        report["review_context"]["compiled_pdf_sha256"] = digest
+        self.surface(report).update(verification_mode="manual", page_review={
+            "method": "assistant_visual", "pdf_sha256": digest, "page_count": 3,
+            "viewed_ranges": [[1, 3]], "uncovered_ranges": [],
+        })
+        return report, pdf
+
+    def test_page_review_union_and_exact_complement(self):
+        cases = [
+            ([[3, 3], [1, 2], [2, 2]], [], "passed", [[1, 3]]),
+            ([[1, 1]], [[2, 3]], "review_required", [[1, 1]]),
+            ([[1, 1], [1, 1], [1, 1]], [], "review_required", [[1, 1]]),
+            ([], [[1, 3]], "review_required", []),
+            ([[1, 3]], [[1, 1]], "review_required", [[1, 3]]),
+        ]
+        for viewed, uncovered, status, normalized in cases:
+            with self.subTest(viewed=viewed, uncovered=uncovered):
+                report, pdf = self.pdf_review()
+                self.surface(report)["page_review"].update(viewed_ranges=viewed, uncovered_ranges=uncovered)
+                result = self.scorer.score_submission(self.config, report, pdf_path=pdf)
+                self.assertEqual(result["review_status"], status)
+                self.assertEqual(self.surface(result)["page_review"]["viewed_ranges"], normalized)
+                original = "passed" if status == "passed" else "unverifiable"
+                self.assertEqual(self.surface(result)["status"], original)
+
+    def test_viewed_ranges_and_current_file_must_be_verifiable(self):
+        for changes in [
+            {"method": "log"}, {"pdf_sha256": "a" * 64}, {"page_count": 2},
+            {"page_count": True}, {"viewed_ranges": [[False, 3]]}, {"viewed_ranges": [[3, 1]]},
+            {"viewed_ranges": [[1, 4]]}, {"viewed_ranges": []}, {"uncovered_ranges": None},
+        ]:
+            with self.subTest(changes=changes):
+                report, pdf = self.pdf_review()
+                self.surface(report)["page_review"].update(changes)
+                result = self.scorer.score_submission(self.config, report, pdf_path=pdf)
+                self.assertEqual(result["review_status"], "review_required")
+                self.assertTrue(self.surface(result)["page_review_issue"])
+        report, pdf = self.pdf_review()
+        for current in (None, pdf.with_name("missing.pdf")):
+            self.assertEqual(self.scorer.score_submission(self.config, report, pdf_path=current)["review_status"],
+                             "review_required")
+        pdf.write_bytes(pdf.read_bytes() + b"\n% replaced")
+        changed = self.scorer.score_submission(self.config, report, pdf_path=pdf)
+        self.assertIn("bytes differ", self.surface(changed)["page_review_issue"])
+        pdf.write_bytes(b"unreadable as a PDF")
+        digest = hashlib.sha256(pdf.read_bytes()).hexdigest()
+        report["review_context"]["compiled_pdf_sha256"] = digest
+        self.surface(report)["page_review"]["pdf_sha256"] = digest
+        broken = self.scorer.score_submission(self.config, report, pdf_path=pdf)
+        self.assertEqual(broken["review_status"], "review_required")
+        self.assertIn("page count", self.surface(broken)["page_review_issue"])
+
+    def test_machine_logs_and_legacy_prose_do_not_grant_visual_coverage(self):
+        report, pdf = self.pdf_review()
+        row = self.surface(report)
+        row["verification_mode"] = "machine"
+        self.assertEqual(self.scorer.score_submission(self.config, report, pdf_path=pdf)["review_status"],
+                         "review_required")
+        del row["page_review"]
+        row.update(verification_mode="manual", evidence="All pages viewed")
+        result = self.scorer.score_submission(self.config, report, pdf_path=pdf)
+        self.assertEqual(result["review_status"], "review_required")
+        self.assertEqual(self.surface(result)["evidence"], row["evidence"])
+
+    def test_incomplete_surface_with_warning_finding_still_needs_page_review(self):
+        report, pdf = self.pdf_review()
+        row = self.surface(report)
+        row.update(status="findings_present")
+        row["page_review"].update(viewed_ranges=[[1, 2]], uncovered_ranges=[[3, 3]])
+        report["findings"] = [self.finding(severity="warning")]
+        result = self.scorer.score_submission(self.config, report, pdf_path=pdf)
+        self.assertEqual(result["review_status"], "review_required")
+        self.assertEqual(self.surface(result)["status"], "findings_present")
+        self.assertIn("[3, 3]", self.surface(result)["page_review_issue"])
+
+    def test_no_pdf_reproducibility_scope_and_conflicting_artifact(self):
+        report, pdf = self.pdf_review()
+        row = self.surface(report)
+        row.update(applicability="not_applicable", status="not_applicable",
+                   evidence="Only source and input data requested for this reproduction.")
+        del row["page_review"]
+        self.assertEqual(self.scorer.score_submission(self.config, report)["review_status"], "review_required")
+        report["review_context"]["compiled_pdf_sha256"] = None
+        self.assertEqual(self.scorer.score_submission(self.config, report)["review_status"], "passed")
+        self.assertEqual(self.scorer.score_submission(self.config, report, pdf_path=pdf)["review_status"],
+                         "review_required")
+        report["review_context"]["delivery_mode"] = "official"
+        self.assertEqual(self.scorer.score_submission(self.config, report)["review_status"], "review_required")
 
     def finding(self, **overrides) -> dict:
         finding = {
@@ -159,7 +266,8 @@ class TestV820FinalReviewCompliance(unittest.TestCase):
         self.assertNotIn("findings", result)
 
     def test_valid_matrix_is_normalized_without_changing_scores(self):
-        result = self.scorer.score_submission(self.config, self.valid_report())
+        report, pdf = self.pdf_review()
+        result = self.scorer.score_submission(self.config, report, pdf_path=pdf)
         self.assertEqual(result["total"], 80.0)
         self.assertEqual(result["review_schema_version"], "1.0.0")
         self.assertEqual(result["review_status"], "passed")
