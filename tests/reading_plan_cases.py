@@ -96,7 +96,8 @@ def build_project(repo: Path, root: Path, mode: str) -> None:
     text = framework.read_text(encoding="utf-8")
     text = text.replace("### Q1", "## 当前有效口径\n已锁定的测试模型。\n\n## 各问模型与结果\n\n### Q1", 1)
     text += "\n## 图表证据链\n登记图与工作簿对应关系。\n\n## 待办与缺口\n当前测试无待办。\n"
-    framework.write_text(text, encoding="utf-8")
+    # The comparison driver gives v10 and the candidate the same bytes on every OS.
+    framework.write_bytes(text.encode("utf-8"))
     state_path = root / "state/project_state.yaml"
     state = yaml.safe_load(state_path.read_text(encoding="utf-8"))
     q = state["subproblems"]["Q1"]
@@ -120,7 +121,8 @@ def build_project(repo: Path, root: Path, mode: str) -> None:
     q["matlab_script"] = str(script.relative_to(root))
     q["validated_artifact_hashes"].update(matlab_script=digest(script), figure_bundle=combined_hash([figure], root))
     state["artifacts"] = {"approved_figures": [str(figure.relative_to(root))]}
-    state["paper_framework"] = {"sync_status": "current", "sha256": digest(framework)}
+    from validate_model_paper_framework import sha256_text
+    state["paper_framework"] = {"sync_status": "current", "sha256": sha256_text(text)}
     if mode == "stale_framework":
         state["paper_framework"]["sync_status"] = "stale"
     elif mode == "data_drift":

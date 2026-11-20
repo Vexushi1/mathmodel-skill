@@ -4,11 +4,14 @@ import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
+from unittest import mock
 
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
+
+from plot_render_smoke import assert_svg_labels, cjk_family
 
 ROOT = Path(__file__).resolve().parents[1]
 module_path = ROOT / "templates" / "plot" / "python" / "figure_patterns.py"
@@ -18,27 +21,66 @@ spec.loader.exec_module(patterns)
 
 
 class PythonScientificFigurePatterns(unittest.TestCase):
-    def test_distribution_with_all_raw_points_and_adaptive_panels(self):
+    def distribution_portfolio(self):
         values = {"A": [1, 2, 5, 3, 4], "B": [2, 3, 4, 7, 5]}
         fig, axes = plt.subplots(1, 2, figsize=(9, 4.4), layout="constrained")
         patterns.box_with_raw_points(axes[0], values,
                                      colors=[(.18, .33, .59), (.75, .36, .22)])
-        self.assertEqual(sum(len(coll.get_offsets()) for coll in axes[0].collections), 10)
         patterns.pareto_with_choice(axes[1], [1, 2, 3], [5, 3, 2],
                                    color=(.1, .4, .55), selected=1,
                                    selected_color=(.7, .25, .18), labels=["x1", "x2", "x3"])
         axes[0].set_ylabel("Recorded measure")
         axes[1].set_xlabel("Objective A")
         axes[1].set_ylabel("Objective B")
+        self.addCleanup(plt.close, fig)
+        return fig, axes
+
+    def test_distribution_with_all_raw_points_and_adaptive_panels(self):
+        fig, axes = self.distribution_portfolio()
+        self.assertEqual(sum(len(coll.get_offsets()) for coll in axes[0].collections), 10)
+        handles, _ = axes[1].get_legend_handles_labels()
+        axes[1].legend(handles, ("Accepted candidates", "Selected candidate"), frameon=False)
         for ax in axes:
-            ax.legend(frameon=False) if ax.get_legend_handles_labels()[1] else None
             patterns.apply_publication_frame(ax)
             self.assertEqual(ax.get_title(), "")
         with tempfile.TemporaryDirectory() as tmp:
             destination = Path(tmp) / "figure_portfolio.svg"
             patterns.export_after_visual_review(fig, destination)
             self.assertGreater(destination.stat().st_size, 1000)
-        plt.close(fig)
+
+    def test_exported_portfolio_contains_actual_chinese_pareto_legend(self):
+        family = cjk_family()
+        fig, axes = self.distribution_portfolio()
+        legend = axes[1].legend(frameon=False)
+        labels = [text.get_text() for text in legend.get_texts()]
+        self.assertEqual(labels, ["已验收候选方案", "已确认推荐方案"])
+        for ax in axes:
+            patterns.apply_publication_frame(ax, font_family=family)
+        with tempfile.TemporaryDirectory() as tmp, matplotlib.rc_context({"svg.fonttype": "path"}):
+            destination = Path(tmp) / "figure_portfolio.svg"
+            patterns.export_after_visual_review(fig, destination)
+            assert_svg_labels(self, destination, labels, family)
+
+    def test_failed_or_empty_portfolio_export_preserves_the_previous_file(self):
+        fig, _ = self.distribution_portfolio()
+        with tempfile.TemporaryDirectory() as tmp:
+            destination = Path(tmp) / "figure_portfolio.svg"
+            destination.write_bytes(b"previous file")
+
+            def interrupted(path, **kwargs):
+                Path(path).write_bytes(b"incomplete SVG")
+                raise OSError("interrupted vector export")
+
+            with mock.patch.object(fig, "savefig", side_effect=interrupted):
+                with self.assertRaisesRegex(OSError, "interrupted vector export"):
+                    patterns.export_after_visual_review(fig, destination)
+            self.assertEqual(destination.read_bytes(), b"previous file")
+
+            with mock.patch.object(fig, "savefig"):
+                with self.assertRaisesRegex(OSError, "No Figure data"):
+                    patterns.export_after_visual_review(fig, destination)
+            self.assertEqual(destination.read_bytes(), b"previous file")
+            self.assertEqual(list(Path(tmp).iterdir()), [destination])
 
     def test_true_interval_preserves_missing_positions(self):
         x = np.arange(4.)

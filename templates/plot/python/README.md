@@ -47,7 +47,7 @@ C2、C4、C7–C16、L1/L2、空间、网络、3D、高密度分布等**并未�
 
 ## 数据、样式和出版
 
-选定真实结构后，脚本集中填写系列颜色、字体、尺幅、坐标单位、marker 密度和 legend/cbar 位置。中文字体需要在用户机器实际核查，不能以 CI 存在相似字体为依据。只选择 Matplotlib 默认 palette、无差异美化或自行改数值，不满足 Module 04。
+选定真实结构后，脚本集中填写系列颜色、字体、尺幅、坐标单位、marker 密度和 legend/cbar 位置。中文标签可在 `q1_plot.py` 和 `data_process.py` 的 `FONT_FAMILY` 填写本机安装的字体族名。导出时如出现缺字，按报错字符换用包含相应字形的字体，再核对实际文件中的坐标轴、图例和裁切。Windows 绘图专项另用固定字体导出 PNG 和 SVG，检查中文标签在 SVG 中引用的字形路径。只选择 Matplotlib 默认 palette、无差异美化或自行改数值，不满足 Module 04。
 
 用户手动运行并看图，默认 `plt.show()` 不导出；确认后可按证据使用 vector-first SVG/PDF 或 PNG（通常 300 DPI，根据密度可增至 600 DPI）。不要擅自画 3D、假误差带、虚构阈值或无来源背景。正式图内不使用 `ax.set_title` / `fig.suptitle`；多 panel 可以保留 a/b/c/d 标签。
 

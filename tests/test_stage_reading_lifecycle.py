@@ -155,6 +155,11 @@ class StageReadingLifecycleTests(unittest.TestCase):
                 candidate = resolve_runtime("new_problem_design", **arguments,
                                             candidate_startup_event=event, source_commit=self.commit)
                 selection = candidate.pop("startup_reading")
+                if profile == "recovery":
+                    missing = candidate["reading_plan"].pop("framework_read")
+                    self.assertEqual((missing["scope"], missing["event"], missing["status"]),
+                                     ("full", "long_context_recovery", "evidence_required"))
+                    self.assertIn("project root", missing["reason"])
                 self.assertEqual(candidate, original)
                 self.assertEqual(selection["profile"], profile)
                 self.assertEqual(selection["source_commit"], self.commit)

@@ -2006,6 +2006,14 @@ V11_P3_DEFAULT_READER_HASHES = {
 }
 
 
+V11_P4_DEFAULT_READER_HASHES = {
+    "scripts/resolve_workflow.py": "88c06bfd1af7bc9d147f84304524402f884c2dd19eee3a7d20dd80efa18a3629",
+    "scripts/resolve_runtime.py": "ea898ad8bb67272414ec3840d2fe8028c6201b182f0bb896c00435a50298b54e",
+    "scripts/reading_plan.py": "7250cac816ac53f439b7eca826f8f052ae955fc2d89ae62a8d00f3ed6845b67d",
+    "scripts/read_stage.py": V11_P3_DEFAULT_READER_HASHES["scripts/read_stage.py"],
+}
+
+
 def runtime_consistency_predecessor(identifier, new, candidate_authority_versions):
     """Reverse only measured repair leaves, preserving all unrelated differences.
 
@@ -2014,7 +2022,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
     """
     fixture = RUNTIME_CONSISTENCY_PROJECTION
     original = deepcopy(new)
-    if "startup_reading" in original:
+    if "startup_reading" in original or "figure_composition" in original:
         return original, []
     # Only the exact patch release carrier may reuse the frozen v10.27.0
     # inverse; no other field, source fingerprint, or historical fixture is waived.
@@ -2087,6 +2095,19 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
             previous_header = b"version: 10.27.0\n"
             if not raw.startswith(patch_header) or hashlib.sha256(raw).hexdigest() != actual[0]["sha256"]:
                 return deepcopy(original), []
+            # Only the exact candidate's selector paragraph may be reversed here.
+            if (matched_carrier == V10353_LITERATURE_QUERY_COVERAGE_AUTHORITY_VERSIONS
+                    and actual[0]["sha256"] == "d1a395266067db570001e23813b90941e409ce73d0911c70aba401abf81a2cbf"):
+                selector = (
+                    "  mechanism_spec_selector: With an explicit mechanism scope, --mechanism-spec selects one "
+                    "current figures/source/*.mechanism.yaml. When supplied, --mechanism-question must match "
+                    "that spec's question_id. Without a selected spec, all discovered mechanism specs remain in scope.\n"
+                ).encode("utf-8")
+                if raw.count(selector) != 1:
+                    return deepcopy(original), []
+                raw = raw.replace(selector, b"", 1)
+                if hashlib.sha256(raw).hexdigest() != "3abfd421e866d97c9b56c211405400a24a8e5bd9df45cbb307434915c95ed690":
+                    return deepcopy(original), []
             if matched_carrier in (
                 V10310_RESEARCH_SNAPSHOT_AUTHORITY_VERSIONS,
                 V10320_LITERATURE_P6_AUTHORITY_VERSIONS,
@@ -2192,6 +2213,11 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
                 if observed_readers == V11_P3_DEFAULT_READER_HASHES:
                     resolver_hashes.update(V11_P3_DEFAULT_READER_HASHES)
                     approval = "v11 P3 reviewed default-route reader and resolver identities"
+                p4_sources = {row["path"]: row["sha256"] for row in fingerprint["sources"]
+                              if row["path"] in V11_P4_DEFAULT_READER_HASHES}
+                if p4_sources == V11_P4_DEFAULT_READER_HASHES:
+                    resolver_hashes.update(V11_P4_DEFAULT_READER_HASHES)
+                    approval = "v11 P4a default-route comparison on exact candidate sources"
             predecessor_hashes = {
                 row["path"]: row["sha256"] for row in fixture["fingerprint"]["candidate"]
                 if row["path"] in resolver_hashes

@@ -589,7 +589,13 @@ def resolve_runtime(
         # Backend projection follows the actual resumed stage, not the request intent.
         solver_backend=None,
         project_result_prerequisites=project_result_prerequisites,
+        figure_request=request,
     )
+    if "figure_composition" in plan:
+        intent_diagnostics["selected_intents"] = list(plan["intents"])
+        if intent_diagnostics["ambiguity"] and set(selected_intents) == {"editable_mechanism_diagram", "figures"}:
+            intent_diagnostics.update(ambiguity=False, confidence_band="medium", confidence_score=0.6,
+                                      selection_reason="the requested physical figures resolve the tied figure routes")
     actual_stage = ("primary" if "modules/03_solve_validate.md" in plan["modules"] else
                     "analysis" if "modules/03_result_analysis.md" in plan["modules"] else None)
     numerical_context = actual_stage is not None or any(module in plan["modules"] for module in (
@@ -760,8 +766,36 @@ def resolve_runtime(
         "dependency_closure": dependency,
         "authority_fingerprint": fingerprint,
     }
+    if "figure_composition" in plan:
+        scoped_hydration = {question: hydration}
+        registered = list((state_snapshot.payload().get("subproblems") or {})) if state_snapshot else []
+        for delivery in plan["figure_composition"]["deliveries"]:
+            target = delivery["question"] or question or (registered[0] if len(registered) == 1 else None)
+            delivery["question"] = target
+            if delivery["delivery_scope"] == "mechanism" and STAGE_CODE.question_number(target) is not None:
+                owner = f"Q{STAGE_CODE.question_number(target)}"
+                for gate in [*delivery["pre_delivery_gates"], *plan["pre_delivery_gates"]]:
+                    if gate["name"] == "project_sync" and gate.get("delivery_scope") == "mechanism":
+                        gate["command"] = gate["command"].replace(
+                            '--mechanism-question "<registered_question>"', f'--mechanism-question "{owner}"',
+                        )
+            if state_snapshot is None:
+                continue
+            if not target or target == "unresolved":
+                delivery["evidence_status"] = "question_scope_unresolved"
+                continue
+            if target not in scoped_hydration:
+                scoped_hydration[target] = hydrate_project_context(project_root, target, state_snapshot=state_snapshot)
+            current = scoped_hydration[target]
+            verified = set(current.get("verified_artifacts", []))
+            missing = [item for item in delivery["required_verified_artifacts"] if item not in verified]
+            delivery["missing_verified_artifacts"] = missing
+            if current.get("loaded"):
+                delivery["evidence_status"] = "missing_current_inputs" if missing else "base_inputs_verified"
     if startup_reading is not None:
         plan["startup_reading"] = startup_reading
+        if plan.get("writing_runtime") and startup_reading["profile"] in {"formal", "recovery"}:
+            plan["writing_runtime"]["resource_order_semantics"] = load_yaml(WRITING_RUNTIME_PATH)["candidate_formal_reading"]["stage_reading"]
     plan["reading_plan"] = build_reading_plan(
         ROOT, plan, router, manifest, request or "", state_snapshot=state_snapshot
     )

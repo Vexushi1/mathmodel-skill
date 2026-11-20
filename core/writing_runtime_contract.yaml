@@ -11,13 +11,23 @@ principles:
   - 数值事实必须回到当前有效工作簿或等价证据源；Compact Runtime 不改变事实来源。
   - 内部状态治理词只用于上游状态判断，不作为正文语言输入。
 
+candidate_formal_reading:
+  authority: core/bootstrap.yaml#startup_contract
+  stage_reading: >-
+    正式启动或恢复先按固定提交取得规范全文。开始或切换小问、章节时，再取当前动作的适用原文与项目依据，
+    包括该问相关的图表登记。取齐规则只说明阅读范围；当前模型批准、有效结果、前序写作门与本次请求共同决定可写的内容。
+  carrier: >-
+    各赛事共用逐问证据与图表交接规则。适用的模板、实际生效的项目骨架和所请求载体决定写入位置；
+    缺赛事专属模板时按已有骨架或题目需要组织本章，必要证据不齐时可先交付有依据的提纲。
+
 required_runtime_inputs:
   - current_model_paper_framework
   - current_chapter_handoff_map_when_available
-  - active_template_manifest
   - relevant_numeric_evidence
   - relevant_figure_map
   - bibliography_when_needed
+carrier_conditional_inputs:
+  active_template_manifest: 当所选载体使用活动模板清单时，按该清单和实际装配确认当前章节位置。
 document_length_profile:
   default: adaptive_coverage_diagnostic
   user_configurable_fields:
@@ -229,7 +239,7 @@ per_question_writing_capability_preflight:
     full_reasoning_authority_eager_preload: false
     proposition_pack_eager_preload: false
     algorithm_pack_eager_preload: false
-    rule: 先读逐问状态，再按 activation 读取；不得通过本 Preflight 恢复开篇全量 preload。
+    rule: 当前写作动作先读逐问状态，再按 activation 选择适用分支。正式开场和恢复的规范取回由启动合同决定。
 
 template_first_progressive_authoring:
   mode: mandatory
@@ -239,6 +249,7 @@ template_first_progressive_authoring:
     - core/writing_runtime_contract.yaml
     - templates/latex/cumcm/hsk/template_manifest.yaml
     - templates/latex/cumcm/hsk/hsk_main.tex
+  # Existing stage-scoped entry. The formal/recovery candidate returns candidate_formal_reading.stage_reading.
   resource_order_semantics: >-
     ordinary_writing_resource_order 只声明本次任务可用资源及稳定解析顺序，不表示可以在开篇一次性预读全部写作、去 AI、编译和终审模块。
     实际读取时机只能服从 stages；完成当前阶段写入与 gate 后，才读取下一阶段资源。

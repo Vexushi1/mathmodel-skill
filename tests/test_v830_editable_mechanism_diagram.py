@@ -314,6 +314,10 @@ Module 02 的 Comparator 按具体比较问题关联稳定检验 ID。数学／�
 # protected hashes still reject unrelated edits to these writing authorities.
 HANDOFF_AUTHORITY_REWRITES = {
     "modules/05_writing/paper_writing_protocol.md": (
+        # Restore the three v11 chapter-read/registration changes before the older handoff inverse.
+        ("正式启动与跨会话恢复沿用固定提交的启动合同。已选择全文启动时，先取得规范全文。开始或切换小问、章节时仍须重新取得当前动作适用的规则原文、当前框架及相应证据。前一问尚缺的结果继续留待核验。已有规范正文只提供规则依据，正式写入仍须满足当前项目的模型、结果与写作门。\n\n新论文或结构性重写先确定实际骨架、目标位置与本轮范围。采用 Template-First 的项目按 `core/writing_runtime_contract.yaml#template_first_progressive_authoring` 读活动模板和主文件，再按“读取当前章节规则 → 写当前章节 → 通过当前 gate → 再读取下一章节规则”推进。其他赛事及明确选择的 Word 载体沿用其实际骨架；缺赛事专属模板时，根据题目和已有项目材料组织当前章节。", "本文件是普通正文内容 Authority，但**不是开篇一次性预读的长提示词**。每次新论文或结构性重写必须服从 `core/writing_runtime_contract.yaml#template_first_progressive_authoring`：先读 Template Manifest 与主文件，只确定骨架和目标槽；随后按“读取当前章节规则 → 写当前章节 → 通过当前 gate → 再读取下一章节规则”推进。"),
+        ("一并查看用户本轮提供的章节交接材料；其中的预留标识可帮助定位对象，结果仍须回到已验收的来源核实。", ""),
+        ("LaTeX 按生效的源文件和 label/ref 核对，Word 按实际标题、题注或交叉引用核对。仅交付提纲时登记拟放位置，正文形成后再回填实际锚点。", ""),
         ("前期图表预登记是后续写作的输入。每问开始前按 §13.0 盘点相关登记并安排用途，不能只凭图型或聊天记忆临时找图。\n\n", ""),
         ("""**预登记到写作的交接。** 图表可以先于论文制作；前期在现有“论文位置”／Paper location 中登记“所属小问或共享范围＋预期论证功能”，例如“问题二／结果与分析，具体小节写作时确定”。尚无正文时，“正文引用位置”留空，不预写物理行号、页码，不提前锁死三级标题；归属未定时在原位置或既有待办中说明。Figure role 保持原有证据用途定义，不改成章节槽位。
 
