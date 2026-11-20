@@ -661,6 +661,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `docs/figure_paper_handoff_plan.md`
 - `docs/figure_technique_and_handoff_refactor_plan.md`
 - `docs/final_acceptance_traceability_matrix.md`
+- `docs/full_skill_reading_architecture_plan.md`
 - `docs/literature_p6_evaluation_protocol.md`
 - `docs/literature_p6_historical_case_catalog.json`
 - `docs/literature_p6b_real_case_preflight.md`
@@ -692,7 +693,6 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `docs/project_level_dual_plotting_backend_plan.md`
 - `docs/project_solver_backend_redefinition_p1_audit.md`
 - `docs/project_solver_backend_redefinition_plan.md`
-- `docs/reading_and_stage_execution_reliability_plan.md`
 - `docs/repository_audit_and_handoff_refactor_plan.md`
 - `docs/runtime_consistency_11_issue_repair_plan.md`
 - `docs/runtime_router_and_gate_simplification_refactor_plan.md`
