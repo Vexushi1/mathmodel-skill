@@ -298,6 +298,17 @@ compatibility:
 
 
 reading_plan:
+  formal_rule_delivery:
+    registration: core/module_manifest.yaml#rule_corpus
+    manifest: core/full_reading/manifest.json
+    reader: scripts/read_stage.py
+    selector: core/bootstrap.yaml#startup_contract
+    version_binding: Resolve the chosen ref once to its full Git commit. Obtain the inventory, expected hashes and all content at that same commit.
+    byte_identity: Verify the actual UTF-8 response bytes against the independently retrieved manifest. Git blob IDs and newline-normalized distribution hashes have distinct meanings.
+    offsets: Zero-based half-open byte ranges in the original file and volume. Preserve complete code points, source order and the original line endings.
+    github_only: Page through the pinned manifest, fetch every declared volume by its pinned path and reassemble any ranged responses before comparing. If hashing is unavailable, record the visible ranges and the limits of verification.
+    continuity: Retry only identified missing or damaged volumes while the complete scope and intact bodies remain available. An identical retransmission counts once. After a lost scope, summary-only context or cross-chat formal recovery, retrieve all bodies afresh.
+    evidence_boundary: Receipt verification describes the supplied texts at the selected commit. Record current visible text separately. Internal context retention is unobservable. Project evidence, model approval and delivery gates keep their own authorities.
   modular_review_sources: core/module_manifest.yaml#modules.review_delivery.reading_sources
   modular_review_consumption: >-
     Resolve legacy review entry and heading requests to the declared canonical
@@ -346,6 +357,8 @@ reading_plan:
         - no_missing_lines
         - overlap_is_detected_and_rejected_not_silently_counted
         - source_identity_is_consistent
+        - compare_text_with_independently_obtained_source_bytes_when_available
+      structural_coverage_only: Without trusted original bytes a matching number of lines cannot establish byte integrity.
       incomplete_or_truncated: retrieve_missing_ranges_before_action
       complete_only_when: all_required_ranges_returned_and_checked
     after_action:

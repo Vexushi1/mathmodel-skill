@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -19,6 +20,7 @@ LEGACY_TEMPLATE_INDEX = ROOT / "HSK_TEMPLATE_INDEX_V622.md"
 MANIFEST = ROOT / "MANIFEST.sha256"
 STAGE_GUIDE_RELATIVE = Path("core") / "stage_reading_guide.md"
 STAGE_GUIDE = ROOT / STAGE_GUIDE_RELATIVE
+FULL_READING = Path("core/full_reading")
 EXCLUDED_DIRS = {".git", "__pycache__", ".pytest_cache", ".mypy_cache", ".venv", "venv"}
 EXCLUDED_FILE_SUFFIXES = {".log"}
 ACTIVE_ARCHIVE_POINTERS = {Path("legacy/README.md")}
@@ -213,7 +215,7 @@ def manifest_text(files: list[Path], overrides: dict[Path, str]) -> str:
         if relative == MANIFEST.relative_to(ROOT):
             continue
         if relative in overrides:
-            digest = digest_bytes(overrides[relative].encode("utf-8"))
+            digest = digest_bytes(normalized_manifest_bytes(relative, overrides[relative].encode("utf-8")))
         else:
             absolute = ROOT / relative
             if not absolute.is_file():
@@ -383,7 +385,7 @@ def lifecycle_navigation(router: dict, *, registered: bool = False) -> list[str]
     return lines
 
 
-def stage_reading_guide_text() -> str:
+def stage_reading_guide_text(*, include_full_reading: bool | None = None) -> str:
     """Generate navigation from existing routing/writing authorities, never copied rules."""
     router = yaml.safe_load((ROOT / "core/workflow_router.yaml").read_text(encoding="utf-8"))
     writing = yaml.safe_load((ROOT / "core/writing_runtime_contract.yaml").read_text(encoding="utf-8"))
@@ -404,9 +406,18 @@ def stage_reading_guide_text() -> str:
         "a duplicate phase registry, proof of reading, an approval, or a gate result.",
         "Resolve current project facts and use the selected commit of the original Authority.",
         "",
-        "## Common source selectors",
-        "",
     ]
+    if include_full_reading is None:
+        declaration = ROOT / "core/module_manifest.yaml"
+        include_full_reading = declaration.is_file() and "rule_corpus" in yaml.safe_load(declaration.read_bytes())
+    if include_full_reading:
+        lines += [
+            "For a candidate formal start or recovery, follow `core/bootstrap.yaml#startup_contract`",
+            "and open `core/full_reading/manifest.json` at the same pinned commit. The formal",
+            "reader is `scripts/read_stage.py formal`. Use the stage sources below for scoped work.",
+            "",
+        ]
+    lines += ["## Common source selectors", ""]
 
     def render(entry: str | dict, kind: str) -> str:
         if isinstance(entry, str):
@@ -445,8 +456,38 @@ def stage_reading_guide_text() -> str:
         lines.append("")
     return "\n".join(lines).rstrip() + "\n"
 
+
+def existing_full_reading_outputs() -> set[Path]:
+    """Identify only owned outputs. Refuse unexpected files before modifying this directory."""
+    directory = ROOT / FULL_READING
+    expected_directory = ROOT.resolve() / FULL_READING
+    if directory.resolve() != expected_directory or (directory.exists() and not directory.is_dir()):
+        raise ValueError(f"invalid generated directory: {directory}")
+    outputs = set()
+    for path in directory.rglob("*"):
+        relative = path.relative_to(directory)
+        if not path.is_symlink() and path.resolve() == expected_directory / relative:
+            if relative == Path("volumes") and path.is_dir():
+                continue
+            numbered = relative.parent == Path("volumes") and re.fullmatch(r"[0-9]{3}\.md", relative.name)
+            if path.is_file() and (relative == Path("manifest.json") or numbered):
+                outputs.add(path)
+                continue
+        raise ValueError(f"unexpected file in generated directory: {path}")
+    return outputs
+
+
 def generated_payloads() -> dict[Path, str]:
     version = current_skill_version()
+    # Path-based callers may import this generator without scripts/ on sys.path.
+    script_dir = str(Path(__file__).resolve().parent)
+    sys.path.insert(0, script_dir)
+    try:
+        from rule_corpus import generated_payloads as full_reading_payloads
+    finally:
+        sys.path.pop(0)
+    existing = existing_full_reading_outputs()
+    full_reading = full_reading_payloads(ROOT)
     guide_sources = (
         ROOT / "core" / "workflow_router.yaml",
         ROOT / "core" / "writing_runtime_contract.yaml",
@@ -462,11 +503,15 @@ def generated_payloads() -> dict[Path, str]:
     # Preserve their legacy output; registered missing sources fail above and
     # malformed available authorities fail inside stage_reading_guide_text().
     guide_payload = (
-        stage_reading_guide_text()
+        stage_reading_guide_text(include_full_reading=bool(full_reading))
         if sources_present
         else None
     )
-    files = iter_files()
+    files = sorted(
+        (set(iter_files()) - {path.relative_to(ROOT) for path in existing})
+        | {path.relative_to(ROOT) for path in full_reading},
+        key=lambda path: path.as_posix(),
+    )
     if guide_payload is None:
         files = [path for path in files if path != STAGE_GUIDE_RELATIVE]
     corpus_root = ROOT / "knowledge" / "case_memory"
@@ -499,6 +544,7 @@ def generated_payloads() -> dict[Path, str]:
         LEGACY_SKILL_INDEX.relative_to(ROOT): legacy_skill_payload,
         LEGACY_TEMPLATE_INDEX.relative_to(ROOT): legacy_template_payload,
         **case_payloads,
+        **{path.relative_to(ROOT): body for path, body in full_reading.items()},
     }
     if guide_payload is not None:
         overrides[STAGE_GUIDE_RELATIVE] = guide_payload
@@ -508,6 +554,7 @@ def generated_payloads() -> dict[Path, str]:
         LEGACY_SKILL_INDEX: legacy_skill_payload,
         LEGACY_TEMPLATE_INDEX: legacy_template_payload,
         **{ROOT / path: payload for path, payload in case_payloads.items()},
+        **full_reading,
     }
     if guide_payload is not None:
         payloads[ROOT / STAGE_GUIDE_RELATIVE] = guide_payload
@@ -516,6 +563,7 @@ def generated_payloads() -> dict[Path, str]:
 
 
 def write_lf_text(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8", newline="\n") as handle:
         handle.write(text)
 
@@ -525,11 +573,15 @@ def main() -> int:
     parser.add_argument("--check", action="store_true", help="fail when generated files differ from repository state")
     args = parser.parse_args()
     payloads = generated_payloads()
+    retired = sorted(existing_full_reading_outputs() - payloads.keys())
     if args.check:
-        differences = []
+        differences = [path.relative_to(ROOT).as_posix() for path in retired]
         for path, expected in payloads.items():
-            actual = path.read_text(encoding="utf-8") if path.is_file() else None
-            if actual != expected:
+            if path.is_relative_to(ROOT / FULL_READING):
+                matches = path.is_file() and path.read_bytes() == expected.encode("utf-8")
+            else:
+                matches = path.is_file() and path.read_text(encoding="utf-8") == expected
+            if not matches:
                 differences.append(path.relative_to(ROOT).as_posix())
         if differences:
             print("generated indexes are stale:")
@@ -538,6 +590,9 @@ def main() -> int:
             return 1
         print("generated indexes are current")
         return 0
+    for path in retired:
+        path.unlink()
+        print(f"removed {path.relative_to(ROOT).as_posix()}")
     for path, text in payloads.items():
         write_lf_text(path, text)
         print(path.relative_to(ROOT).as_posix())

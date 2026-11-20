@@ -175,6 +175,18 @@ class ChunkCoverageTests(unittest.TestCase):
         self.assertEqual(result["missing_ranges"], [])
         self.assertEqual(result["issues"], [])
 
+    def test_original_bytes_distinguish_equal_line_counts_and_report_exact_retry(self):
+        raw = "first\r\n最末条件 ≥ 3".encode("utf-8")
+        digest = hashlib.sha256(raw).hexdigest()
+        first = self.chunk(1, 1, "first\r\n", sha=digest)
+        for last, missing in (("最末条件 ≥ 3", []), ("最末条件 ≥ 4", [[2, 2]]),
+                              ("最末条件", [[2, 2]]), ("最末条件 ≥ 3\n", [[2, 2]])):
+            with self.subTest(last=last):
+                result = READING.validate_chunk_coverage(
+                    [[1, 2]], [first, self.chunk(2, 2, last, sha=digest)], expected_source=raw)
+                self.assertEqual(result["missing_ranges"], missing)
+                self.assertEqual(result["complete"], not missing)
+
     def test_missing_chunk_reports_exact_missing_range(self):
         result = READING.validate_chunk_coverage(
             [[1, 6]], [self.chunk(1, 2, "one\ntwo"), self.chunk(5, 6, "five\nsix")]

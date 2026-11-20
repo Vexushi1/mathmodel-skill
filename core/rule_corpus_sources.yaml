@@ -1,0 +1,494 @@
+# Source roles for optional formal startup. Reading a conditional source never activates its stage.
+# Review each added path in mixed-use directories. Excerpt ranges use unique whole lines:
+# [start, following), with null at the file boundary. Keep the original preamble, parent
+# conditions and exceptions. Unlisted parts of mixed files retain their ordinary implementation,
+# example, historical or maintenance role. Only exact physical aliases share a reading body.
+schema_version: 1
+members:
+  entry:
+  - PROJECT_INSTRUCTIONS.md
+  - SKILL.md
+  - agents/openai.yaml
+  resource_use_conditions:
+  - assets/figure_assets.yaml
+  - assets/nature_figure/README.md
+  - knowledge/case_memory/README.md
+  - knowledge/case_memory/schema.yaml
+  configuration:
+  - config/competition_profiles.yaml
+  - config/prose_audit_patterns.yaml
+  - config/review_weights.json
+  contract:
+  - core/bootstrap.yaml
+  - core/case_memory_retrieval_contract.yaml
+  - core/claim_consumption_contract.yaml
+  - core/claim_evidence_contract.yaml
+  - core/code_quality_contract.yaml
+  - core/compile_profiles.yaml
+  - core/global_preprocessing_contract.yaml
+  - core/hsk_core_policy.md
+  - core/literature_research_contract.yaml
+  - core/model_approval_contract.yaml
+  - core/model_code_conformance_contract.yaml
+  - core/module_manifest.yaml
+  - core/numerical_verification_contract.yaml
+  - core/output_contract.yaml
+  - core/project_state.schema.yaml
+  - core/review_receipt_consumption_contract.yaml
+  - core/review_receipt_contract.yaml
+  - core/runtime_assurance_contract.yaml
+  - core/state_transition_contract.yaml
+  - core/task_taxonomy.yaml
+  - core/user_execution_contract.yaml
+  - core/workbook_schema.yaml
+  - core/workflow_router.yaml
+  - core/writing_reasoning_contract.yaml
+  - core/writing_runtime_contract.yaml
+  delegated_compatibility:
+  - docs/v8_writing_migration.md
+  module:
+  - modules/01_problem_audit.md
+  - modules/02_model_design.md
+  - modules/03_data_preprocessing.md
+  - modules/03_result_analysis.md
+  - modules/03_solve_validate.md
+  - modules/04_figure_evidence.md
+  - modules/05_latex_compile_quality.md
+  - modules/05_writing/ai_cleanup.md
+  - modules/05_writing/docx.md
+  - modules/05_writing/latex.md
+  - modules/05_writing/paper_writing_protocol.md
+  - modules/06_review/content_review.md
+  - modules/06_review/final_delivery.md
+  - modules/06_review_delivery.md
+  conditional_pack:
+  - packs/artifact/algorithm_flow.md
+  - packs/artifact/case_memory_retrieval.md
+  - packs/artifact/code.md
+  - packs/artifact/docx.md
+  - packs/artifact/figure.md
+  - packs/artifact/full_submission.md
+  - packs/artifact/latex.md
+  - packs/artifact/literature_research.md
+  - packs/artifact/proposition_proof.md
+  - packs/artifact/review.md
+  - packs/competition/auto.md
+  - packs/competition/certification_cup.md
+  - packs/competition/cumcm.md
+  - packs/competition/diangong.md
+  - packs/competition/mcm_icm.md
+  - packs/task/advanced_method_gate.md
+  - packs/task/classifier.md
+  - packs/task/evaluation.md
+  - packs/task/game_decision.md
+  - packs/task/graph_network.md
+  - packs/task/mechanism.md
+  - packs/task/optimization.md
+  - packs/task/prediction.md
+  - packs/task/scheduling.md
+  - packs/task/simulation.md
+  - packs/task/spatial.md
+  - packs/task/statistics_ml.md
+  conditional_template:
+  - templates/code/hsk_pipeline/README.md
+  - templates/code/matlab/README.md
+  - templates/code/starter/README.md
+  - templates/figure/chart_selection.md
+  - templates/figure/figure_enhancement_patterns.md
+  - templates/figure/figure_paper_closure.md
+  - templates/figure/figure_plan.md
+  - templates/figure/mechanism_contract.md
+  - templates/figure/mechanism_drawio_patterns.md
+  - templates/figure/mechanism_drawio_spec.yaml
+  - templates/figure/mechanism_practical_check.md
+  - templates/figure/mechanism_qa.md
+  - templates/figure/result_figure_contract.md
+  - templates/figure/result_figure_qa.md
+  - templates/latex/cumcm/hsk/README.md
+  - templates/latex/cumcm/hsk/appendices/appendices.tex
+  - templates/latex/cumcm/hsk/config/commands.tex
+  - templates/latex/cumcm/hsk/config/metadata.tex
+  - templates/latex/cumcm/hsk/config/preamble.tex
+  - templates/latex/cumcm/hsk/frontmatter/abstract.tex
+  - templates/latex/cumcm/hsk/hsk_main.tex
+  - templates/latex/cumcm/hsk/sections/01_problem_statement.tex
+  - templates/latex/cumcm/hsk/sections/02_problem_analysis.tex
+  - templates/latex/cumcm/hsk/sections/03_assumptions.tex
+  - templates/latex/cumcm/hsk/sections/04_symbols.tex
+  - templates/latex/cumcm/hsk/sections/05_data.tex
+  - templates/latex/cumcm/hsk/sections/05_model_preparation.tex
+  - templates/latex/cumcm/hsk/sections/06_question1.tex
+  - templates/latex/cumcm/hsk/sections/07_question2.tex
+  - templates/latex/cumcm/hsk/sections/08_question3.tex
+  - templates/latex/cumcm/hsk/sections/09_evaluation.tex
+  - templates/latex/cumcm/hsk/sections/10_ai_tool_statement.tex
+  - templates/latex/cumcm/hsk/template_manifest.yaml
+  - templates/latex/diangong/main.tex
+  - templates/latex/mcm/main.tex
+  - templates/matlab/README.md
+  - templates/model/assumption_audit.md
+  - templates/model/constraint_violation.md
+  - templates/model/formula_code_closure.md
+  - templates/model/model_approval_section.md
+  - templates/model/model_paper_framework.md
+  - templates/model/variable_table.md
+  - templates/plot/python/README.md
+  - templates/problem/data_schema_audit.md
+  - templates/problem/model_route_compare.md
+  - templates/problem/requirement_coverage.md
+  - templates/review/code_slimming.md
+  - templates/review/final_review_matrix.yaml
+  - templates/review/result_analysis_check.md
+  - templates/review/result_manifest.yaml
+  - templates/writing/abstract_result_check.md
+  - templates/writing/caption_explanation.md
+  - templates/writing/code_appendix_description.md
+  - templates/writing/docx_check.md
+excerpts:
+  AGENTS.md:
+    role: entry
+    ranges:
+    - - null
+      - '## Repository modification tasks'
+  docs/semantic_state_runtime_refactor_plan.md:
+    role: delegated_compatibility
+    ranges:
+    - - null
+      - '## 0. 修改简报'
+    - - '# 4. 分阶段实施与 PR 切分'
+      - '## Phase A — Characterization / Regression Baseline'
+    - - '## Phase E — Artifact Naming Migration'
+      - '## Phase G — Competition Writing Runtime De-Hardcode'
+  modules/05_writing/references/model_construction_solution_rationale_examples.md:
+    role: example_use_conditions
+    ranges:
+    - - null
+      - '## 1. 从“已有关系”暴露真正的建模缺口'
+  modules/05_writing/references/model_solution_reasoning_examples.md:
+    role: example_use_conditions
+    ranges:
+    - - null
+      - '## 1. 约束解决哪个遗漏：Open Question → Introduction'
+  templates/latex/cumcm/hsk/reference/a196_framework_notes.md:
+    role: example_use_conditions
+    ranges:
+    - - null
+      - '## 观察到的一级框架'
+    - - '## v8.0.0 模板吸收原则'
+      - null
+  templates/latex/cumcm/hsk/reference/example_mm_r1.tex:
+    role: example_use_conditions
+    ranges:
+    - - null
+      - \usepackage{geometry}
+    - - '% 原始参考文件在此之后采用“模型的建立与求解”统一一级章。'
+      - \section{模型的建立与求解}
+  templates/code/starter/analysis_comparison.py:
+    role: implementation_use_conditions
+    ranges:
+    - - null
+      - from __future__ import annotations
+  templates/plot/python/figure_patterns.py:
+    role: implementation_use_conditions
+    ranges:
+    - - null
+      - from __future__ import annotations
+  templates/plot/python/data_process.py:
+    role: implementation_use_conditions
+    ranges:
+    - - null
+      - from __future__ import annotations
+  templates/plot/python/q1_plot.py:
+    role: implementation_use_conditions
+    ranges:
+    - - null
+      - 'def _numeric(value: object, *, missing: bool, context: str) -> float:'
+  templates/code/matlab/q1_solver.m:
+    role: implementation_use_conditions
+    ranges:
+    - - null
+      - entrypoint = string(mfilename('fullpath')) + ".m";
+  templates/code/matlab/q1_analysis.m:
+    role: implementation_use_conditions
+    ranges:
+    - - null
+      - entrypoint = string(mfilename('fullpath')) + ".m";
+  templates/code/matlab/analysis_comparison_example.m:
+    role: implementation_use_conditions
+    ranges:
+    - - null
+      - entrypoint = string(mfilename('fullpath')) + ".m";
+  templates/matlab/q1_plot.m:
+    role: implementation_use_conditions
+    ranges:
+    - - null
+      - clearvars;
+  templates/matlab/data_process.m:
+    role: implementation_use_conditions
+    ranges:
+    - - null
+      - clearvars;
+  scripts/semantic_identity.py:
+    role: implementation_protocol
+    ranges:
+    - - null
+      - 'class SemanticIdentityError(ValueError):'
+  scripts/validate_semantic_governance.py:
+    role: implementation_protocol
+    ranges:
+    - - null
+      - 'def load_yaml(path: Path) -> dict[str, Any]:'
+aliases:
+  skills/mathmodel-skill/SKILL.md: SKILL.md
+excluded_trees:
+  tests: synthetic fixtures and maintenance verification
+  legacy: archived versions and compatibility navigation
+  .github: repository workflows and governance
+excluded:
+  navigation:
+  - .codex-plugin/plugin.json
+  - README.md
+  - REPOSITORY_INDEX.md
+  - RUNTIME_ROUTER.md
+  - scripts/README.md
+  maintenance_and_distribution:
+  - .gitattributes
+  - .gitignore
+  - CHANGELOG.md
+  - LICENSE
+  - SKILL_CHANGE_GOVERNANCE.md
+  - THIRD_PARTY_NOTICES.md
+  - requirements-dev.txt
+  - requirements-plot-python.txt
+  compatibility_pointer:
+  - HSK_RUNTIME_ROUTER_V622.md
+  - PROJECT_INSTRUCTIONS_HSK_V622.md
+  - templates/figure/mechanism_placeholder.md
+  - templates/figure/per_question_mechanism_plan.md
+  generated_navigation:
+  - HSK_SKILL_FILE_INDEX_V622.md
+  - HSK_TEMPLATE_INDEX_V622.md
+  - MANIFEST.sha256
+  - SKILL_FILE_INDEX.md
+  - TEMPLATE_INDEX.md
+  - core/stage_reading_guide.md
+  - knowledge/case_memory/index.json
+  reference_data:
+  - assets/nature_figure/chart-atlas/atlas-01-bar-charts.png
+  - assets/nature_figure/chart-atlas/atlas-02-line-trends.png
+  - assets/nature_figure/chart-atlas/atlas-03-heatmaps.png
+  - assets/nature_figure/chart-atlas/atlas-04-scatter-bubble.png
+  - assets/nature_figure/chart-atlas/atlas-05-radar-polar.png
+  - assets/nature_figure/chart-atlas/atlas-06-distributions.png
+  - assets/nature_figure/chart-atlas/atlas-07-forest-interval.png
+  - assets/nature_figure/chart-atlas/atlas-08-area-stacked.png
+  - assets/nature_figure/chart-atlas/atlas-09-image-plates.png
+  - assets/nature_figure/chart-atlas/atlas-10-network-matrix.png
+  - assets/nature_figure/gallery/fig1-material-mechanism-rich.png
+  - assets/nature_figure/gallery/fig2-spatial-imaging-rich.png
+  - assets/nature_figure/gallery/fig3-in-vivo-efficacy-rich.png
+  - assets/nature_figure/gallery/fig4-single-cell-systems-rich.png
+  - assets/nature_figure/gallery/fig5-validation-perturbation-rich.png
+  - knowledge/case_memory/cases.json
+  - knowledge/case_memory/development_queries.json
+  - knowledge/case_memory/retrieval_features.json
+  - knowledge/case_memory/sources.json
+  - state/project_state.example.yaml
+  - templates/latex/cumcm/hsk/references.bib
+  - templates/latex/diangong/references.bib
+  - templates/latex/mcm/references.bib
+  maintenance_and_history:
+  - docs/ai_cleanup_prose_only_implementation_audit.md
+  - docs/cumcm_cross_file_handoff_c_consumer_audit.md
+  - docs/cumcm_paper_writing_compliance_narrative_refactor_plan.md
+  - docs/cumcm_problem_analysis_appendix_heading_hierarchy_plan.md
+  - docs/cumcm_question_writing_refinement_plan.md
+  - docs/figure_paper_handoff_plan.md
+  - docs/figure_technique_and_handoff_refactor_plan.md
+  - docs/final_acceptance_traceability_matrix.md
+  - docs/literature_p6_evaluation_protocol.md
+  - docs/literature_p6_historical_case_catalog.json
+  - docs/literature_p6b_real_case_preflight.md
+  - docs/main-branch-protection-hardening-plan.md
+  - docs/matlab_publication_rendering_v91_plan.md
+  - docs/modeling_intelligence_a0_decisions.md
+  - docs/modeling_intelligence_a2_execution_plan.md
+  - docs/modeling_intelligence_a2_followup_review.md
+  - docs/modeling_intelligence_b1_execution_plan.md
+  - docs/modeling_intelligence_b1_protocol_decisions.md
+  - docs/modeling_intelligence_b2_execution_plan.md
+  - docs/modeling_intelligence_d1_execution_plan.md
+  - docs/modeling_intelligence_d2_execution_plan.md
+  - docs/modeling_intelligence_e1_acceptance_matrix.md
+  - docs/modeling_intelligence_e1_execution_plan.md
+  - docs/modeling_intelligence_e2_release_review_handoff.md
+  - docs/modeling_intelligence_evidence_evolution_plan.md
+  - docs/module06_source_migration.md
+  - docs/p3a_global_policy_source_map.md
+  - docs/p3b_writing_role_source_map.md
+  - docs/p4_compact_framework_progression.md
+  - docs/p5a_run_config_migration.md
+  - docs/p5b_run_receipt_versioning.md
+  - docs/p6a_figure_reference_profile_split.md
+  - docs/p6b_matlab_rendering_preview.md
+  - docs/p7_conditional_analysis_appendix.md
+  - docs/p8_infrastructure_measurement.md
+  - docs/p8d_lint_function_measurement.md
+  - docs/p8e_validator_split_decision.md
+  - docs/p9_release_closeout.md
+  - docs/phase_e_artifact_identity_inventory.md
+  - docs/phase_e_six_domain_regression_audit.md
+  - docs/phase_f_transaction_writer_inventory.md
+  - docs/phase_i_artifact_alias_retirement.md
+  - docs/phase_i_artifact_state_surface_removal.md
+  - docs/phase_i_compatibility_inventory.md
+  - docs/phase_i_compatibility_removal_readiness.md
+  - docs/phase_i_legacy_writer_retirement.md
+  - docs/phase_i_legacy_writer_retirement_readiness.md
+  - docs/phase_i_v9_applicability_renewal.md
+  - docs/phase_i_v9_release_carrier_transition.md
+  - docs/phase_i_v9_release_closure.md
+  - docs/project_level_dual_plotting_backend_plan.md
+  - docs/project_solver_backend_redefinition_p1_audit.md
+  - docs/project_solver_backend_redefinition_plan.md
+  - docs/repository_audit_and_handoff_refactor_plan.md
+  - docs/runtime_consistency_11_issue_repair_plan.md
+  - docs/runtime_router_and_gate_simplification_refactor_plan.md
+  - docs/skill_optimization_status.md
+  - docs/stage_reading_execution_refactor_plan.md
+  - docs/stage_reading_p4_validation.md
+  - docs/user_checker_workflow_plan.md
+  - docs/v1010_audit_closure_remediation_plan.md
+  - docs/v1010_input_identity_protocol_decision.md
+  - docs/v10180_analysis_comparison_plan.md
+  - docs/v10182_routing_submission_closure_plan.md
+  - docs/v10183_cumcm_heading_hierarchy_readability_completion_plan.md
+  - docs/v10_27_1_release_notes.md
+  - docs/v10_27_runtime_nonregression_closeout.md
+  - docs/v10_27_runtime_nonregression_optimization_plan.md
+  - docs/v10_32_0_release_notes.md
+  - docs/v801_chapter_capability_preservation_audit.md
+  - docs/v801_skill_health_remediation_plan.md
+  - docs/v801_skill_health_remediation_status.md
+  - docs/v840_author_reasoning_evaluation.md
+  - docs/v850_author_reasoning_voice_evaluation.md
+  - docs/v860_model_construction_solution_rationale_evaluation.md
+  - docs/v870_question_writing_capability_preflight_evaluation.md
+  - docs/v871_writing_reasoning_schema_version_policy.md
+  - docs/v8_writing_capability_inventory.md
+  - docs/v900_migration_contract.md
+  - docs/v921_p7_conditional_analysis_semantic_hygiene_plan.md
+  - docs/v931_branch_cleanup_manifest.md
+  - docs/v931_postrelease_health_remediation_plan.md
+  - docs/v931_repository_hygiene_inventory.md
+  - docs/v970_solver_backends_migration.md
+  - docs/v971_backend_contract_audit.md
+  - docs/v9_3_initial_modeling_structural_reduction_refactor_plan.md
+  - docs/windows_python_ci_performance_plan.md
+  - docs/writing_readability_validation_slimming_plan.md
+  - docs/writing_readability_w4_acceptance.md
+  - docs/writing_readability_w5_release_closeout.md
+  - docs/writing_review_ownership_refactor_plan.md
+  - docs/writing_validation_w0_baseline.md
+  implementation:
+  - scripts/analysis_comparison.py
+  - scripts/analysis_comparison_gate.py
+  - scripts/analysis_prerequisites.py
+  - scripts/artifact_fingerprint.py
+  - scripts/artifact_identity.py
+  - scripts/audit_latex_project.py
+  - scripts/audit_paper_prose.py
+  - scripts/audit_v8_writing_surface.py
+  - scripts/case_memory.py
+  - scripts/case_memory_retrieve.py
+  - scripts/case_references.py
+  - scripts/ci_unittest.py
+  - scripts/claim_consumption.py
+  - scripts/claim_docx.py
+  - scripts/claim_evidence.py
+  - scripts/claim_figure.py
+  - scripts/claim_figure_source.py
+  - scripts/claim_sources.py
+  - scripts/claim_tex.py
+  - scripts/claim_values.py
+  - scripts/claim_workbook.py
+  - scripts/conformance_gate.py
+  - scripts/conformance_source.py
+  - scripts/execution_protocol.py
+  - scripts/execution_provenance.py
+  - scripts/execution_scale.py
+  - scripts/formal_reading.py
+  - scripts/generate_indexes.py
+  - scripts/generate_mechanism_drawio.py
+  - scripts/hsk_pack_submission.py
+  - scripts/instantiate_model_paper_framework.py
+  - scripts/latex_delivery.py
+  - scripts/lint_skill.py
+  - scripts/lint_skill_checks.py
+  - scripts/literature_evidence.py
+  - scripts/literature_p6_benchmark.py
+  - scripts/literature_search.py
+  - scripts/literature_snapshot.py
+  - scripts/matlab_code_checks.py
+  - scripts/measure_contract_parsing.py
+  - scripts/measure_e1_resources.py
+  - scripts/measure_infrastructure.py
+  - scripts/measure_writing_validation.py
+  - scripts/model_code_conformance.py
+  - scripts/plot_backend.py
+  - scripts/prepare_cumcm_class.py
+  - scripts/primary_quality_binding.py
+  - scripts/primary_quality_specification.py
+  - scripts/project_snapshot.py
+  - scripts/project_solver_backend.py
+  - scripts/project_transaction.py
+  - scripts/python_source_checks.py
+  - scripts/read_stage.py
+  - scripts/reading_plan.py
+  - scripts/render_paper.py
+  - scripts/resolve_runtime.py
+  - scripts/resolve_workflow.py
+  - scripts/review_receipt_consumption.py
+  - scripts/review_receipts.py
+  - scripts/rule_corpus.py
+  - scripts/run_config_parser.py
+  - scripts/runtime_assurance.py
+  - scripts/safe_yaml.py
+  - scripts/score_submission.py
+  - scripts/stage_code.py
+  - scripts/stage_inputs.py
+  - scripts/state_transitions.py
+  - scripts/submission_requirements.py
+  - scripts/sync_project.py
+  - scripts/validate_code_delivery.py
+  - scripts/validate_drawio_figure.py
+  - scripts/validate_model_approval.py
+  - scripts/validate_model_paper_framework.py
+  - scripts/validate_numerical_evidence.py
+  - scripts/validate_project_state.py
+  - scripts/validate_submission_package.py
+  - scripts/validate_template_manifest.py
+  - scripts/validate_user_execution.py
+  - templates/code/hsk_pipeline/__init__.py
+  - templates/code/hsk_pipeline/main_pipeline.py
+  - templates/code/hsk_pipeline/result_io.py
+  - templates/code/hsk_pipeline/workbook_validation.py
+  - templates/code/matlab/hsk_comparison_fit.m
+  - templates/code/requirements.txt
+  - templates/code/starter/classification.py
+  - templates/code/starter/comparison_numerics.py
+  - templates/code/starter/evaluation.py
+  - templates/code/starter/optimization.py
+  - templates/code/starter/prediction.py
+  - templates/code/starter/simulation.py
+  - templates/matlab/draw_mechanism_structure.m
+  - templates/matlab/hsk_apply_scientific_style.m
+  - templates/matlab/hsk_publication_profile.m
+  - templates/matlab/hsk_read_result_workbooks.m
+  upstream_class_and_examples:
+  - templates/latex/cumcm/cumcmthesis/.gitignore
+  - templates/latex/cumcm/cumcmthesis/README.md
+  - templates/latex/cumcm/cumcmthesis/cumcmthesis.cls
+  - templates/latex/cumcm/cumcmthesis/example.tex
+  selection_metadata:
+  - core/rule_corpus_sources.yaml

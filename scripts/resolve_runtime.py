@@ -449,11 +449,38 @@ def resolve_runtime(
     solver_backend: str | None = None,
     project_root: str | Path | None = None,
     question: str | None = None,
+    candidate_startup_event: str | None = None,
+    source_commit: str | None = None,
 ) -> dict[str, Any]:
     bootstrap = load_yaml(BOOTSTRAP_PATH)
     router = load_yaml(ROUTER_PATH)
     manifest = load_yaml(MANIFEST_PATH)
     assurance_contract = load_yaml(ASSURANCE_PATH)
+
+    if (candidate_startup_event is None) != (source_commit is None):
+        raise ValueError("candidate startup requires both an explicit event and its pinned source commit")
+    startup_reading = None
+    if candidate_startup_event is not None and source_commit is not None:
+        from read_stage import verify_checkout
+
+        commit = verify_checkout(ROOT, source_commit)
+
+        startup = bootstrap["startup_contract"]
+        profile = startup["candidate_events"].get(candidate_startup_event)
+        if profile is None:
+            raise ValueError(f"unknown candidate startup event: {candidate_startup_event}")
+        reading = startup["profiles"][profile]["reading"]
+        startup_reading = {
+            "selector": startup["activation"]["candidate_selector"],
+            "event": candidate_startup_event,
+            "profile": profile,
+            "reading": reading,
+            "source_commit": commit,
+            "status": "selection_only",
+        }
+        if reading != "current_action_text":
+            delivery = assurance_contract["reading_plan"]["formal_rule_delivery"]
+            startup_reading.update(manifest=delivery["manifest"], reader=delivery["reader"])
 
     explicit_intents = [intents] if isinstance(intents, str) else list(intents or [])
     selected_intents, intent_diagnostics = resolve_intent_assurance(
@@ -733,7 +760,8 @@ def resolve_runtime(
         "dependency_closure": dependency,
         "authority_fingerprint": fingerprint,
     }
-    # P2 adds consumption guidance only; old plan fields and machine closure stay intact.
+    if startup_reading is not None:
+        plan["startup_reading"] = startup_reading
     plan["reading_plan"] = build_reading_plan(
         ROOT, plan, router, manifest, request or "", state_snapshot=state_snapshot
     )
@@ -760,6 +788,8 @@ def main() -> int:
     parser.add_argument("--project-root")
     parser.add_argument("--question")
     parser.add_argument("--solver-backend", choices=["auto", "python", "matlab"])
+    parser.add_argument("--candidate-startup-event", help="explicitly selected event from bootstrap.startup_contract.candidate_events")
+    parser.add_argument("--source-commit", help="full selected commit for the candidate startup event")
     args = parser.parse_args()
     try:
         plan = resolve_runtime(
@@ -776,6 +806,8 @@ def main() -> int:
             project_root=args.project_root,
             question=args.question,
             solver_backend=args.solver_backend,
+            candidate_startup_event=args.candidate_startup_event,
+            source_commit=args.source_commit,
         )
     except (ValueError, FileNotFoundError) as exc:
         raise SystemExit(str(exc)) from exc

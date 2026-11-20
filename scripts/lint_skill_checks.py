@@ -111,6 +111,17 @@ def active_files() -> Iterable[Path]:
             yield from (path for path in base.rglob("*") if path.is_file() and path.suffix.lower() in TEXT_SUFFIXES)
 
 
+def authored_markdown() -> Iterable[Path]:
+    # Each generated volume preserves relative links verbatim. Check those
+    # links at the original authoring path; the generator checks the copies.
+    for path in active_files():
+        if path.suffix.lower() != ".md":
+            continue
+        if path.parent == ROOT / "core/full_reading/volumes" and re.fullmatch(r"[0-9]{3}\.md", path.name):
+            continue
+        yield path
+
+
 def check_required(errors: list[str]) -> None:
     for relative in REQUIRED:
         if not (ROOT / relative).is_file():
@@ -335,7 +346,7 @@ def check_repository_references(errors: list[str]) -> None:
         ROOT / "SKILL.md", ROOT / "README.md", ROOT / "PROJECT_INSTRUCTIONS.md",
         ROOT / "RUNTIME_ROUTER.md", ROOT / "REPOSITORY_INDEX.md", ROOT / "SKILL_CHANGE_GOVERNANCE.md",
     ]
-    markdown_files = set(path for path in active_files() if path.suffix.lower() == ".md") | set(root_docs)
+    markdown_files = set(authored_markdown()) | set(root_docs)
     for path in sorted(markdown_files):
         if not path.is_file():
             continue

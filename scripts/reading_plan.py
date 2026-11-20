@@ -48,6 +48,7 @@ def _merge_ranges(ranges: list[tuple[int, int]]) -> list[tuple[int, int]]:
 def validate_chunk_coverage(
     expected_ranges: list[list[int] | tuple[int, int]],
     chunks: list[dict[str, Any]],
+    *, expected_source: bytes | None = None,
 ) -> dict[str, Any]:
     """Validate returned source chunks against a planned 1-based inclusive read set.
 
@@ -55,6 +56,8 @@ def validate_chunk_coverage(
     establishes semantic review, approval, artifact acceptance, or delivery-gate status.
     Each chunk must carry path, selected commit, an explicit SHA-256 value (or None when
     unavailable), a separately named blob ID, its inclusive line range, and returned text.
+    The two-argument form reports structural coverage. Supply independently obtained
+    original bytes to detect in-line loss or substitution and identify the range to retry.
     """
     issues: list[str] = []
     expected_raw: list[tuple[int, int]] = []
@@ -79,6 +82,8 @@ def validate_chunk_coverage(
         (start + 1, end)
         for start, end in _merge_ranges([(start - 1, end) for start, end in expected_raw])
     ]
+    expected_lines = expected_source.decode("utf-8").splitlines(keepends=True) if expected_source is not None else None
+    expected_sha = hashlib.sha256(expected_source).hexdigest() if expected_source is not None else None
     normalized_chunks: list[tuple[int, int, int, dict[str, Any]]] = []
     identities: set[tuple[Any, ...]] = set()
     required_fields = {
@@ -129,12 +134,18 @@ def validate_chunk_coverage(
         if chunk["source_blob_sha"] is not None and not isinstance(chunk["source_blob_sha"], str):
             issues.append(f"chunk {index} has an invalid blob ID")
         actual_lines = len(chunk["text"].splitlines())
-        expected_lines = end - start + 1
-        if actual_lines != expected_lines:
+        declared_lines = end - start + 1
+        if actual_lines != declared_lines:
             issues.append(
                 f"chunk {index} line count mismatch for {start}-{end}: "
-                f"expected {expected_lines}, received {actual_lines}"
+                f"expected {declared_lines}, received {actual_lines}"
             )
+        if expected_lines is not None and (
+            source_sha256 != expected_sha or end > len(expected_lines)
+            or chunk["text"] != "".join(expected_lines[start - 1:end])
+        ):
+            issues.append(f"chunk {index} differs from independent source bytes at {start}-{end}")
+            continue
         identities.add((
             chunk["path"], chunk["source_commit"], source_sha256, chunk["source_blob_sha"],
             origin, chunk.get("project_root"),
