@@ -24,7 +24,8 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.measurement = load_measurement()
-        cls.fixture = ROOT / "tests/fixtures/v10352_approved_source_spans.json"
+        cls.fixture = ROOT / "tests/fixtures/v10353_approved_source_spans.json"
+        cls.frozen_v10352 = ROOT / "tests/fixtures/v10352_approved_source_spans.json"
         cls.frozen_v10351 = ROOT / "tests/fixtures/v10351_approved_source_spans.json"
         cls.frozen_v10350 = ROOT / "tests/fixtures/v10350_approved_source_spans.json"
         cls.frozen_v10340 = ROOT / "tests/fixtures/v10340_approved_source_spans.json"
@@ -138,12 +139,21 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "candidate bytes changed"):
             self.measurement.approved_source_span_migrations(self.frozen_v10351)
 
+    def test_v10352_approval_source_spans_remain_frozen(self):
+        prior = json.loads(self.frozen_v10352.read_text(encoding="utf-8"))
+        self.assertEqual(prior["scope"], "v10.35.2_affirmative_full_workflow")
+        self.assertEqual(prior["version"], "10.35.2")
+        self.assertEqual(prior["migrations"][0]["candidate_sha256"],
+                         "4b27e6cecbfe84cf5ba41e9e4678b7423cb668ef87c623e65a1c022006572ca4")
+        with self.assertRaisesRegex(ValueError, "candidate bytes changed"):
+            self.measurement.approved_source_span_migrations(self.frozen_v10352)
+
     def cases(self):
         manifest = self.measurement.approved_source_span_migrations(self.fixture)
         before = {"id": "pure_model_design", "behavior": {"read_now": [], "load_order": []},
                   "source_identity": {"skill_version": "10.27.0", "sources": []}}
         after = {"id": "pure_model_design", "behavior": {"read_now": [], "load_order": []},
-                 "source_identity": {"skill_version": "10.35.2", "sources": []}}
+                 "source_identity": {"skill_version": "10.35.3", "sources": []}}
         for item in manifest["migrations"]:
             original = {
                 "origin": "skill", "path": item["path"],

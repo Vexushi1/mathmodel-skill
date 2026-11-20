@@ -245,6 +245,7 @@ def search(
     # The public Python API has the same frozen-contract and query-scope
     # restrictions as the CLI parser; direct callers cannot bypass them.
     brief = validate_brief(brief)
+    queries = brief["queries"]
     # Only short explicit queries are ever sent, never the Problem Contract.
     attempts: list[dict[str, Any]] = []
     sources: list[dict[str, Any]] = []
@@ -254,7 +255,7 @@ def search(
     errors: list[str] = []
     when = None
     if allow_network:
-        for query in brief["queries"]:
+        for query in queries:
             url = make_url(provider, query, year_from=brief["year_from"], per_query=per_query)
             when = clock()
             attempt = {"provider": provider, "channel": "academic_connector",
@@ -311,6 +312,14 @@ def search(
         gaps.append("Some provider requests failed; retry or independent search may be needed.")
     if state in {"skipped", "failed", "unavailable", "no_suitable_source"}:
         gaps.append("Current bounded metadata search cannot establish suitable scientific sources.")
+    if len(sources) >= MAX_TOTAL_SOURCES and len(attempts) < len(queries):
+        unattempted = ", ".join(f'"{query}"' for query in queries[len(attempts):])
+        quota_gap = (
+            f"Reached the total metadata source limit of {MAX_TOTAL_SOURCES}. "
+            f"Queries not attempted: {unattempted}."
+        )
+        reason = f"{quota_gap} {reason}" if errors else quota_gap
+        gaps.append(quota_gap)
     record = {
         "protocol_version": "1.0.0",
         "scope": brief["scope"],

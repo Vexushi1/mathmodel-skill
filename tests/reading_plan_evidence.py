@@ -158,6 +158,9 @@ V10351_ORDINARY_ANALYSIS_COVERAGE_AUTHORITY_VERSIONS = {
 V10352_AFFIRMATIVE_FULL_WORKFLOW_AUTHORITY_VERSIONS = {
     **V10351_ORDINARY_ANALYSIS_COVERAGE_AUTHORITY_VERSIONS, "skill": "10.35.2",
 }
+V10353_LITERATURE_QUERY_COVERAGE_AUTHORITY_VERSIONS = {
+    **V10352_AFFIRMATIVE_FULL_WORKFLOW_AUTHORITY_VERSIONS, "skill": "10.35.3",
+}
 # Only these two read-list migrations are registered. Business text is separately
 # reconstructed against the unchanged a944de2 Module 06 preservation snapshot.
 REVIEW_SPLIT_WRITING_DELTAS = (
@@ -2015,6 +2018,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
         V10350_EXECUTION_SCALE_AUTHORITY_VERSIONS,
         V10351_ORDINARY_ANALYSIS_COVERAGE_AUTHORITY_VERSIONS,
         V10352_AFFIRMATIVE_FULL_WORKFLOW_AUTHORITY_VERSIONS,
+        V10353_LITERATURE_QUERY_COVERAGE_AUTHORITY_VERSIONS,
     )
     matched_carrier = next((
         carrier for carrier in accepted_carriers
@@ -2034,6 +2038,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
         V10350_EXECUTION_SCALE_AUTHORITY_VERSIONS,
         V10351_ORDINARY_ANALYSIS_COVERAGE_AUTHORITY_VERSIONS,
         V10352_AFFIRMATIVE_FULL_WORKFLOW_AUTHORITY_VERSIONS,
+        V10353_LITERATURE_QUERY_COVERAGE_AUTHORITY_VERSIONS,
     ):
         # P2 historical comparison can borrow the v10.28 inverse only when
         # the new literature-resource pair was NOT loaded. Real modeling-route
@@ -2080,6 +2085,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
                 V10350_EXECUTION_SCALE_AUTHORITY_VERSIONS,
                 V10351_ORDINARY_ANALYSIS_COVERAGE_AUTHORITY_VERSIONS,
                 V10352_AFFIRMATIVE_FULL_WORKFLOW_AUTHORITY_VERSIONS,
+                V10353_LITERATURE_QUERY_COVERAGE_AUTHORITY_VERSIONS,
             ):
                 # Reconstruct only two exact P4 output-layout additions.
                 # Do not generalize into ignoring the output contract hash.
@@ -2127,6 +2133,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
             V10350_EXECUTION_SCALE_AUTHORITY_VERSIONS,
             V10351_ORDINARY_ANALYSIS_COVERAGE_AUTHORITY_VERSIONS,
             V10352_AFFIRMATIVE_FULL_WORKFLOW_AUTHORITY_VERSIONS,
+            V10353_LITERATURE_QUERY_COVERAGE_AUTHORITY_VERSIONS,
         ):
             # Only this exact resolver pair may project onto the frozen source identities.
             # The projected plan must still match the historical behavior field by field.
@@ -2141,6 +2148,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
                 V10350_EXECUTION_SCALE_AUTHORITY_VERSIONS,
                 V10351_ORDINARY_ANALYSIS_COVERAGE_AUTHORITY_VERSIONS,
                 V10352_AFFIRMATIVE_FULL_WORKFLOW_AUTHORITY_VERSIONS,
+                V10353_LITERATURE_QUERY_COVERAGE_AUTHORITY_VERSIONS,
             ):
                 resolver_hashes = {
                     "scripts/resolve_workflow.py": "706a97aa937e38df4ea7cfe1a2607859209b47be8f8fffcc28bd7af1c6361f42",
@@ -2154,10 +2162,14 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
                 V10350_EXECUTION_SCALE_AUTHORITY_VERSIONS,
                 V10351_ORDINARY_ANALYSIS_COVERAGE_AUTHORITY_VERSIONS,
                 V10352_AFFIRMATIVE_FULL_WORKFLOW_AUTHORITY_VERSIONS,
+                V10353_LITERATURE_QUERY_COVERAGE_AUTHORITY_VERSIONS,
             ):
                 resolver_hashes["core/user_execution_contract.yaml"] = "b61f52a6ad68f0f5234bc4dec8182d52e3bd23f3e75e6c7fe85d59f8014ba6bb"
                 approval = "v10.35.0 reviewed opt-in execution scale receipt contract"
-            if matched_carrier == V10352_AFFIRMATIVE_FULL_WORKFLOW_AUTHORITY_VERSIONS:
+            if matched_carrier in (
+                V10352_AFFIRMATIVE_FULL_WORKFLOW_AUTHORITY_VERSIONS,
+                V10353_LITERATURE_QUERY_COVERAGE_AUTHORITY_VERSIONS,
+            ):
                 resolver_hashes["scripts/resolve_workflow.py"] = "6a57aa603ba6e300a9ce9521f62771d2de60bee76ae82277ce06387645f7dce2"
                 approval = "v10.35.2 reviewed affirmative full-workflow routing patch"
             predecessor_hashes = {

@@ -7,6 +7,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from urllib.parse import parse_qs, urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -89,6 +90,53 @@ class LiteratureProviderAdapterTests(unittest.TestCase):
         self.assertNotIn("Problem Contract Q1", urls[0])
         self.assertNotIn("Conservation law with a shrinking", urls[0])
         self.assertEqual(self.api.validate_report(result)["status"], "passed")
+
+    def test_source_quota_reports_only_queries_that_were_not_sent(self):
+        queries = ["boundary calibration", "diffusion coefficient",
+                   "sorption equilibrium", "surface moisture transfer"]
+        cases = (
+            # Each number selects one page of ten distinct records. Reusing a
+            # page exercises DOI deduplication across simulated provider responses.
+            ("remaining query", (1, 2, 3, 4), 3),
+            ("exactly full on final query", (1, 2, 1, 4), 4),
+        )
+        for label, pages, expected_call_count in cases:
+            with self.subTest(case=label):
+                brief = self.brief()
+                brief["queries"] = list(queries)
+                calls = []
+
+                def fetch(url, *, timeout):
+                    query = parse_qs(urlsplit(url).query)["query.bibliographic"][0]
+                    calls.append(query)
+                    page = pages[queries.index(query)]
+                    return {"message": {"items": [
+                        {"DOI": f"10.1000/mock-{page}-{index}",
+                         "title": [f"Synthetic paper {page}-{index}"]}
+                        for index in range(10)
+                    ]}}
+
+                report = self.api.search(brief, provider="crossref", allow_network=True,
+                                         per_query=10, fetch=fetch,
+                                         clock=lambda: "2026-11-14T00:00:00Z")
+                search = report["search"]
+                attempted = queries[:expected_call_count]
+                self.assertEqual(calls, attempted)
+                self.assertEqual([row["query"] for row in search["attempts"]], attempted)
+                self.assertEqual([(row["status"], row["result_count"]) for row in search["attempts"]],
+                                 [("success", 10)] * expected_call_count)
+                self.assertEqual(len(report["sources"]), 30)
+                self.assertEqual(len({s["doi"] for s in report["sources"]}), 30)
+                self.assertEqual({s["evidence_level"] for s in report["sources"]}, {"E0"})
+                self.assertEqual(search["status"], "completed")
+                self.assertEqual(self.api.validate_report(report)["status"], "passed")
+                remaining = queries[expected_call_count:]
+                for detail in (search["stop_reason"], "\n".join(report["decision"]["unresolved_gaps"])):
+                    self.assertEqual([query for query in queries if query in detail], remaining)
+                    self.assertEqual("not attempted" in detail.lower(), bool(remaining))
+                    self.assertEqual("source limit" in detail.lower(), bool(remaining))
+                    if remaining:
+                        self.assertIn("30", detail)
 
     def test_openalex_canonical_doi_and_retracted_exclusion(self):
         def fetch(url, *, timeout):
