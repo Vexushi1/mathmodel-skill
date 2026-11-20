@@ -28,6 +28,7 @@ if str(ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(ROOT / "scripts"))
 from templates.code.hsk_pipeline import result_io
 QUESTION = "问题一求解"
+NEGATIVE_ANALYSIS = Path("negative/ordinary-claim")
 CONFIG = re.compile(r"RUN_CONFIG = jsondecode\('([^\n]*)'\);")
 
 
@@ -391,12 +392,14 @@ def verify_execution_scale(root: Path, runtime_report: dict, receipt) -> None:
     save_state(project, state)
 
 
-def prepare_analysis(root: Path) -> None:
+def prepare_analysis(root: Path, *, tolerance: float | None = None) -> None:
     state = yaml.safe_load((root / "state/project_state.yaml").read_text(encoding="utf-8"))
     entry = state["subproblems"]["Q1"]
     assert entry["primary_execution_status"] == "accepted"
     primary = root / QUESTION / "问题一求解结果.xlsx"
     updates = {"primary_workbook_sha256": file_hash(primary)}
+    if tolerance is not None:
+        updates["tolerance"] = tolerance
     if state["preprocessing"]["decision"] == "project_level":
         updates.update(data_identity_mode="preprocessing_workbook", data_paths=["数据预处理/数据预处理结果.xlsx"],
                        data_sha256=file_hash(root / "数据预处理/数据预处理结果.xlsx"))
@@ -408,9 +411,62 @@ def prepare_analysis(root: Path) -> None:
     save_state(root, state)
 
 
-def deliver(root: Path, stage: str, matlab_command: str) -> None:
+def require_synthetic_fixture(root: Path) -> None:
     marker = json.loads((root / "synthetic_fixture.json").read_text(encoding="utf-8"))
     assert marker["fixture"] == "solver_backend_native_v1" and marker["purpose"] == "repository_test"
+
+
+def prepare_negative_analysis(root: Path) -> None:
+    require_synthetic_fixture(root)
+    project = root / NEGATIVE_ANALYSIS
+    for name in ("synthetic_fixture.json", "input.json", "state/project_state.yaml",
+                 f"{QUESTION}/q1_solver.m", f"{QUESTION}/问题一求解结果.xlsx"):
+        target = project / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(root / name, target)
+    # Maximum observed deviation is 1. Raise the predeclared threshold to 2.
+    prepare_analysis(project, tolerance=2)
+
+
+def run_negative_analysis(root: Path, matlab_command: str) -> None:
+    project = root / NEGATIVE_ANALYSIS
+    require_synthetic_fixture(project)
+    folder = project / QUESTION
+    primary = folder / "问题一求解结果.xlsx"
+    baseline_hash = file_hash(root / QUESTION / primary.name)
+    assert file_hash(primary) == baseline_hash
+    code = folder / "q1_analysis.m"
+    quote = str(code.parent).replace("'", "''")
+    # MATLAB resolves the current directory first. Launch beside the delivered file in a fresh process.
+    expression = (f"cd('{quote}'); a=which('q1_analysis'); b=fullfile(pwd,'q1_analysis.m'); "
+                  "assert(strcmp(a,b) || (ispc && strcmpi(a,b))); q1_analysis();")
+    process = subprocess.run([matlab_command, "-batch", expression], capture_output=True, encoding="utf-8",
+                             errors="replace", timeout=300)
+    (project / "analysis_native.log").write_text(process.stdout + process.stderr, encoding="utf-8")
+    assert process.returncode == 0, process.stdout + process.stderr
+    assert file_hash(primary) == file_hash(root / QUESTION / primary.name) == baseline_hash
+    workbook = folder / "问题一结果深化分析.xlsx"
+    state = yaml.safe_load((project / "state/project_state.yaml").read_text(encoding="utf-8"))
+    entry = state["subproblems"]["Q1"]
+    # The validator distinguishes a completed counterexample from an invalid receipt.
+    receipt = load_module("native_negative_receipt", "scripts/validate_user_execution.py")
+    issues = receipt.validate_one(project, workbook, state, True)
+    assert issues == ["存在核心结论未保持"], issues
+    assert entry["analysis_execution_status"] == entry["result_analysis_status"] == "redo_required"
+    assert entry["primary_execution_status"] == "accepted"
+    with workbook.open("rb") as stream:
+        book = openpyxl.load_workbook(stream, read_only=True, data_only=True)
+        try:
+            observed = check_ordinary_experiments(book, {"SENS-Q1-SIGN": [4, 3, 2], "SENS-Q1-CHANGE": [1, 0, 1]},
+                                                  {"SENS-Q1-SIGN": True, "SENS-Q1-CHANGE": False})
+            assert type(observed["SENS-Q1-CHANGE"][1]) in (int, float)
+        finally:
+            book.close()
+    save_state(project, state)
+
+
+def deliver(root: Path, stage: str, matlab_command: str) -> None:
+    require_synthetic_fixture(root)
     state = yaml.safe_load((root / "state/project_state.yaml").read_text(encoding="utf-8"))
     entry = state["subproblems"]["Q1"]
     assert entry.get(f"{stage}_execution_status") != "accepted"
@@ -437,6 +493,8 @@ def deliver(root: Path, stage: str, matlab_command: str) -> None:
     assert entry[f"{stage}_execution_status"] == "awaiting_user_execution"
     assert entry["solver_execution"][stage]["bundle_sha256"] == reference_digest(root, [script])
     assert "validated_bundle_sha256" not in entry["solver_execution"][stage]
+    if stage == "analysis" and (root / NEGATIVE_ANALYSIS).is_dir():
+        deliver(root / NEGATIVE_ANALYSIS, stage, matlab_command)
     if stage == "primary":
         for profile in ("approved-primary-quality", "execution-scale"):
             if (root / profile).is_dir():
@@ -537,17 +595,21 @@ if __name__ == "__main__":
         parser = argparse.ArgumentParser()
         parser.add_argument("action")
         parser.add_argument("--project", type=Path, required=True)
-        parser.add_argument("--matlab-command", default="matlab")
+        parser.add_argument("--matlab-command", default=os.environ.get("HSK_MATLAB_CI_COMMAND", "matlab"))
         args = parser.parse_args()
         if args.action == "prepare":
             prepare(args.project.resolve())
         elif args.action == "prepare-preprocessed":
             prepare_preprocessed(args.project.resolve())
         elif args.action == "prepare-analysis":
+            if not (args.project / "preprocessing_native_fixture.json").exists():
+                prepare_negative_analysis(args.project.resolve())
             prepare_analysis(args.project.resolve())
         elif args.action.startswith("deliver-"):
             deliver(args.project.resolve(), args.action.removeprefix("deliver-"), args.matlab_command)
         else:
+            if args.action == "verify-analysis" and not (args.project / "preprocessing_native_fixture.json").exists():
+                run_negative_analysis(args.project.resolve(), args.matlab_command)
             verify(args.project.resolve(), args.action.removeprefix("verify-"))
     else:
         unittest.main()

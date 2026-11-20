@@ -431,20 +431,25 @@ def analysis_passed(workbook: Path | bytes, *, comparison_methods=(), ordinary_e
         id_column = headers.index("检验ID") if "检验ID" in headers else None
         disposition_column = headers.index("主张处置") if "主张处置" in headers else None
         registered = ordinary_experiments if isinstance(ordinary_experiments, list) else ()
-        exploratory = {item["id"] for item in registered
-                       if isinstance(item, Mapping) and isinstance(item.get("id"), str) and item.get("required") is False}
+        required = {item["id"]: item.get("required", True) for item in registered
+                    if isinstance(item, Mapping) and isinstance(item.get("id"), str)}
         has_summary_rows = False
         unstable = False
         for row_number, row in enumerate(rows[1:], start=2):
             if not any(value is not None and str(value).strip() for value in row):
                 continue
-            has_summary_rows = True
             if method_index is not None and len(row) > method_index and row[method_index] in comparison_methods:
+                has_summary_rows = True  # The dedicated comparison gate adjudicates its own conclusions.
                 continue
-            if (id_column is not None and row[id_column] in exploratory
-                    and (disposition_column is None or row[disposition_column] in (None, ""))):
-                # The registered optional trial made no scientific claim about this result.
-                continue
+            if ordinary_experiments is not None:
+                identifier = row[id_column] if id_column is not None else None
+                disposition = row[disposition_column] if disposition_column is not None else None
+                if identifier not in required or (not required[identifier] and
+                                                  disposition not in ("support", "modify", "reject")):
+                    # A post-run observation cannot establish or overturn a frozen claim. The
+                    # workbook schema separately rejects any unregistered asserted disposition.
+                    continue
+            has_summary_rows = True
             verdict = as_bool(row[index] if len(row) > index else None)
             if verdict is None:
                 return False, "failed", [f"结论稳定性汇总第{row_number}行的是否保持必须为明确布尔值"]

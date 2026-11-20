@@ -432,6 +432,46 @@ class UserExecutionContractTests(unittest.TestCase):
                     self.assertEqual(state["subproblems"]["Q1"]["primary_execution_status"], "accepted")
                     self.assertEqual(state["subproblems"]["Q1"]["validated_artifact_hashes"]["result_analysis_workbook"], accepted)
 
+    def test_posthoc_unadjudicated_row_cannot_pass_or_reject_a_frozen_claim(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            workbook = self.prepare_ordinary_analysis(root, ["参数敏感性"])
+            original = workbook.read_bytes()
+            for identifier, disposition, expected in (
+                ("posthoc", None, "accepted"), (None, None, "accepted"),
+                ("posthoc", "support", "rejected"), ("posthoc", "reject", "rejected"),
+            ):
+                with self.subTest(identifier=identifier, disposition=disposition):
+                    workbook.write_bytes(original)
+                    book = openpyxl.load_workbook(workbook)
+                    book["结论稳定性汇总"].append([
+                        "事后探索", "参数敏感性", "未确定范围", disposition == "support",
+                        identifier, disposition, "参数敏感性",
+                    ])
+                    book.save(workbook)
+                    book.close()
+                    state = self.read_state(root)
+                    issues = RECEIPT.validate_one(root, workbook, state, True)
+                    self.assertEqual(state["subproblems"]["Q1"]["analysis_execution_status"], expected, issues)
+                    self.assertNotIn("存在核心结论未保持", issues)
+                    self.assertEqual(state["subproblems"]["Q1"]["primary_execution_status"], "accepted")
+                    if expected == "rejected":
+                        self.assertTrue(any("posthoc" in issue for issue in issues), issues)
+                    else:
+                        self.assertEqual(issues, [])
+            book = openpyxl.load_workbook(workbook)
+            summary = book["结论稳定性汇总"]
+            summary.delete_rows(2)
+            summary["F2"] = None
+            book.save(workbook)
+            book.close()
+            self.assertEqual(RECEIPT.analysis_passed(workbook, ordinary_experiments=self.analysis_experiments)[:2],
+                             (False, "failed"))
+            state = self.read_state(root)
+            issues = RECEIPT.validate_one(root, workbook, state, True)
+            self.assertTrue(any("sensitivity-a" in issue for issue in issues), issues)
+            self.assertEqual(state["subproblems"]["Q1"]["analysis_execution_status"], "rejected")
+
     def test_missing_source_cannot_turn_an_optional_failure_into_core_rejection(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
