@@ -768,7 +768,7 @@ WORKBOOK_ACCEPTANCE_BLOCKS = {
         ),
         (
             '      required_columns: [指标, 数值]', 8,
-            "b6f60d474fd83d113587c037bf99445111669c715ec0d587133f12df3d256d2f",
+            "abb9e712d55cc85b3175e4adc2c217de16e2506d24e96b322b3de36d22c393c5",
             (
                 '      required_columns: [指标, 数值]\n'
                 '      optional_columns: [单位, 统计口径, 说明]\n'
