@@ -32,6 +32,17 @@ def _blob_id(raw: bytes) -> str:
     return sha1(header + raw).hexdigest()
 
 
+def _line_intervals(numbers):
+    """Compact a sorted sequence of one-based line numbers into inclusive intervals."""
+    result = []
+    for number in numbers:
+        if result and result[-1][1] + 1 == number:
+            result[-1][1] = number
+        else:
+            result.append([number, number])
+    return result
+
+
 class PinnedCorpus:
     """Load the expected digest from the fixed tree, independently of each response."""
 
@@ -206,6 +217,63 @@ class PinnedCorpus:
         return {**self.identity(), "volume": path, "text": raw.decode("utf-8"),
                 "status": "source_text_returned", "gate_status": "not_executed_by_reader"}
 
+    def assemble(self, path: str, records: list, repository: str) -> dict[str, Any]:
+        """Reassemble actual GitHub UTF-8 range content, restoring only known LF framing."""
+        if not isinstance(records, list):
+            raise ValueError("ranges file must contain an array of request ranges and responses")
+        if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository):
+            raise ValueError("expected repository owner/name")
+        reference = self.read(path)["text"]
+        expected = reference.removesuffix("\n").split("\n")
+        result = {**self.identity(), "volume": path, "transport": "reconstructed_github_line_ranges",
+                  "gate_status": "not_executed_by_reader", "line_count": len(expected)}
+        if expected != reference.splitlines():
+            return {**result, "status": "reading_incomplete", "missing_ranges": [[1, len(expected)]],
+                    "issues": ["unsupported line separators; fetch the whole volume"]}
+        url = f"https://github.com/{repository}/blob/{self.commit}/{path}"
+        returned = {}
+        discarded = []
+        issues = []
+        for index, row in enumerate(records):
+            if not isinstance(row, dict):
+                issues.append({"record": index, "error": "expected range record"})
+                continue
+            start, end = row.get("start_line"), row.get("end_line")
+            if type(start) is not int or type(end) is not int or not 1 <= start <= end <= len(expected):
+                issues.append({"record": index, "error": "invalid inclusive line bounds"})
+                continue
+            response = row.get("response")
+            if (not isinstance(response, dict) or response.get("encoding") != "utf-8"
+                    or response.get("sha") != self.git_blobs[path] or response.get("display_url") != url
+                    or not isinstance(response.get("content"), str)):
+                issues.append({"record": index, "range": [start, end], "error": "wrong range source identity or encoding"})
+                continue
+            lines = response["content"].split("\n")
+            if len(lines) != end - start + 1:
+                discarded.append({"record": index, "range": [start, end], "error": "returned line count differs"})
+                continue
+            bad = []
+            for line_number, text in enumerate(lines, start):
+                if text == expected[line_number - 1]:
+                    returned[line_number] = text
+                else:
+                    bad.append(line_number)
+            if bad:
+                discarded.append({"record": index, "ranges": _line_intervals(bad), "error": "returned line content differs"})
+        missing = _line_intervals(n for n in range(1, len(expected) + 1) if n not in returned)
+        if discarded:
+            result["discarded_response_ranges"] = discarded
+        if missing or issues:
+            return {**result, "status": "reading_incomplete", "missing_ranges": missing, "issues": issues}
+        # Only the separator erased at each segment boundary and possibly at EOF is restored.
+        # Every other character in the output comes from a checked response, never the reference.
+        text = "\n".join(returned[n] for n in range(1, len(expected) + 1))
+        if reference.endswith("\n"):
+            text += "\n"
+        if not self.valid_bytes(path, text.encode("utf-8")):
+            raise ValueError(f"reconstructed volume differs from the pinned source: {path}")
+        return {**result, "status": "reconstructed_bytes_verified", "text": text}
+
     def verify(self, received: list[Path], offset: int, limit: int) -> dict[str, Any]:
         accepted = set()
         issues = []
@@ -239,15 +307,18 @@ class PinnedCorpus:
 def main(argv: list[str], default_root: Path, verify_checkout) -> int:
     parser = argparse.ArgumentParser(prog="read_stage.py formal", description=__doc__)
     commands = parser.add_subparsers(dest="action", required=True)
-    for action in ("manifest", "read", "verify"):
+    for action in ("manifest", "read", "assemble", "verify"):
         command = commands.add_parser(action)
         command.add_argument("--root", type=Path, default=default_root)
         command.add_argument("--source-commit", required=True, help="full 40-character pinned Git commit")
-        if action == "read":
+        if action in {"read", "assemble"}:
             command.add_argument("--volume", required=True, help="repository-relative path from the manifest")
         else:
             command.add_argument("--offset", default=0, type=int)
             command.add_argument("--limit", default=24, type=int)
+        if action == "assemble":
+            command.add_argument("--ranges", required=True, type=Path, help="JSON array of GitHub UTF-8 range responses")
+            command.add_argument("--repository", default="Vexushi1/mathmodel-skill", help="expected GitHub owner/name")
         if action == "manifest":
             command.add_argument("--source", help="look up the registered fragments of a source or physical alias")
         if action == "verify":
@@ -259,12 +330,14 @@ def main(argv: list[str], default_root: Path, verify_checkout) -> int:
         root = args.root.resolve()
         commit = verify_checkout(root, args.source_commit)
         corpus = PinnedCorpus(root, commit)
-        if args.action != "read" and (args.offset < 0 or not 1 <= args.limit <= 100):
+        if args.action in {"manifest", "verify"} and (args.offset < 0 or not 1 <= args.limit <= 100):
             raise ValueError("use a nonnegative offset and a limit of 1 to 100")
         if args.action == "manifest":
             result = corpus.catalog(args.offset, args.limit, args.source)
         elif args.action == "read":
             result = corpus.read(args.volume)
+        elif args.action == "assemble":
+            result = corpus.assemble(args.volume, json.loads(args.ranges.read_bytes()), args.repository)
         else:
             if args.received_dir is not None:
                 if not args.received_dir.is_dir():
@@ -274,4 +347,4 @@ def main(argv: list[str], default_root: Path, verify_checkout) -> int:
     except (ValueError, OSError, yaml.YAMLError) as error:
         parser.exit(2, f"reading incomplete: {error}\n")
     sys.stdout.buffer.write((json.dumps(result, ensure_ascii=False, indent=2) + "\n").encode("utf-8"))
-    return int(args.action == "verify" and not result["complete"])
+    return int(result["status"] == "reading_incomplete")

@@ -29,10 +29,13 @@ class FormalReadingTests(unittest.TestCase):
         self.git("config", "user.email", "reading@example.invalid")
         self.git("config", "commit.gpgsign", "false")
         self.git("config", "core.hooksPath", ".git/no-hooks")
+        # One logical line can span transfers. Preserve the BOM, CRLF and last partial line.
+        self.freeze_sources(["\ufeff前言与适用条件\r\n" + "测" * 3050, "量" * 1000 + "\r\n例外：零有效。"])
+
+    def freeze_sources(self, parts):
         self.source = "core/规则.md"
         self.alias = "plugin/规则.md"
-        # One logical line can span transfers. Preserve the BOM, CRLF and last partial line.
-        self.parts = ["\ufeff前言与适用条件\r\n" + "测" * 3050, "量" * 1000 + "\r\n例外：零有效。"]
+        self.parts = parts
         raw = "".join(self.parts).encode("utf-8")
         self.save(self.source, raw)
         self.save(self.alias, raw)
@@ -157,6 +160,54 @@ class FormalReadingTests(unittest.TestCase):
         self.save(MANIFEST_PATH, b"{}")
         self.assertTrue(self.response()["text"].endswith(self.parts[0]))
         self.assertEqual(PinnedCorpus(self.root, self.pin).manifest_sha256, self.corpus.manifest_sha256)
+
+    def test_github_ranges_restore_only_lf_framing_and_keep_transport_distinct(self):
+        self.freeze_sources(["条件。\n\n", "精度三位\n最后一行"])
+        for idx, volume in enumerate(self.volumes):
+            path = volume["path"]
+            raw = self.response(idx)["text"]
+            expected = raw.splitlines()
+            url = f"https://github.com/Vexushi1/mathmodel-skill/blob/{self.pin}/{path}"
+            def record(a, b):
+                return {"start_line": a, "end_line": b,
+                        "response": {"content": "\n".join(expected[a - 1:b]), "encoding": "utf-8",
+                                     "sha": self.corpus.git_blobs[path], "display_url": url}}
+            last = len(expected)
+            records = [record(3, last), record(1, 1), record(1, 1)]
+            incomplete = self.corpus.assemble(path, records, "Vexushi1/mathmodel-skill")
+            self.assertEqual(incomplete["missing_ranges"], [[2, 2]])
+            records.append(record(2, 2))
+            file = self.receive("ranges.json", records)
+            result = self.cli("assemble", "--volume", path, "--ranges", file)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            assembled = json.loads(result.stdout)
+            self.assertEqual(assembled["transport"], "reconstructed_github_line_ranges")
+            self.assertEqual(assembled["text"], raw)
+            checked = self.corpus.verify([self.receive("output.json", assembled)], 0, 24)
+            self.assertEqual(checked["verified_volume_count"], 1)
+            bad = deepcopy(records)
+            bad[0]["response"]["content"] = bad[0]["response"]["content"].replace("规则", "规错")
+            altered = self.cli("assemble", "--volume", path, "--ranges", self.receive("bad.json", bad))
+            self.assertEqual(altered.returncode, 1, altered.stderr)
+            flagged = json.loads(altered.stdout)
+            self.assertEqual(flagged["missing_ranges"], [[3, 3]])
+            self.assertNotIn("text", flagged)
+            repaired = self.corpus.assemble(path, [*bad, record(3, 3)], "Vexushi1/mathmodel-skill")
+            self.assertEqual(repaired["text"], raw)
+            self.assertEqual(repaired["discarded_response_ranges"][0]["ranges"], [[3, 3]])
+            for key, value in (("display_url", url.replace(self.pin, "main")),
+                               ("sha", "0" * 40), ("encoding", "base64")):
+                wrong = deepcopy(records)
+                wrong[0]["response"][key] = value
+                invalid = self.corpus.assemble(path, wrong, "Vexushi1/mathmodel-skill")
+                self.assertEqual(invalid["missing_ranges"], [[3, last]])
+                self.assertNotIn("text", invalid)
+
+    def test_github_crlf_requires_whole_blob(self):
+        path = self.volumes[0]["path"]
+        report = self.corpus.assemble(path, [], "Vexushi1/mathmodel-skill")
+        self.assertIn("whole volume", report["issues"][0])
+        self.assertNotIn("text", report)
 
     def test_valid_json_reductions_and_invalid_offsets_cannot_shrink_required_coverage(self):
         baseline = self.manifest

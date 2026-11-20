@@ -45,7 +45,13 @@ python scripts/read_stage.py formal verify --source-commit <SHA> --received-dir 
 
 按页读完目录。已知来源时，给 manifest 命令传入 `--source <原文件路径>` 可定位对应卷和原文范围。卷内保留原文的相对链接，沿卷首或分段标题回到原文件即可使用这些链接。接收端将每次实际收到的 read 响应按 UTF-8 JSON 保存在本次专用目录。verify 将这些正文与固定 Git 提交中的独立清单对照。退出码 0 表示所交正文完整，1 表示仍有缺口，2 表示命令或来源无效。缺卷或损坏时按编号重新取回并替换损坏的响应，再核验整次接收。跨会话、只余摘要或整套规则范围已丢失时，使用新的接收目录重新全读。当前可见正文、工具能核实的接收字节、业务阶段的实际验收分别记录。
 
-只有 GitHub 读取能力时，在同一完整 SHA 下分段取 `core/full_reading/manifest.json`，再按其中的路径取卷。若只能看到部分行或缺少字节校验能力，报告实际可见范围。来源路径与摘要可用于定位，独立比对时要使用实际返回的正文。已有项目恢复另取当前框架、状态和工作簿。
+从 GitHub 取清单和卷时优先请求固定提交的完整文件。清单较大时可按行读取目录，随后核对固定 Git blob 的完整内容。连接器对显式行范围会省略每段的末尾换行。即使响应携带正确的整卷 blob ID，直接拼接也可能损坏正文。保留每次请求的行范围和返回原文。缺段先补对应范围；段界或实际字节无法确定时只重取受影响的完整卷。若只能看到部分行或缺少独立校验能力，报告实际可见范围。已有项目恢复另取当前框架、状态和工作簿。
+
+接收端可用下面的接口重组按行取得的单卷。`ranges.json` 是本次请求的数组，每项如 `{"start_line":1,"end_line":20,"response":{…}}`，response 原样保存 GitHub 返回的 content、encoding、sha 和 display_url。对 fork 传入实际的 `--repository owner/name`。成功响应标记 `reconstructed_github_line_ranges`，可与整卷响应一起交给 verify。缺失或损坏的行范围保留待取状态。
+
+```text
+python scripts/read_stage.py formal assemble --source-commit <SHA> --volume core/full_reading/volumes/001.md --ranges ranges.json
+```
 
 需要业务路由时，`scripts/resolve_runtime.py` 可同时接收 `--candidate-startup-event formal_single_question --source-commit <SHA>`。事件名取自启动合同。输出的 `startup_reading` 说明当前选择，实际获取仍使用上面的接口。字段解释、配色等局部动作按阶段适用范围取读。
 
