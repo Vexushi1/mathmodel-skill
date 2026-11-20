@@ -54,8 +54,8 @@
     },
     {
       "path": "core/full_reading/volumes/010.md",
-      "bytes": 7164,
-      "sha256": "a24d43db95c43c9d1959e580d644311795e668387c931de347345022d4b8b946"
+      "bytes": 7407,
+      "sha256": "f2fda01115d2a209b5f51f1f84f5c51abdef1ac0a33af4bf9b7304ec70629075"
     },
     {
       "path": "core/full_reading/volumes/011.md",
@@ -945,19 +945,19 @@
       "path": "core/claim_evidence_contract.yaml",
       "role": "contract",
       "aliases": [],
-      "bytes": 7053,
-      "sha256": "467e85fd693171414e6b22e0b998bea4d9cf0eb5156a1d12a2599e013650dbda",
-      "git_blob_sha1": "3a1d1f2a839e73305a7e47072fb48f8b1480bcb5",
+      "bytes": 7296,
+      "sha256": "2cba5ea992ac7ef2112943dfeba81a0e220758cdd7c1ccbe0d862a5ea2c7f9f5",
+      "git_blob_sha1": "05dd85c2c77cc0db0cace1624c1974e01fa26f50",
       "parts": [
         {
           "volume": "core/full_reading/volumes/010.md",
           "start": 0,
-          "end": 7053,
+          "end": 7296,
           "line_start": 1,
-          "line_end": 130,
+          "line_end": 133,
           "volume_start": 111,
-          "volume_end": 7164,
-          "sha256": "467e85fd693171414e6b22e0b998bea4d9cf0eb5156a1d12a2599e013650dbda"
+          "volume_end": 7407,
+          "sha256": "2cba5ea992ac7ef2112943dfeba81a0e220758cdd7c1ccbe0d862a5ea2c7f9f5"
         }
       ]
     },
@@ -4215,9 +4215,9 @@
       "path": "templates/code/starter/analysis_comparison.py",
       "role": "implementation_use_conditions",
       "aliases": [],
-      "bytes": 11913,
-      "sha256": "9fd52a70f95f84e3fe1f481aa63e02756264f1cbaaaa6e96c4efe5006e1e1df0",
-      "git_blob_sha1": "c87cb171bd149dee02183ca1e1fcf716c5179b4b",
+      "bytes": 12376,
+      "sha256": "55aa8ba839ce4ca9064763af544431b453467386997bfa135f2e296b04837294",
+      "git_blob_sha1": "94913f547380caaf887c4607a2bc48953c234756",
       "parts": [
         {
           "volume": "core/full_reading/volumes/127.md",
@@ -4355,9 +4355,9 @@
       "path": "templates/code/matlab/analysis_comparison_example.m",
       "role": "implementation_use_conditions",
       "aliases": [],
-      "bytes": 18724,
-      "sha256": "8623002177d2385cdf1000a9514bef07b413b472956b56f09bb91c0f404f6b11",
-      "git_blob_sha1": "e8ed0b5b26d5dfc3d2cb40b898e3eca7f940fc2e",
+      "bytes": 19158,
+      "sha256": "1cf5802788b851d57581f0d72c723da05a46b8ffaddf66d1c20462a2cf0127cd",
+      "git_blob_sha1": "8ce5427bd1111d3d2e2c5ee469a5ed9276d14f6a",
       "parts": [
         {
           "volume": "core/full_reading/volumes/127.md",
