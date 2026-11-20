@@ -437,8 +437,8 @@ def check_versions(errors: list[str]) -> None:
     if workbook.get("schema_version") != "2.4.0":
         errors.append("workbook schema version must be 2.4.0")
     compatibility = str(workbook.get("skill_compatibility", ""))
-    if compatibility != ">=6.3.2,<11.0.0":
-        errors.append("workbook schema compatibility must cover 6.3.2 through v10")
+    if compatibility != ">=6.3.2,<12.0.0":
+        errors.append("workbook schema compatibility must cover 6.3.2 through v11")
 
 
 def check_bootstrap_and_governance(errors: list[str]) -> None:
@@ -478,8 +478,8 @@ def check_bootstrap_and_governance(errors: list[str]) -> None:
     for token in ("每个新聊天的强制启动顺序", "修改简报", "单一事实源", "一次聊天一个分支", "一个 PR 一个主题", "禁止直接写 main", "生成文件规则", "测试与验收", "完成报告"):
         if token not in governance:
             errors.append(f"governance document lacks section: {token}")
-    if 'applies_to_skill: ">=6.3.0,<11.0.0"' not in governance:
-        errors.append("governance applicability must cover its original lower bound through v10")
+    if 'applies_to_skill: ">=6.3.0,<12.0.0"' not in governance:
+        errors.append("governance applicability must cover its original lower bound through v11")
     for relative, lower in (
         ("core/global_preprocessing_contract.yaml", "7.4.2"),
         ("core/code_quality_contract.yaml", "7.4.2"),
@@ -491,13 +491,13 @@ def check_bootstrap_and_governance(errors: list[str]) -> None:
         if not contract.get("introduced_in_skill_version"):
             errors.append(f"subordinate contract introduction version missing: {relative}")
         compatibility = str(contract.get("skill_compatibility", ""))
-        if compatibility != f">={lower},<11.0.0":
-            errors.append(f"subordinate contract compatibility must retain its lower bound and cover v10: {relative}")
+        if compatibility != f">={lower},<12.0.0":
+            errors.append(f"subordinate contract compatibility must retain its lower bound and cover v11: {relative}")
     execution = load_structured(ROOT / "core/user_execution_contract.yaml") or {}
     if execution.get("version") != "3.3.0" or execution.get("introduced_in_skill_version") != "10.0.0":
-        errors.append("v10 A2 execution contract must declare its independent 3.2.0 version")
-    if str(execution.get("skill_compatibility")) != ">=10.0.0,<11.0.0":
-        errors.append("v10 user execution contract must apply only to the new major line")
+        errors.append("A2 execution contract must declare its independent 3.3.0 version")
+    if str(execution.get("skill_compatibility")) != ">=10.0.0,<12.0.0":
+        errors.append("user execution compatibility must retain its v10 lower bound and cover v11")
 
 
 def check_taxonomy(errors: list[str]) -> None:
@@ -511,8 +511,8 @@ def check_taxonomy(errors: list[str]) -> None:
     if data.get("classification_contract", {}).get("authoritative_locations", {}).get("capabilities") != "subproblem.capabilities":
         errors.append("taxonomy must declare top-level capabilities as authoritative")
     compatibility = str(data.get("skill_compatibility", ""))
-    if compatibility != ">=6.3.1,<11.0.0":
-        errors.append("task taxonomy compatibility must retain its lower bound and cover v10")
+    if compatibility != ">=6.3.1,<12.0.0":
+        errors.append("task taxonomy compatibility must retain its lower bound and cover v11")
 
 
 def check_router(errors: list[str]) -> None:

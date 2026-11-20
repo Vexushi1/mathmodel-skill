@@ -74,15 +74,17 @@ class V1000ReleaseVersionMatrixTests(unittest.TestCase):
     def test_renewed_applicability_preserves_each_lower_bound(self):
         governance = (ROOT / "SKILL_CHANGE_GOVERNANCE.md").read_text(encoding="utf-8")
         metadata = yaml.safe_load(governance.split("---", 2)[1])
-        self.assertEqual(metadata["governance_version"], "1.0.6")
-        self.assertEqual(metadata["applies_to_skill"], ">=6.3.0,<11.0.0")
+        self.assertEqual(metadata["governance_version"], "1.0.7")
+        self.assertEqual(metadata["applies_to_skill"], ">=6.3.0,<12.0.0")
         expected = {
-            "core/task_taxonomy.yaml": ">=6.3.1,<11.0.0",
-            "core/workbook_schema.yaml": ">=6.3.2,<11.0.0",
-            "core/global_preprocessing_contract.yaml": ">=7.4.2,<11.0.0",
-            "core/code_quality_contract.yaml": ">=7.4.2,<11.0.0",
-            "assets/figure_assets.yaml": ">=7.4.2,<11.0.0",
-            "core/numerical_verification_contract.yaml": ">=7.14.0,<11.0.0",
+            "core/runtime_assurance_contract.yaml": ">=10.0.0,<12.0.0",
+            "core/user_execution_contract.yaml": ">=10.0.0,<12.0.0",
+            "core/task_taxonomy.yaml": ">=6.3.1,<12.0.0",
+            "core/workbook_schema.yaml": ">=6.3.2,<12.0.0",
+            "core/global_preprocessing_contract.yaml": ">=7.4.2,<12.0.0",
+            "core/code_quality_contract.yaml": ">=7.4.2,<12.0.0",
+            "assets/figure_assets.yaml": ">=7.4.2,<12.0.0",
+            "core/numerical_verification_contract.yaml": ">=7.14.0,<12.0.0",
         }
         for relative, compatibility in expected.items():
             with self.subTest(relative=relative):
