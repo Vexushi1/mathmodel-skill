@@ -15,7 +15,7 @@ import run_config_parser
 import safe_yaml
 import stage_code as STAGE_CODE
 import plot_backend as PLOT_BACKEND
-from stage_inputs import input_files, observe_inputs
+from stage_inputs import declared_input_files, input_files, observe_inputs
 
 from project_snapshot import chinese_question_name, data_source_files, question_number
 
@@ -287,9 +287,7 @@ def reproducibility_requirements(root: Path, state: Mapping[str, Any], *,
                 )
                 dependency_paths = [STAGE_CODE._relative_path(root, record["path"])
                                     for record in config.get("code_dependencies", [])]
-                data_paths = input_files(root, config.get("data_paths"))
-                if config.get("auxiliary_data_paths"):
-                    data_paths.extend(input_files(root, config["auxiliary_data_paths"]))
+                data_paths = declared_input_files(root, config)
                 if observe is not None:
                     for path in dependency_paths + data_paths:
                         _read_bytes(path, observe)
@@ -474,9 +472,7 @@ def current_analysis_artifacts(root: Path, state: Mapping[str, Any], *,
                                   *(record["path"] for record in config.get("code_dependencies", []))]
                     protected.update(STAGE_CODE._relative_path(root, raw).relative_to(root).as_posix()
                                      for raw in references)
-                    actual_inputs = input_files(root, config.get("data_paths"))
-                    if config.get("auxiliary_data_paths"):
-                        actual_inputs.extend(input_files(root, config["auxiliary_data_paths"]))
+                    actual_inputs = declared_input_files(root, config)
                     protected.update(path.relative_to(root).as_posix() for path in actual_inputs)
                 except (ValueError, TypeError, KeyError, SyntaxError, OSError) as exc:
                     issues.append(f"{key}: 无法保留当前{stage}依赖: {exc}")
