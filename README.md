@@ -1,4 +1,4 @@
-# mathmodel-skill v10.35.3
+# mathmodel-skill v11.0.0
 
 网页或 App 可以从这里直接复制[数学建模项目指令](PROJECT_INSTRUCTIONS.md#web-app-start)。
 
