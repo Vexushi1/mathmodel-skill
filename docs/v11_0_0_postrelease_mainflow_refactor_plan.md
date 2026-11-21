@@ -568,109 +568,87 @@ pending 小问只记录：
 
 ---
 
-## 11. 分批实施顺序与 PR 边界
+## 11. 统一主流程实施分支与 PR 边界
 
-### PR-A：项目记录初始化与安全恢复
+### 11.1 统一实施的核心范围
 
-目标：助手在首次正式模型建立后自动创建项目记录，并安全恢复已有项目。
+本次运行时改造以一个核心主题实施：**Question-scoped Mainflow（逐问主流程）**。项目初始化、自动选问、typed dependency 执行准入、问题级语义治理、问题级同步和全题收尾必须形成同一条一致的执行链。
 
-- 新增初始化编排器。
-- 注册全部已知 Qn 的 pending 问题条目。
-- 原子创建框架与 State。
-- 复用事务、Schema、框架验证。
-- 恢复矩阵与幂等测试。
-- 不改数学模型身份和批准语义。
+如果把这些部分拆成若干独立合并 PR，容易产生无法接受的中间状态：
 
-核心验收：新项目创建成功；重复初始化不覆盖；多问注册完整；没有批准或数值的字段不会被伪造；半写入事务可安全恢复。
+- Resolver 已自动选择 Q1，但 semantic governance 仍全量检查所有小问，导致自动选问后仍被无关 Q2 阻断。
+- sync 已按 Q1 过滤产物，却没有按完整 State 依赖图传播 stale，导致下游 Q2 的失效被隐藏。
+- dependency gate 已要求 Q2 等待 Q1，但项目初始化没有登记全部 Problem Contract，导致选择器无法完整判断 Q3 是否独立。
+- 局部同步已经放行，但最终 docx/latex/submission 仍沿用局部范围，导致全题终审被意外缩小。
+- 初始化、Resolver、Sync 分别维护一套 current question 或 dependency 解释，导致同一项目出现多个事实来源。
 
-### PR-B：Resolver 默认选问与一问一动作
+因此，主流程相关运行时代码不应拆成多个先后合并、却各自不能独立保证核心不变量的 PR。它们在一个统一分支中分阶段提交、分阶段专项测试，最终以一个主题明确的 PR 一起审查和验收。
 
-目标：不指定题号时，助手能根据项目证据选出一个当前可推进的小问。
+### 11.2 统一主流程实施分支
 
-- 建立只读问题选择器。
-- 复用现有 State、Problem Contract 顺序、依赖和执行回执。
-- 输出 selection reason 和 blocked questions。
-- 明确 full_solution/full_workflow 的问题级执行含义。
-- 一个问题级动作只交付一个 Qn。
+拟建立的分支：
 
-核心验收：显式 Qn 优先；唯一等待点可恢复；Q2 被阻断时 Q3 可成为下一道独立可推进问；明确指定被阻断的 Q2 时不静默跳问。
+- Branch：refactor/v11-question-scoped-mainflow
+- Base：实施启动时最新 main，不得基于任何旧 PR 分支。
+- PR 主题：refactor: implement question-scoped mainflow
+- 交付范围：项目记录初始化、默认选问、一问一动作、typed dependency 执行准入、问题级语义治理、question-scoped sync、完整 stale 传播、全题 finalization，以及它们必需的合同、模块说明和集成测试。
 
-### PR-C：问题级语义治理与 typed dependency eligibility
+该 PR 虽可能涉及超过 20 个活动文件，但所有文件共同实现一个不可拆散的运行时不变量：**一次问题级动作只检查当前问和真实必要依赖，同时保持全局不变量与完整下游失效传播，并将最终交付恢复为全题范围。**
 
-目标：语义治理只因当前问和真实必要依赖阻断当前问；typed dependency 变成真正的执行资格条件。
+PR 描述必须按治理规范解释超过 20 个文件的必要性，并提供每组文件的职责映射、旧接口兼容、迁移和回滚方式。若实施中发现某项改动可以独立合并且不会造成上述中间状态，则必须先重新评估 PR 边界，不为追求“统一”而强行扩大范围。
 
-- validate_semantic_governance.py 增加 --question。
-- Resolver 把当前问题范围传给 semantic_governance gate。
-- 保留 State/schema/global backend/共享预处理观察。
-- 对目标问与必要依赖检查语义和模型身份。
-- 将 typed dependency eligibility 接入现有 code_delivery gate，不新增独立 gate。
-- result dependency 使用 validated_results 语义。
-- parameter 来源不明确时只阻断相关问。
-- legacy untyped 不自动解释成 result prerequisite。
-- cycle 只阻断目标闭包内自动排队。
+### 11.3 统一分支内的分阶段提交
 
-核心验收：无关 Q2 的语义待办不阻断独立 Q1；Q1 模型变化使 Q2 stale；model dependency 不强制等待数值结果；result dependency 等待有效上游结果。
+| 阶段 | 代码主题 | 预计主要文件 | 阶段完成证据 |
+|---|---|---|---|
+| M0 | 固定基线与三问行为夹具 | tests/fixtures、tests/test_question_runtime_integration.py | 先用正式 Resolver/Sync 入口固定当前反例和正常对照，不以 mock 代替行为证据 |
+| M1 | 项目初始化与安全恢复 | 新增 scripts/initialize_project.py；scripts/instantiate_model_paper_framework.py；scripts/project_transaction.py；State/Output 合同 | State 与框架原子创建；全部已知 Qn 登记；重复初始化不覆盖；恢复不伪造批准和数值 |
+| M2 | 默认选问与一问一动作 | scripts/resolve_runtime.py；必要时新增纯函数 scripts/question_scheduler.py；workflow/runtime assurance 合同 | 显式 Qn 优先；唯一待续任务恢复；阻断问不静默跳过；独立问可被选择 |
+| M3 | typed dependency 准入与问题级语义治理 | scripts/validate_semantic_governance.py；scripts/validate_code_delivery.py；scripts/validate_model_approval.py；Resolver gate commands | model/result/parameter/data 按真实语义准入；当前问只检查目标及必要闭包；全局 Schema/backend 检查仍有效 |
+| M4 | 问题级同步与完整 stale 传播 | scripts/project_snapshot.py；scripts/sync_project.py；scripts/state_transitions.py；Output/State Transition 合同 | 目标产物快照与全局观察分离；全依赖图 stale 传播；最终 delivery scope 仍全题 |
+| M5 | 入口、模块和集成收尾 | core/workflow_router.yaml；core/module_manifest.yaml；core/runtime_assurance_contract.yaml；core/output_contract.yaml；SKILL/AGENTS/相关 README；新增集成测试 | 用户入口、Resolver 计划、实际门禁命令、状态和恢复行为一致；核心能力非回归 |
 
-### PR-D：question-scoped sync 与完整 stale 传播
+每个阶段先添加可复现反例，再完成最小实现，再运行该阶段的 GitHub 专项测试。阶段中间提交不代表最终 PR 已通过；最终 PR head 必须执行适用的正式完整验收。
 
-目标：同步器支持目标问交付，但保持全局 State 观察和完整 downstream invalidation。
+### 11.4 为什么主流程不拆成多个独立合并 PR
 
-- sync_project.py 增加通用 --question。
-- project_snapshot.py 生成 target + upstream closure 快照。
-- _formal_state_issues() 接收当前 question set。
-- _scope_artifact_issues() 只检查当前范围的每问产物。
-- docx/latex/submission final scope 仍全题。
-- 保留项目根 backend、共享 preprocessing、State schema、generation/read-set 和 transaction。
-- 变化源触发完整 State Transition downstream propagation。
+本次统一分支不是把无关功能堆进一个大 PR。以下项目均是 Question Runtime 的必要组成：
 
-核心验收：Q1 results 不被 Q2 无关文件阻断；Q2 result dependency 缺上游时等待；Q1 变化 stale Q2 不 stale Q3；全题 submission 仍要求所有必需问。
+1. 初始化时登记全部问题，提供完整 Problem Contract 与依赖图。
+2. Resolver 选出唯一目标问，避免无题号时全项目分类聚合。
+3. Semantic Governance 与 Model Approval 只检查当前问及必要模型依赖。
+4. Code Delivery 和 typed dependency eligibility 确保下游不会消费尚未 accepted 的上游结果。
+5. Sync 只检查当前问与必要上游产物，但 State Transition 仍观察全图并传播 stale。
+6. Submission Runtime 重新切换为全题范围。
 
-### PR-E：新回执环境元数据解耦
+这些组件的输入输出和安全边界彼此依赖。分开合并会让某一阶段短暂出现“局部放行但全局失效未传播”或“Resolver 选问成功但下游全量门禁仍阻断”的不一致状态。分阶段提交与专项测试可以保留开发可审查性，同时避免把不完整运行时暴露为正式 main。
 
-目标：缺少 solver_version/platform/matlab_release 不再单独拒绝新版本回执。
+### 11.5 环境元数据解耦作为独立 PR
 
-- 调整 User Execution Contract 的 required/optional 分层。
-- 修改 configuration_map() 和对应消费者。
-- 保持 legacy reader 行为。
-- 保持 MATLAB/Python writer 在可得时记录元数据。
-- 保持 code/data/source bundle、backend、stop reason、fallback 和 full-fidelity 检查。
+环境元数据不是 Question Runtime 的依赖，不应混入主流程统一分支。
 
-核心验收：新版本回执缺少环境元数据仍可通过；核心执行字段缺失仍失败；旧回执兼容；MATLAB JVM/License 仍在真实运行时验证。
+拟独立建立：
 
-### PR-F：用户入口、模块说明和全流程集成
+- Branch：fix/v11-run-receipt-environment-metadata
+- PR 主题：fix: make nonessential execution environment metadata optional
+- 范围：core/user_execution_contract.yaml、scripts/validate_user_execution.py、Python/MATLAB 回执模板及对应测试（仅在真实消费者要求时修改）。
+- 资格：新版本 RUN_RECEIPT 缺少 solver_version/platform/matlab_release 不得单独失败；核心执行真实性字段继续严格；legacy reader 语义不变。
+- 顺序：可在主流程 PR 之后实施，也可在独立维护轮次实施；不得为了“统一分支”把它合入 Question Runtime。
+- 版本：按最终兼容影响与治理规范裁决，不在本计划中预设。
 
-目标：让仓库入口、Router、业务 Module、脚本和测试对同一流程说法一致。
+### 11.6 分支创建门槛
 
-- 更新 Router 和 Runtime Assurance 的目标范围语义。
-- 更新 Module Manifest 的 gate command scope。
-- 更新 Output Contract 的 question scope 与 final scope。
-- 更新 AGENTS/SKILL/核心政策中必要的用户流程说明。
-- 为三层工作流增加清晰用户动作说明。
-- 不复制业务细则，不另建 gate list。
+统一主流程分支只有在以下条件满足后才创建：
 
-核心验收：从新项目到最终提交的端到端行为与本计划一致；旧项目兼容和全部质量底线不退化。
+1. 本计划 PR #355 的文档、来源登记和生成文件状态已核对。
+2. PR #355 的最终 head GitHub Actions 具备可核验的适用检查结果；action_required、等待审批、无 job 记录均不视为通过。
+3. 用户审查并明确批准主流程计划。
+4. 重新读取创建时最新 main、bootstrap、治理文件、相关权威合同及所有开放 PR/分支。
+5. 比较当前 main 与本计划固定基线；若已变化，重做相关文件与重叠 PR 影响审查。
+6. 从最新 main 创建唯一统一主流程分支，不 cherry-pick 已进入 main 的旧提交，不继承旧分支生成文件。
+7. PR #355 仍是计划 PR；统一主流程实现 PR 不得复用 PR #355 的 docs-only 分支。
 
-### PR 依赖关系
-
-~~~text
-PR-A 项目初始化
-    ↓
-PR-B 默认选问与一问一动作
-    ↓
-PR-C 问题级语义治理与 typed dependency eligibility
-    ↓
-PR-D question-scoped sync 与完整 stale 传播
-    ↓
-PR-F 入口/模块/全流程集成
-
-PR-E 新回执环境元数据解耦
-    可在 PR-C 后独立实施；最终由 PR-F 集成验收
-~~~
-
-每个 PR 都从届时最新 main 建立独立分支；不直接写 main；不把多个主题混在同一 PR。某一 PR 的测试通过不代表其他 PR 或全项目已经通过。
-
----
-
+本计划不授权自动合并 PR #355、统一主流程 PR 或环境元数据 PR。
 ## 12. 必须建立的回归矩阵
 
 ### 12.1 三问核心集成夹具
@@ -826,25 +804,41 @@ PR-E 新回执环境元数据解耦
 
 ---
 
-## 15. 相关计划与开放 PR 的边界
+## 15. 相关计划、开放 PR 与分支整合策略
 
-本次计划不是把所有历史计划重新合并，也不是用新文档覆盖历史台账。
+本次不是把所有旧分支直接合并，也不是按 PR 数量机械 cherry-pick。所有实现必须以当前 main 为唯一代码基线；旧分支只提供历史设计、反例和可复用测试思路。
 
-| 相关材料 / PR | 当前观察 | 本次处理 |
+| 相关材料 / PR | 当前核对结果 | 本次处理 |
 |---|---|---|
-| docs/runtime_router_and_gate_simplification_refactor_plan.md | v10.23.x 历史计划；其保留必要质量控制、去除重复和过早门禁的原则已进入当前全局政策与部分运行时 | 作为设计历史，不重新实现已落地的通用路由简化 |
-| docs/stage_reading_execution_refactor_plan.md | 已形成阶段原文读取、来源身份和完整性机制 | 保留现有读取 Authority，不另造读取框架 |
-| docs/repository_audit_and_handoff_refactor_plan.md | 历史 AUD 台账与审查记录 | 重新核对当前实现，不覆盖历史证据 |
-| PR #326 | 旧基线的工作流范围与数值验收计划，含单问启动/全题收尾和循环依赖设计 | 作为历史设计参考；按当前 main 重新核对，不直接合并旧分支 |
-| PR #335 | 正式全文启动与阅读架构计划；当前 v11.0.0 已有 full_reading 实现 | 不复制阅读架构，不把旧分支作为当前代码事实 |
-| PR #336 | 基于 v10.35.3 的 11.0.0 逐文件重构计划；与当前 main 已明显分叉 | 作为历史计划，不作为当前 v11.0.0 的实施基线 |
-| PR #339–#347、#349–#350 | 当前检查到的 head 均为当前 main 的祖先提交，相关代码已进入 main | 不 cherry-pick、不重复实施；以固定 main 为准 |
-| PR #348 | 基于较旧 P1 分支的独立 client-trial 分支，与当前 main 分叉 | 不纳入本次主流程实现；若将来接入，单独重审 |
-| PR #355 | 当前 main 基线上的 docs-only 计划 PR | 本文更新对象，保持 Draft |
+| docs/runtime_router_and_gate_simplification_refactor_plan.md | 历史路由/门禁简化方案；必要质量控制和减少重复核验的原则已进入当前全局政策及部分实现 | 复用仍有效的原则，不重复实施已落地部分 |
+| docs/stage_reading_execution_refactor_plan.md | 当前已有固定版本原文读取、来源身份和完整性机制 | 继续复用现有 Reading Authority，不在主流程 PR 重造全文读取系统 |
+| docs/repository_audit_and_handoff_refactor_plan.md | 历史审计和交接记录 | 作为来源索引，按当前 main 复核，不把历史状态当现状 |
+| PR #326 | 旧基线的工作流范围与数值验收计划；包含单问启动/全题收尾和循环依赖设计 | 只吸收仍适用的设计和反例；旧分支不作为代码基线 |
+| PR #335 | 正式全文启动与阅读架构计划 | 当前 v11.0.0 已有 full_reading 相关实现；不复制阅读架构 |
+| PR #336 | 基于 v10.35.3 的逐文件重构计划 | 与当前 main 分叉；只参考尚未被当前实现覆盖的设计，不 cherry-pick |
+| PR #339–#347 | 已核对的分支 head 是当前 main 的祖先；PR 仍处于开放状态，但相关提交已进入固定 main | 不重复 cherry-pick；不把开放 PR 状态误认为其代码尚未进入 main |
+| PR #349–#350 | 已核对的分支 head 是当前 main 的祖先 | 复用当前 main 中的结果，不重复合并 |
+| PR #348 | 基于旧 P1 分支，含客户端试验题包、盲评和观测工具；与当前 main diverged | 保留为独立客户端试验工作，不纳入 Question Runtime；如后续需要其证据设计，按内容重审，不直接合并旧分支 |
+| PR #355 | 当前 main 基线上的 docs-only 主流程计划 | 保持独立 Draft，完成计划审查和 GitHub 验收后，再作为统一主流程分支的设计依据 |
 
-若上述旧文档 PR 后续合并，生成索引与 MANIFEST 必须由当前 main 的 GitHub refresh-generated 重新生成；不得合并旧分支上的生成文件来覆盖当前结果。
+### 15.1 旧分支如何被“参考”
+
+- 已进入 main 的代码只从 main 读取，不再从旧分支复制。
+- 旧计划只提取当前仍缺少的设计决策、业务反例和兼容要求。
+- 旧测试只有在能证明当前 main 尚未覆盖某个行为时才移植；移植时重写为当前接口与当前状态模型，不原样 cherry-pick 旧测试提交。
+- 旧生成文件、Manifest、索引和哈希一律不移植。
+- 对 PR #348 的客户端试验材料不作为运行时实现依赖；主流程集成验收仍由三问合成项目和 GitHub 正式测试负责。
+
+### 15.2 冲突与串行处理
+
+- 新分支一律从创建时最新 main 建立，不以 #326/#335/#336/#348 或 #339–#350 为 base。
+- 若 PR #355 的计划文件尚未合并，统一主流程分支仍不得包含计划分支的旧生成文件；计划文档作为独立审查来源引用。
+- 若主流程实施期间其他开放 PR 改动相同权威文件，按治理第 6.4 节停止、判断重叠、串行合并或重新基于最新 main 建立，不强行叠加。
+- 环境元数据独立 PR 不与主流程分支共享同一未合并 head；若它先改动相同执行合同，主流程 PR 需在新 main 上重新审查执行合同影响。
+- 不关闭、不合并其他开放 PR，除非其维护者/用户另行决定；本计划只决定本次改造如何安全吸收已有工作。
 
 ---
+
 
 ## 16. 验收标准与完成定义
 
@@ -869,31 +863,50 @@ PR-E 新回执环境元数据解耦
 
 ## 17. 本 PR 当前状态与下一步
 
-**本 PR 当前只交付架构计划。**
+**本 PR 当前只交付架构计划，不改变 Skill 运行时行为。**
 
 已完成的只读审查：
 
 - 固定 v11.0.0 main 基线。
 - 读取启动、全局政策、Router、Module Manifest、Runtime Assurance、State、Transition、Output、Model Approval、User Execution 等权威来源。
 - 检查 Resolver、semantic governance、sync、snapshot、transaction、framework generator 和对应测试。
-- 识别当前默认选问、语义治理范围、同步范围、依赖授权和环境元数据的实际缺口。
-- 对照已有计划和开放 PR，确认哪些设计已在当前 main，哪些仍是缺口。
+- 识别默认选问、语义治理范围、同步范围、依赖执行准入、初始化/恢复和环境元数据的实际缺口。
+- 对照旧计划与开放 PR，区分已进入 main 的提交、仅有历史设计价值的分支和独立客户端试验工作。
+- 将实施策略调整为一个统一 Question Runtime 主流程分支，以及一个独立环境元数据 PR。
+
+当前已提交内容（以 GitHub PR 实际 head 为准）：
+
+- 主流程计划文档约 900 行，覆盖六个要求部分。
+- 规则来源登记保持 maintenance/history 属性，不进入规范性全文规则语料。
+- 生成索引、full-reading manifest 和 MANIFEST 由 GitHub refresh-generated 管理。
+- PR #355 保持 Draft，未合并。
+- 计划 PR 不包含运行时代码修改。
+
+本轮核对到的历史验证状态：
+
+- PR head 4dffe61ca99289586a8317251880b32c7051d9ea 对应 HSK Skill CI run 44938033812，结论为 action_required，没有可读取的 job 记录。
+- 该状态不是 PASS，也不能据此断言业务测试失败；目前没有足够 job 证据说明具体等待原因。
+- PR #355 没有 review submission、inline review thread 或评论记录。
+- 本文后续任何更新都会形成新 head；旧 head 的 action_required 不能替代新 head 的正式验收。
 
 尚未完成：
 
-- 本 PR 计划文档的用户审查。
-- 本 PR 更新后的 GitHub refresh-generated。
-- 最终 PR head 的 GitHub Actions 正式验收。
-- 所有运行时代码实现。
-- 三问集成测试和双后端回归。
-- 任何实际用户项目迁移或恢复。
+- 本计划的最终用户审查。
+- 更新后最终 head 的 refresh-generated 和 GitHub Actions 正式验收。
+- 统一主流程实现分支的创建。
+- 环境元数据独立 PR 的创建。
+- 所有运行时代码、三问集成测试、旧项目兼容和 Python/MATLAB 双后端实现验收。
+- 任何真实用户项目迁移或恢复。
 
 **下一步顺序：**
 
-1. 更新本计划并保持 PR #355 Draft。
-2. 推送源文档后等待 GitHub refresh-generated，核对 bot 生成提交与最终 head。
-3. 在最终 head 上执行适用的 GitHub 文档/生成/CI 检查；没有证据的项标记未完成。
-4. 用户审查并批准计划后，再按 PR-A 至 PR-F 顺序创建独立实现 PR。
-5. 每个实现 PR 分别验收，不以计划通过代替代码通过。
+1. 更新本计划与 PR 描述，明确统一主流程分支策略和独立环境元数据 PR。
+2. 等待 GitHub refresh-generated 处理源文档变化，核对最终生成提交与 PR head。
+3. 在最终 head 上核对 GitHub Actions；若仍为 action_required 或无 job 证据，停止把它称为通过，并明确需要的 GitHub 侧授权/处理。
+4. 用户审查并明确批准计划。
+5. 重新读取最新 main 与治理规范，核对开放 PR 后，从最新 main 创建 refactor/v11-question-scoped-mainflow。
+6. 在该统一分支中按 M0–M5 分阶段提交和专项验证，最终以一个 Question Runtime 主题 PR 交付。
+7. 环境元数据解耦另建独立分支和 PR。
+8. 每个最终 PR head 分别完成适用 GitHub Actions 正式验收；不以计划通过代替代码通过。
 
-**本计划不授权自动合并 PR #355，也不授权任何后续实现 PR 自动合并。**
+**本计划不授权自动合并 PR #355、统一主流程实现 PR 或环境元数据 PR。**
