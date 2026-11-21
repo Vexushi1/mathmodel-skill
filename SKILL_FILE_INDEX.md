@@ -618,6 +618,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_python_execution_reference_closure.py`
 - `tests/test_python_matlab_ownership.py`
 - `tests/test_python_reference_followup.py`
+- `tests/test_question_runtime_integration.py`
 - `tests/test_read_path_semantic_closure.py`
 - `tests/test_read_stage.py`
 - `tests/test_reading_module06.py`
