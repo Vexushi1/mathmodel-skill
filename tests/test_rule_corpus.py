@@ -85,6 +85,9 @@ class RegisteredCorpusTests(unittest.TestCase):
         self.assertEqual(digest(registry), self.catalog["registry"]["sha256"])
         self.assertEqual(self.catalog["registry"]["git_blob_sha1"],
                          hashlib.sha1(b"blob " + str(len(registry)).encode() + b"\0" + registry).hexdigest())
+        registry_data = yaml.safe_load(registry)
+        self.assertIn("docs/v11_rule_preservation_map.md", registry_data["excluded"]["maintenance_and_history"])
+        self.assertNotIn("docs/v11_rule_preservation_map.md", self.sources)
         self.assertNotIn("MANIFEST.sha256", self.sources)
         self.assertNotIn("core/stage_reading_guide.md", self.sources)
         self.assertNotIn("knowledge/case_memory/cases.json", self.sources)
