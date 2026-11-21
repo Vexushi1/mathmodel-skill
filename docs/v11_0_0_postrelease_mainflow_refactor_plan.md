@@ -8,7 +8,7 @@
 >
 > **固定基线：** Skill v11.0.0，main / Release 对应提交为 `87ed5bbd173c02472a9e85cb09bdc4188d37a8bf`。
 >
-> **本次交付边界：** 只新增本计划文档；不修改活动规则、Schema、脚本、模板、测试或真实建模项目。
+> **本次交付边界：** 新增本计划文档，并在 core/rule_corpus_sources.yaml 中将其登记为 maintenance_and_history；不修改业务规则、Schema、脚本、模板、测试或真实建模项目。
 
 ---
 
@@ -24,7 +24,7 @@
 | 直接目标 | 以当前仓库真实分层为基础，把三个方向拆成可独立实施、可验收、可回滚的单主题 PR |
 | 明确不做 | 不重建 v11 全文读取架构；不改项目级唯一 Python/MATLAB 后端政策；不取消 Model Challenge、Human Model Approval、用户 full-fidelity 执行、数值验收、03B 必要性判断或正式交付门；不把 Issue #352 的 embedded_parameters 混入本计划 |
 | 权威事实源 | 当前 main 的 AGENTS.md、SKILL_CHANGE_GOVERNANCE.md、core/bootstrap.yaml，以及各方向对应的 Router、Output、State、Runtime、Approval、Execution、Workbook Authority 和实际消费者 |
-| 本次预计修改文件 | 仅新增本文件；MANIFEST.sha256、SKILL_FILE_INDEX.md 等受管文件由 GitHub refresh-generated 处理，不手工编辑 |
+| 本次预计修改文件 | 新增本文件，并仅为它补充 core/rule_corpus_sources.yaml 的非规范性历史/维护分类；MANIFEST.sha256、SKILL_FILE_INDEX.md 等受管文件由 GitHub refresh-generated 处理，不手工编辑 |
 | 禁止触碰 | main 上的活动业务规则、Schema、脚本、模板、测试、版本载体、真实用户项目文件及历史已验收工作簿 |
 | 兼容要求 | 现有 v11.0.0 项目、历史 State、历史工作簿、RUN_RECEIPT、后端选择和 stale 规则保持可读；任何新写入规则不得追溯性要求旧项目重跑 |
 | 本次验收 | 核对本计划内容、GitHub 生成结果和最终 PR head；不宣称三项运行时改造已实现或通过测试 |
