@@ -1,0 +1,254 @@
+# Maintenance inputs. Deliver only the selected turn with tests/v11_web_app_packet.py.
+schema_version: 1
+materials:
+  problem:
+    path: 题面.md
+    text: |
+      # 储槽补水调度（合成题）　1/2
+      一条试验线初始储水 60 L。无补水时以未知恒定速率放水。附件是无补水校准试验，观测视为精确值。
+      问题一：据附件识别放水速率，求水量首次降至 35 L 的时刻。
+      问题二：在同一放水速率下安排一次瞬时补水。候选时刻为试验开始后第 15、25、30 分钟，补水量只能为 8 L 或 12 L，
+      成本分别为 8 元、12 元。要求先最小化总成本，若成本相同则尽量晚补。
+      时间窗内任一时刻的水量必须在 [30,50] L 内，但上界仅从补水瞬间的补后值起生效，下界同时约束补水前后。
+
+      # 输出与边界条件　2/2
+      观察和调度均限于闭区间 [0,30] 分钟。问题一的达标时刻以秒报告到最近的 10 秒，最后一步才舍入。
+      问题二沿用第一问识别的速率；不得把补水数据拼入第一问校准，也不得把约束仅检查在补后时点。
+      给出方案、成本和全程可行性的依据。未提供赛事专属模板。
+  style:
+    path: 图1样式.json
+    text: |
+      {"图号":"图1","变量":"储水量","线型":"实线","线宽":1.6,"线色":"#2171B5","坐标单位":["min","L"]}
+  draft_model:
+    path: 拟议模型.md
+    text: |
+      这是尚未批准的第二问模型草案。
+      V(t)=60-r t+u I(t>=s)，t 以分钟计。s 属于 {15,25,30}，u 属于 {8,12}。
+      程序设想：最大化成本，成本相同取较晚 s；将附件“时刻 (min)”列的数值直接当成秒作为时间输入，
+      并使用以 L/s 表示的 r。评估校准误差时，用第 i 行模型预测对齐第 i+1 行观测。
+      只检查补水后 V(s+) 在 [30,50] L 内即可报告可行。
+  approval_note:
+    path: 讨论记录.txt
+    text: |
+      队员在其他会话说过“这套看起来可以”。目前只保留这段摘录，尚无针对当前修订的用户批准记录或双审记录。
+  current_project:
+    archive: claim_evidence/a2_baseline_synthetic.zip
+    sha256: cebf29fff76a8e19f182d05d47c8b90f8f795d6944324b8efb3d6e81bb8f57c6
+  project_without_books:
+    archive: claim_evidence/a2_baseline_synthetic.zip
+    sha256: cebf29fff76a8e19f182d05d47c8b90f8f795d6944324b8efb3d6e81bb8f57c6
+    omit:
+      - 问题一求解/问题一求解结果.xlsx
+      - 问题一求解/问题一结果深化分析.xlsx
+  handoff:
+    path: 聊天交接便签.txt
+    text: |
+      上次聊天摘要说“第一问解似乎为 9，稳健性和所有图片都已通过”，未附该说法的来源位置。
+  figure_plan:
+    path: 模型论文框架.md
+    text: |
+      # 模型论文框架
+      本次工程只存草案。Q1：无补水阶段从校准观测确定恒定流出率 r；待审方案尚未锁定。
+      Q2：一次补水形成水量跳变，须先检查左右极限及区间边界。机理草图拟呈现储槽、放水和脉冲补水三个对象。
+      图1预登记为机理草图；图2拟呈现实测和预测的误差。仅有原始校准测量，尚无主求解返回的工作簿。
+  chapter:
+    path: 章节交接.md
+    text: |
+      认证杯训练稿，仅作章节组织练习；未提供比赛专属模板。本章限于标量模型第一问已有结果的证据提纲。
+      写稿人在全局图表登记中预留 T1“解与方程残差”，初始位置留空。F1“温度情景下的解误差带”仅是设想，
+      无设计完成记录、图文件或本次运行证据。正文草案由“模型前提”“求解结果”“适用范围”三段组成。
+  analysis_commitments:
+    path: 深化分析设计记录.md
+    text: |
+      对本次结果说明拟答两件事。A：在三个给定 a 值下检查解是否为正。B：保持 a 不变，另对 offset 取两个扰动值，
+      检查结论是否改变。两项都属于已提出的查证目标。已有回传文件以本次提供的原件为准。
+  old_review:
+    path: 旧终审记录.txt
+    text: |
+      旧稿 A 的 SHA-256 为 ba24ed02e9ba1565fbfc15098f89c59a5730d7eb8d94021a665fa3e2d87557af，旧记录称已逐页查看三页。记录仅针对旧稿 A。送审登记显示换稿 B 共三页，
+      当前窗口先收到 B 的第一页校样，其他页面原件尚未传到。没有当前稿正式编译证明。
+  observations:
+    path: 附件1_校准.xlsx
+    sha256: c60e9198fe939768e413f81c7a1490ebca6bb4968d782f595b2191b626f461be
+    base64: |
+      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
+      BgAAAAAJAAkAPgIAACcRAAAAAA==
+  old_pdf:
+    path: 旧稿A.pdf
+    sha256: ba24ed02e9ba1565fbfc15098f89c59a5730d7eb8d94021a665fa3e2d87557af
+    base64: |
+      JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5
+      cGUgL1BhZ2VzIC9Db3VudCAzIC9LaWRzIFs0IDAgUiA2IDAgUiA4IDAgUl0gPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUg
+      L0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhID4+CmVuZG9iago0IDAgb2JqCjw8IC9UeXBlIC9Q
+      YWdlIC9QYXJlbnQgMiAwIFIgL01lZGlhQm94IFswIDAgNTA0IDMzNl0gL1Jlc291cmNlcyA8PCAvRm9udCA8PCAvRjEgMyAw
+      IFIgPj4gPj4gL0NvbnRlbnRzIDUgMCBSID4+CmVuZG9iago1IDAgb2JqCjw8IC9MZW5ndGggMTU5ID4+CnN0cmVhbQpCVCAv
+      RjEgMjAgVGYgNTIgMjgwIFRkIChJbnZlbnRvcnkgZXhwZXJpbWVudCkgVGogRVQKQlQgL0YxIDEyIFRmIDUyIDIzNSBUZCAo
+      SW52ZW50b3J5IENhbGlicmF0aW9uIC8gVmVyc2lvbiBBKSBUaiBFVApCVCAvRjEgMTIgVGYgNTIgMzIgVGQgKFBhZ2UgMSBv
+      ZiAzKSBUaiBFVAplbmRzdHJlYW0KZW5kb2JqCjYgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFC
+      b3ggWzAgMCA1MDQgMzM2XSAvUmVzb3VyY2VzIDw8IC9Gb250IDw8IC9GMSAzIDAgUiA+PiA+PiAvQ29udGVudHMgNyAwIFIg
+      Pj4KZW5kb2JqCjcgMCBvYmoKPDwgL0xlbmd0aCAyNDIgPj4Kc3RyZWFtCkJUIC9GMSAyMCBUZiA1MiAyODAgVGQgKEZpZ3Vy
+      ZSAyLiBSZXNpZHVhbCBvdmVyIHRpbWUpIFRqIEVUCkJUIC9GMSAxMiBUZiA1MiAyMzUgVGQgKEludmVudG9yeSBDYWxpYnJh
+      dGlvbiAvIFZlcnNpb24gQSkgVGogRVQKMSB3IDU4IDE1MCBtIDU4IDExMCBsIDQxMiAxMTAgbCBTCjU4IDE0OSBtIDE0MCAx
+      NTUgbCAyMzggMTQ2IGwgNDEyIDE1MiBsIFMKQlQgL0YxIDEyIFRmIDUyIDMyIFRkIChQYWdlIDIgb2YgMykgVGogRVQKZW5k
+      c3RyZWFtCmVuZG9iago4IDAgb2JqCjw8IC9UeXBlIC9QYWdlIC9QYXJlbnQgMiAwIFIgL01lZGlhQm94IFswIDAgNTA0IDMz
+      Nl0gL1Jlc291cmNlcyA8PCAvRm9udCA8PCAvRjEgMyAwIFIgPj4gPj4gL0NvbnRlbnRzIDkgMCBSID4+CmVuZG9iago5IDAg
+      b2JqCjw8IC9MZW5ndGggMTU0ID4+CnN0cmVhbQpCVCAvRjEgMjAgVGYgNTIgMjgwIFRkIChOb3RlcyBhbmQgc2NvcGUpIFRq
+      IEVUCkJUIC9GMSAxMiBUZiA1MiAyMzUgVGQgKEludmVudG9yeSBDYWxpYnJhdGlvbiAvIFZlcnNpb24gQSkgVGogRVQKQlQg
+      L0YxIDEyIFRmIDUyIDMyIFRkIChQYWdlIDMgb2YgMykgVGogRVQKZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgMTAKMDAwMDAw
+      MDAwMCA2NTUzNSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCjAwMDAwMDAwNTggMDAwMDAgbiAKMDAwMDAwMDEyNyAwMDAwMCBu
+      IAowMDAwMDAwMTk3IDAwMDAwIG4gCjAwMDAwMDAzMjMgMDAwMDAgbiAKMDAwMDAwMDUzMiAwMDAwMCBuIAowMDAwMDAwNjU4
+      IDAwMDAwIG4gCjAwMDAwMDA5NTAgMDAwMDAgbiAKMDAwMDAwMTA3NiAwMDAwMCBuIAp0cmFpbGVyCjw8IC9TaXplIDEwIC9S
+      b290IDEgMCBSID4+CnN0YXJ0eHJlZgoxMjgwCiUlRU9GCg==
+  first_page:
+    path: 新稿B_第一页校样.pdf
+    sha256: 8831eb692d417fd3162391a823d84f93e59dd181c1169190e12db600a259418f
+    base64: |
+      JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5
+      cGUgL1BhZ2VzIC9Db3VudCAxIC9LaWRzIFs0IDAgUl0gPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL0ZvbnQgL1N1YnR5
+      cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhID4+CmVuZG9iago0IDAgb2JqCjw8IC9UeXBlIC9QYWdlIC9QYXJlbnQg
+      MiAwIFIgL01lZGlhQm94IFswIDAgNTA0IDMzNl0gL1Jlc291cmNlcyA8PCAvRm9udCA8PCAvRjEgMyAwIFIgPj4gPj4gL0Nv
+      bnRlbnRzIDUgMCBSID4+CmVuZG9iago1IDAgb2JqCjw8IC9MZW5ndGggMTU5ID4+CnN0cmVhbQpCVCAvRjEgMjAgVGYgNTIg
+      MjgwIFRkIChJbnZlbnRvcnkgZXhwZXJpbWVudCkgVGogRVQKQlQgL0YxIDEyIFRmIDUyIDIzNSBUZCAoSW52ZW50b3J5IENh
+      bGlicmF0aW9uIC8gVmVyc2lvbiBCKSBUaiBFVApCVCAvRjEgMTIgVGYgNTIgMzIgVGQgKFBhZ2UgMSBvZiAzKSBUaiBFVApl
+      bmRzdHJlYW0KZW5kb2JqCnhyZWYKMCA2CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAwOSAwMDAwMCBuIAowMDAwMDAw
+      MDU4IDAwMDAwIG4gCjAwMDAwMDAxMTUgMDAwMDAgbiAKMDAwMDAwMDE4NSAwMDAwMCBuIAowMDAwMDAwMzExIDAwMDAwIG4g
+      CnRyYWlsZXIKPDwgL1NpemUgNiAvUm9vdCAxIDAgUiA+PgpzdGFydHhyZWYKNTIwCiUlRU9GCg==
+  current_pdf:
+    path: 新稿B.pdf
+    sha256: 85e76c61066a2dda4e678a14b8c30933d1e5e726c774aa195e302d8403adb175
+    base64: |
+      JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5
+      cGUgL1BhZ2VzIC9Db3VudCAzIC9LaWRzIFs0IDAgUiA2IDAgUiA4IDAgUl0gPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUg
+      L0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhID4+CmVuZG9iago0IDAgb2JqCjw8IC9UeXBlIC9Q
+      YWdlIC9QYXJlbnQgMiAwIFIgL01lZGlhQm94IFswIDAgNTA0IDMzNl0gL1Jlc291cmNlcyA8PCAvRm9udCA8PCAvRjEgMyAw
+      IFIgPj4gPj4gL0NvbnRlbnRzIDUgMCBSID4+CmVuZG9iago1IDAgb2JqCjw8IC9MZW5ndGggMTU5ID4+CnN0cmVhbQpCVCAv
+      RjEgMjAgVGYgNTIgMjgwIFRkIChJbnZlbnRvcnkgZXhwZXJpbWVudCkgVGogRVQKQlQgL0YxIDEyIFRmIDUyIDIzNSBUZCAo
+      SW52ZW50b3J5IENhbGlicmF0aW9uIC8gVmVyc2lvbiBCKSBUaiBFVApCVCAvRjEgMTIgVGYgNTIgMzIgVGQgKFBhZ2UgMSBv
+      ZiAzKSBUaiBFVAplbmRzdHJlYW0KZW5kb2JqCjYgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFC
+      b3ggWzAgMCA1MDQgMzM2XSAvUmVzb3VyY2VzIDw8IC9Gb250IDw8IC9GMSAzIDAgUiA+PiA+PiAvQ29udGVudHMgNyAwIFIg
+      Pj4KZW5kb2JqCjcgMCBvYmoKPDwgL0xlbmd0aCAyNzIgPj4Kc3RyZWFtCkJUIC9GMSAyMCBUZiA1MiAyODAgVGQgKEZpZ3Vy
+      ZSAyLiBSZXNpZHVhbCBvdmVyIHRpbWUpIFRqIEVUCkJUIC9GMSAxMiBUZiA1MiAyMzUgVGQgKEludmVudG9yeSBDYWxpYnJh
+      dGlvbiAvIFZlcnNpb24gQikgVGogRVQKMSB3IDU4IDE1MCBtIDU4IDExMCBsIDQxMiAxMTAgbCBTCjU4IDE0OSBtIDE0MCAx
+      NTUgbCAyMzggMTQ2IGwgNDEyIDE1MiBsIFMKMC42NSBnIDExOCAyNzcgOTUgMjEgcmUgZiAwIGcKQlQgL0YxIDEyIFRmIDUy
+      IDMyIFRkIChQYWdlIDIgb2YgMykgVGogRVQKZW5kc3RyZWFtCmVuZG9iago4IDAgb2JqCjw8IC9UeXBlIC9QYWdlIC9QYXJl
+      bnQgMiAwIFIgL01lZGlhQm94IFswIDAgNTA0IDMzNl0gL1Jlc291cmNlcyA8PCAvRm9udCA8PCAvRjEgMyAwIFIgPj4gPj4g
+      L0NvbnRlbnRzIDkgMCBSID4+CmVuZG9iago5IDAgb2JqCjw8IC9MZW5ndGggMTU0ID4+CnN0cmVhbQpCVCAvRjEgMjAgVGYg
+      NTIgMjgwIFRkIChOb3RlcyBhbmQgc2NvcGUpIFRqIEVUCkJUIC9GMSAxMiBUZiA1MiAyMzUgVGQgKEludmVudG9yeSBDYWxp
+      YnJhdGlvbiAvIFZlcnNpb24gQikgVGogRVQKQlQgL0YxIDEyIFRmIDUyIDMyIFRkIChQYWdlIDMgb2YgMykgVGogRVQKZW5k
+      c3RyZWFtCmVuZG9iagp4cmVmCjAgMTAKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCjAwMDAwMDAw
+      NTggMDAwMDAgbiAKMDAwMDAwMDEyNyAwMDAwMCBuIAowMDAwMDAwMTk3IDAwMDAwIG4gCjAwMDAwMDAzMjMgMDAwMDAgbiAK
+      MDAwMDAwMDUzMiAwMDAwMCBuIAowMDAwMDAwNjU4IDAwMDAwIG4gCjAwMDAwMDA5ODAgMDAwMDAgbiAKMDAwMDAwMTEwNiAw
+      MDAwMCBuIAp0cmFpbGVyCjw8IC9TaXplIDEwIC9Sb290IDEgMCBSID4+CnN0YXJ0eHJlZgoxMzEwCiUlRU9GCg==
+cases:
+  - id: intake
+    turns:
+      - prompt: 新开题。请先逐问审题，列清约束、建模思路以及各问交付，不要开始运行。
+        materials: [problem, observations]
+  - id: local_to_full
+    turns:
+      - prompt: 只改图1的线色为色盲友好橙色。把改后的样式给我。
+        materials: [style]
+      - prompt: 现在范围扩大。按这道题完整审题，给出两问方案，先停在需要我决定的位置。
+        materials: [problem, observations]
+  - id: approval
+    turns:
+      - prompt: 根据现有材料，告诉我当前可以交付到哪一步；如果已经满足条件就直接给正式求解代码。
+        materials: [problem, observations, approval_note]
+  - id: model_review
+    turns:
+      - prompt: 请独立审查第二问草案，指出会改变答案的错误，给我可手算的小例供复核。
+        materials: [problem, observations, draft_model]
+  - id: recovery
+    turns:
+      - prompt: 换了会话，这是之前的合成标量项目。仅核对本问的解、残差、批准修订及能否直接把上次的图纳入正式正文。
+        materials: [current_project, handoff]
+  - id: recovery_missing
+    turns:
+      - prompt: 换了会话，这是之前的合成标量项目。仅核对本问的解、残差、批准修订及能否直接把上次的图纳入正式正文。
+        materials: [project_without_books, handoff]
+  - id: mixed_figures
+    turns:
+      - prompt: 同一份题面，请设计这张机理草图和预测误差结果图。现有材料能落到哪里就先做到哪里。
+        materials: [problem, observations, figure_plan]
+  - id: chapter_handoff
+    turns:
+      - prompt: 换到本问结果章。请给一份可实际采用的证据提纲，说明各项预登记图表的落点和状态。
+        materials: [current_project, chapter]
+  - id: analysis_coverage
+    turns:
+      - prompt: 对照两项设计承诺，核查回传结果能支持哪些结论。能成立的请注明范围。
+        materials: [current_project, analysis_commitments]
+  - id: final_review
+    turns:
+      - prompt: 新版本换稿了，先核对现有页的版面，请明确现在哪些页已经实际看过。
+        materials: [old_review, old_pdf, first_page]
+      - prompt: 刚收到完整的新稿 B。请检查当前三页的版面，指出可定位的漏印或遮挡，说明实际页覆盖。
+        materials: [current_pdf]

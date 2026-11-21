@@ -53,6 +53,7 @@ CURRENT_REFERENCE_DOCS = {
     Path("docs/v900_migration_contract.md"),
 }
 CURRENT_MAINTENANCE_DOCS = {
+    Path("docs/v11_rule_preservation_map.md"),
     Path("docs/skill_optimization_status.md"),
     Path("docs/v931_branch_cleanup_manifest.md"),
     Path("docs/v931_postrelease_health_remediation_plan.md"),

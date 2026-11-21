@@ -44,6 +44,7 @@ class RepositoryHygieneIndexV931Tests(unittest.TestCase):
             "docs/v900_migration_contract.md",
         )
         current_maintenance = (
+            "docs/v11_rule_preservation_map.md",
             "docs/skill_optimization_status.md",
             "docs/v931_branch_cleanup_manifest.md",
             "docs/v931_postrelease_health_remediation_plan.md",
