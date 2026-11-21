@@ -2244,6 +2244,23 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
                 if p5_sources == V11_P5_DEFAULT_SOURCE_HASHES and identifier in {case[0] for case in CASES}:
                     resolver_hashes.update(V11_P5_DEFAULT_SOURCE_HASHES)
                     approval = "v11 P5 exact staged reader and applicability contracts for the default route"
+                    if identifier == "facts_identity_drift":
+                        # P4c reports the precise cause on the already-stale Q1
+                        # model. Reverse just that reason for the historical control.
+                        artifacts = projected["assurance"]["artifact_assurance"]
+                        row = artifacts["evidence"][0]
+                        previous = "current framework semantic identity does not match project-state semantic identity"
+                        current = previous + "; Q1: current SIB differs from the validated semantic identity"
+                        if (row["artifact"] != "locked_model_spec" or row["scope"] != "Q1"
+                                or row["status"] != "stale" or row["reason"] != current
+                                or "locked_model_spec" in artifacts["effective_artifacts"]):
+                            return deepcopy(original), []
+                        row["reason"] = previous
+                        changes.append({
+                            "path": "assurance.artifact_assurance.evidence.0.reason",
+                            "baseline": previous, "candidate": current,
+                            "approval": "v11 P4c identifies the stale Q1 structured model identity",
+                        })
             predecessor_hashes = {
                 row["path"]: row["sha256"] for row in fixture["fingerprint"]["candidate"]
                 if row["path"] in resolver_hashes

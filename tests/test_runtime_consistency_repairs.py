@@ -209,6 +209,36 @@ class HistoricalProjectionTests(unittest.TestCase):
                                        lambda item: read_bytes(item) + (b" " if item == ROOT / path else b"")):
                     self.assertEqual(project(current), (current, []))
 
+    def test_p4c_identity_drift_only_projects_the_reason_on_the_stale_q1_model(self):
+        index = next(i for i, case in enumerate(plan_evidence.CASES) if case[0] == "facts_identity_drift")
+        record = plan_evidence.worker(ROOT, index)
+        current = plan_evidence.legacy_projection(record["plan"])
+
+        def project(plan):
+            return plan_evidence.runtime_consistency_predecessor(
+                record["id"], plan, record["authority_versions"])
+
+        previous = "current framework semantic identity does not match project-state semantic identity"
+        observed = previous + "; Q1: current SIB differs from the validated semantic identity"
+        predecessor, changes = project(current)
+        artifacts = current["assurance"]["artifact_assurance"]
+        self.assertEqual(artifacts["evidence"][0]["reason"], observed)
+        expected = deepcopy(artifacts)
+        expected["evidence"][0]["reason"] = previous
+        self.assertEqual(predecessor["assurance"]["artifact_assurance"], expected)
+        self.assertIn(("assurance.artifact_assurance.evidence.0.reason", previous, observed),
+                      [(item["path"], item.get("baseline"), item.get("candidate")) for item in changes])
+
+        for key, value in (("reason", previous), ("reason", observed + " and an unrelated change"),
+                           ("artifact", "accepted_solution_workbook"), ("scope", "Q2"), ("status", "verified")):
+            with self.subTest(key=key, value=value):
+                changed = deepcopy(current)
+                changed["assurance"]["artifact_assurance"]["evidence"][0][key] = value
+                self.assertEqual(project(changed), (changed, []))
+        changed = deepcopy(current)
+        changed["assurance"]["artifact_assurance"]["effective_artifacts"].append("locked_model_spec")
+        self.assertEqual(project(changed), (changed, []))
+
     def test_frozen_v10270_inverse_still_accepts_only_exact_carrier(self):
         after = plan_evidence.worker(ROOT, 0)
         self.assertEqual(after["authority_versions"]["skill"], "10.35.3")

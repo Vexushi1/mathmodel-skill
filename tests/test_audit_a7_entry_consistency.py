@@ -205,6 +205,8 @@ def tables(kind):
     section = canonical[kind + "_workbook"]
     result = {name: [{column: (True if column == "是否通过" else "fixture") for column in spec["required_columns"]}]
               for name, spec in section["common_required_sheets"].items()}
+    if kind == "solution":
+        result["核心指标"] = [{"指标": "残差", "数值": 0}]
     if kind == "result_analysis":
         result["参数敏感性"] = [{"参数": "p", "基准值": 1, "变化值": 2, "结果指标": 3}]
     return result
@@ -216,6 +218,9 @@ for kind in ("solution", "result_analysis"):
     cases.append((kind, missing, {}, False))
     bad = copy.deepcopy(good); bad["运行配置"] = [{"项目": "fixture"}]
     cases.append((kind, bad, {}, False))
+text_metric = tables("solution")
+text_metric["核心指标"][0]["数值"] = "fixture"
+cases.append(("solution", text_metric, {}, False))
 analysis = tables("result_analysis")
 cases.append(("robustness", analysis, {}, True))
 extra = copy.deepcopy(analysis); extra["unknown"] = [{"x": 1}]

@@ -816,8 +816,28 @@ WORKBOOK_ACCEPTANCE_BLOCKS = {
 }
 
 
+# P5 extended two applicability windows (9f23163) and clarified when legacy
+# workbook IDs select strict validation (d525b06). Recover only those lines.
+P5_COMPATIBILITY_BLOCKS = {
+    "core/workbook_schema.yaml": (
+        ("skill_compatibility: '>=6.3.2,<12.0.0'", 1,
+         "fe75013e74f69d8e89b4566e226eb562b4aa6a1d09d6ca0186318af626cfe867",
+         "skill_compatibility: '>=6.3.2,<11.0.0'\n"),
+    ),
+    "core/numerical_verification_contract.yaml": (
+        ("skill_compatibility: '>=7.14.0,<12.0.0'", 1,
+         "1a49db9812496e2cdd76b25d40e8d682754b9c0478fc8aeec9426257f6964632",
+         "skill_compatibility: '>=7.14.0,<11.0.0'\n"),
+        ("    - 主结果质量门 contains a Verification ID other than an absent cell, an empty cell, or whitespace-only text", 1,
+         "c1ea648035fc1e445c04f947beb9b7aca93b7f25c6548826e8f08d1d46816177",
+         "    - 主结果质量门 contains a non-empty Verification ID\n"),
+    ),
+}
+
+
 def p4a_authority_text(relative: str) -> str:
     text = (ROOT / relative).read_text(encoding="utf-8")
+    text = _prior_reviewed_blocks(relative, text, P5_COMPATIBILITY_BLOCKS, "P5 compatibility")
     text = _prior_reviewed_blocks(relative, text, WORKBOOK_ACCEPTANCE_BLOCKS, "workbook acceptance")
     return _prior_reviewed_blocks(relative, text, ORDINARY_EXPERIMENT_BLOCKS, "ordinary experiment")
 
@@ -1613,6 +1633,21 @@ class ContractAndDriftTests(unittest.TestCase):
                 inverse_defensive_writing_changes(relative, source + unrelated),
                 projected + unrelated,
             )
+
+    def test_p5_compatibility_projection_accepts_only_the_reviewed_lines(self):
+        for relative, blocks in P5_COMPATIBILITY_BLOCKS.items():
+            source = (ROOT / relative).read_text(encoding="utf-8")
+            expected = source
+            for first, _, _, previous in blocks:
+                line = first + "\n"
+                expected = expected.replace(line, previous, 1)
+                with self.subTest(relative=relative, line=first):
+                    for altered in (source + line, source.replace(line, first + " changed\n", 1)):
+                        with self.assertRaisesRegex(ValueError, "missing or duplicated"):
+                            _prior_reviewed_blocks(relative, altered, P5_COMPATIBILITY_BLOCKS, "P5 compatibility")
+            extra = "# unrelated change must remain visible\n"
+            projected = _prior_reviewed_blocks(relative, source + extra, P5_COMPATIBILITY_BLOCKS, "P5 compatibility")
+            self.assertEqual(projected, expected + extra)
 
     def test_ordinary_analysis_coverage_inverse_restores_exact_scale_source(self):
         relative = "core/workbook_schema.yaml"
