@@ -265,6 +265,18 @@ Resolver 计划可增加只读选择诊断，但不得写回 State：
 
 这些是本次运行计划的解释，不是新的持久项目事实，不得当作批准、数值验收或 gate PASS。
 
+### 4.5 full_solution 与 full_workflow 的逐问解释
+
+现有 Router 中的 full_solution 和 full_workflow 表示用户的**项目级目标范围**，不表示一次性批量生成所有小问的求解代码，也不表示跳过用户批准、实际运行和结果验收。
+
+- **full_solution：** 用户希望完成全部必需小问的数值求解。Resolver 每次仍只选择一个当前可推进的 Qn，交付该问的模型/代码/验收任务；在用户完成当前问的必要动作并再次继续后，按状态和依赖选择下一问。某问等待上游结果时，独立问可以先推进。
+- **full_workflow：** 用户希望完成从审题到论文和最终提交的全项目流程。它包含 full_solution 的逐问循环，之后再进入跨问综合、论文、LaTeX/PDF 和最终提交。不得将它解释为一次调用中完成全部代码、所有数值运行或所有论文章节。
+- **problem_analysis：** 仍是项目级整体审题和问题登记，可以一次性分析全部小问；它不等于一次性求解全部小问。
+- **显式 Qn：** 对当前问题级动作优先指定目标问，但不会缩小全项目最终交付范围。
+- **项目状态：** 不新增持久化 active_intent、current_question 或重复待办字段。已注册小问的状态、等待点、typed dependency 和已验收产物是后续选择依据；如果这些证据不足以判断用户是否希望继续全项目目标，则只执行当前明确动作，不擅自扩大交付。
+
+因此，full_solution/full_workflow 可以在 Resolver 中保持项目级 intent 与完整路线，但其 question-level execution unit 必须始终是一个 Qn。每次遇到 Human Model Approval、用户本地执行、工作簿返回等既有等待点，均按原合同暂停；不能把“全流程”解释为取消这些等待点。
+
 ---
 
 ## 5. typed dependency 的执行资格
