@@ -563,6 +563,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_current_skill_health.py`
 - `tests/test_e1_cross_module_acceptance.py`
 - `tests/test_e1_resource_measurement.py`
+- `tests/test_embedded_parameters_input.py`
 - `tests/test_execution_provenance.py`
 - `tests/test_execution_scale.py`
 - `tests/test_formal_reading.py`
