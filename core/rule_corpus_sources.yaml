@@ -373,6 +373,7 @@ excluded:
   - docs/v10_27_runtime_nonregression_optimization_plan.md
   - docs/v10_32_0_release_notes.md
   - docs/v11_0_0_migration.md
+  - docs/v11_0_0_postrelease_mainflow_refactor_plan.md
   - docs/v11_rule_preservation_map.md
   - docs/v801_chapter_capability_preservation_audit.md
   - docs/v801_skill_health_remediation_plan.md
