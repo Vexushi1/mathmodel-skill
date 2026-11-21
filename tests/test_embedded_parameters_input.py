@@ -9,13 +9,15 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from artifact_fingerprint import combined_hash, embedded_parameters_hash
+from execution_protocol import primary_quality_receipt_issues
+from execution_scale import scale_plan_sha256, scale_receipt_issues
 from stage_inputs import (
     data_input_files,
     declared_input_files,
     input_files,
     observe_inputs,
 )
-from validate_code_delivery import _required_config_field_missing
+from validate_code_delivery import _embedded_parameter_source_issues, _required_config_field_missing
 
 
 class EmbeddedParametersInputTests(unittest.TestCase):
@@ -118,6 +120,65 @@ class EmbeddedParametersInputTests(unittest.TestCase):
         self.assertFalse(_required_config_field_missing(self.config, "data_paths"))
         combined = {**self.config, "data_identity_mode": "combined"}
         self.assertTrue(_required_config_field_missing(combined, "data_paths"))
+
+    def test_model_source_must_consume_the_embedded_parameter_mapping(self) -> None:
+        self.assertEqual(
+            _embedded_parameter_source_issues('params = RUN_CONFIG["embedded_parameters"]', self.config),
+            [],
+        )
+        self.assertTrue(_embedded_parameter_source_issues("params = {'a': 1}", self.config))
+
+    def test_analysis_may_read_only_its_bound_primary_workbook(self) -> None:
+        config = {
+            **self.config,
+            "stage": "analysis",
+            "primary_workbook": "问题一求解/问题一求解结果.xlsx",
+        }
+        accepted = 'params = RUN_CONFIG["embedded_parameters"]\\nbook = open("问题一求解/问题一求解结果.xlsx")'
+        self.assertEqual(_embedded_parameter_source_issues(accepted, config), [])
+        rejected = 'params = RUN_CONFIG["embedded_parameters"]\\nbook = open("extra.csv")'
+        self.assertTrue(_embedded_parameter_source_issues(rejected, config))
+
+    def test_primary_quality_receipt_accepts_an_empty_embedded_input_list(self) -> None:
+        digest = "a" * 64
+        config = {
+            **self.config,
+            "primary_quality_protocol_version": "1.1.0",
+            "primary_quality_spec_sha256": digest,
+        }
+        receipt = {
+            "stage": "primary",
+            "run_receipt_version": "1.3.0",
+            "primary_quality_protocol_version": "1.1.0",
+            "data_paths": "[]",
+            "data_identity_mode": "embedded_parameters",
+            "primary_quality_spec_sha256": digest,
+        }
+        self.assertEqual(primary_quality_receipt_issues(receipt, config), [])
+
+    def test_execution_scale_receipt_accepts_an_empty_embedded_input_list(self) -> None:
+        plan = {
+            "axis": "scenarios",
+            "mode": "exact",
+            "count": 2,
+            "required_scenario_ids": ["base", "stress"],
+        }
+        digest = scale_plan_sha256(plan)
+        config = {
+            **self.config,
+            "run_receipt_protocol_version": "1.4.0",
+            "execution_scale_plan": plan,
+            "execution_scale_plan_sha256": digest,
+        }
+        receipt = {
+            "stage": "primary",
+            "run_receipt_version": "1.4.0",
+            "execution_scale_plan_sha256": digest,
+            "data_paths": "[]",
+            "data_identity_mode": "embedded_parameters",
+            "actual_scale_count": 2,
+        }
+        self.assertEqual(scale_receipt_issues(receipt, config), [])
 
     def test_file_backed_combined_mode_remains_unchanged(self) -> None:
         source = self.root / "source.csv"
