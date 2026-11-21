@@ -9,8 +9,7 @@ import runtime_assurance as runtime
 import stage_code
 import run_config_parser
 from artifact_fingerprint import sha256_file
-from execution_protocol import declared_input_paths
-from stage_inputs import input_files
+from stage_inputs import declared_input_files
 from project_transaction import JOURNAL_RELATIVE_PATH
 from claim_values import EvidenceError
 
@@ -66,7 +65,7 @@ class Sources:
         actual=stage_code.stage_code_fingerprint(self.root,code.path,deps)
         if any(self.read_set['project'][row['path']]!=row['sha256'] for row in actual['files']):
             raise EvidenceError('source changed during capture')
-        inputs=input_files(self.root,declared_input_paths(config))
+        inputs=declared_input_files(self.root,config)
         for p in inputs:self.input_sizes[p.relative_to(self.root).as_posix()]=p.stat().st_size
         if len(self.input_sizes)>limits['input_files'] or sum(self.input_sizes.values())>limits['input_bytes']:
             raise EvidenceError('execution input observation budget exceeded')
