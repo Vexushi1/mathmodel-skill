@@ -9,13 +9,13 @@
   "volumes": [
     {
       "path": "core/full_reading/volumes/001.md",
-      "bytes": 12282,
-      "sha256": "0943cd7a72c4e3e6142077ddcc3586267d92852435bacacde9a33434fba62cb3"
+      "bytes": 12176,
+      "sha256": "95c4a248ba2d742c54f6e65fb724dba24485b8cd92b86aaa7ae857c0a18ec315"
     },
     {
       "path": "core/full_reading/volumes/002.md",
-      "bytes": 11896,
-      "sha256": "e99e6ada544dbeed9b6c568db00ea91f80268fdbe7e07886a2d28187830fa0ed"
+      "bytes": 11755,
+      "sha256": "d33cf47b1c6d3b9d72e43deed894c300d43bb8097c98f616ad9652b76fd85bfd"
     },
     {
       "path": "core/full_reading/volumes/003.md",
@@ -639,8 +639,8 @@
     },
     {
       "path": "core/full_reading/volumes/127.md",
-      "bytes": 12177,
-      "sha256": "78d41ade0e43dc7dab96ccc24354efb2534954df6dda37d39fcbac0b00d44664"
+      "bytes": 12027,
+      "sha256": "4455046d313ada0b00b011d3a8ade66f4868ff06ddcb8fdce6a208dbd7a5f600"
     },
     {
       "path": "core/full_reading/volumes/128.md",
@@ -658,19 +658,19 @@
       "path": "PROJECT_INSTRUCTIONS.md",
       "role": "entry",
       "aliases": [],
-      "bytes": 6852,
-      "sha256": "9ce805508cc86e9946349b89a3b69672dd0f52bf5a489a2ddc3db9302dec10e0",
-      "git_blob_sha1": "93faf72965e39448280bda400544685516ae8104",
+      "bytes": 6854,
+      "sha256": "0973ba4d78fee8c8254c880745dc5f87913ff7774eeebd8cb9ac974ba04896a2",
+      "git_blob_sha1": "12880f4a2f3b85e57e6e3709cc19a3e5c5d2c005",
       "parts": [
         {
           "volume": "core/full_reading/volumes/001.md",
           "start": 0,
-          "end": 6852,
+          "end": 6854,
           "line_start": 1,
           "line_end": 42,
           "volume_start": 88,
-          "volume_end": 6940,
-          "sha256": "9ce805508cc86e9946349b89a3b69672dd0f52bf5a489a2ddc3db9302dec10e0"
+          "volume_end": 6942,
+          "sha256": "0973ba4d78fee8c8254c880745dc5f87913ff7774eeebd8cb9ac974ba04896a2"
         }
       ]
     },
@@ -680,24 +680,24 @@
       "aliases": [
         "skills/mathmodel-skill/SKILL.md"
       ],
-      "bytes": 14060,
-      "sha256": "18bd4a7bb157f02e3ba9abfa2b5bc13f404c502b20d801d286c47ed17b2aebac",
-      "git_blob_sha1": "8a3801d6c25e6d0c6a6f35ee2ab9c968e12e7f0e",
+      "bytes": 13952,
+      "sha256": "9337102c143b0ec8113e57bec412e2567c8bbc5505eef4bbd1570d4f13f2c468",
+      "git_blob_sha1": "4154a3154a0c3a72f2aeffa910ae87f6edad8cfa",
       "parts": [
         {
           "volume": "core/full_reading/volumes/001.md",
           "start": 0,
-          "end": 5284,
+          "end": 5176,
           "line_start": 1,
           "line_end": 27,
-          "volume_start": 6998,
-          "volume_end": 12282,
-          "sha256": "0c9de4dde9a176ad93bae7003d7d85971981bbcfc00ceb44392bf2bf0a513e84"
+          "volume_start": 7000,
+          "volume_end": 12176,
+          "sha256": "dc5dddbe4dcd58d3bab8c773a85852be7e85573727846e84a357b71c6e877bc4"
         },
         {
           "volume": "core/full_reading/volumes/002.md",
-          "start": 5284,
-          "end": 14060,
+          "start": 5176,
+          "end": 13952,
           "line_start": 28,
           "line_end": 105,
           "volume_start": 62,
@@ -710,19 +710,19 @@
       "path": "agents/openai.yaml",
       "role": "entry",
       "aliases": [],
-      "bytes": 2980,
-      "sha256": "5df4d1b41dc728748fb6b3e6d7ffd97dcec12f04b04e8ac2cb8322bced5001b2",
-      "git_blob_sha1": "61c8a12d7f4ae39abc78d6e34289dd08fb355422",
+      "bytes": 2839,
+      "sha256": "0db95b5221ea848f6110adac28f42264d7d372028fd57dfbb984dc4b92b34bbc",
+      "git_blob_sha1": "c34e2c67de51c6b12cf672386cf17da4d53811cf",
       "parts": [
         {
           "volume": "core/full_reading/volumes/002.md",
           "start": 0,
-          "end": 2980,
+          "end": 2839,
           "line_start": 1,
-          "line_end": 37,
+          "line_end": 36,
           "volume_start": 8916,
-          "volume_end": 11896,
-          "sha256": "5df4d1b41dc728748fb6b3e6d7ffd97dcec12f04b04e8ac2cb8322bced5001b2"
+          "volume_end": 11755,
+          "sha256": "0db95b5221ea848f6110adac28f42264d7d372028fd57dfbb984dc4b92b34bbc"
         }
       ]
     },
@@ -4060,19 +4060,19 @@
       "path": "AGENTS.md",
       "role": "entry",
       "aliases": [],
-      "bytes": 9491,
-      "sha256": "f42e6f1a3d4c52b04af03bc36dbdcaa19ac60f344478a7c9c27c646f52b7f4c0",
-      "git_blob_sha1": "711c86f12dfe5d53167de0e08cdd506f1c9b3e54",
+      "bytes": 9341,
+      "sha256": "8bff0b70c1de6b72262cda7621bbf38a2fd573565274c685d2c73a6705ab4655",
+      "git_blob_sha1": "daa90b88628cad2e4a03892356934214aff6b2cf",
       "parts": [
         {
           "volume": "core/full_reading/volumes/127.md",
           "start": 0,
-          "end": 7287,
+          "end": 7137,
           "line_start": 1,
           "line_end": 18,
           "volume_start": 60,
-          "volume_end": 7347,
-          "sha256": "7c710cfdbec4b3596096a0f532da62c3f65000d1f11e3c1ea0ef2ae69d2585f3"
+          "volume_end": 7197,
+          "sha256": "f7f764697b36d022432b19727d31b0931b3e08c64b29cc0d7a87cd4beaeab50b"
         }
       ]
     },
@@ -4090,8 +4090,8 @@
           "end": 712,
           "line_start": 1,
           "line_end": 14,
-          "volume_start": 7495,
-          "volume_end": 8207,
+          "volume_start": 7345,
+          "volume_end": 8057,
           "sha256": "01cd3765dba6e6479e8ecf0400e18795231c4024d83b4291263d8dcf03c5b1c8"
         },
         {
@@ -4100,8 +4100,8 @@
           "end": 23260,
           "line_start": 795,
           "line_end": 798,
-          "volume_start": 8361,
-          "volume_end": 8574,
+          "volume_start": 8211,
+          "volume_end": 8424,
           "sha256": "1a5e7764dd4588f1e1efdce78d6377888445715db066d31d9450436f8d7231de"
         },
         {
@@ -4110,8 +4110,8 @@
           "end": 30521,
           "line_start": 959,
           "line_end": 1037,
-          "volume_start": 8728,
-          "volume_end": 10425,
+          "volume_start": 8578,
+          "volume_end": 10275,
           "sha256": "45585e8bb866bdb423ca715c7f1a28c1645174a773fa31b4dde6bcb83429d305"
         }
       ]
@@ -4130,8 +4130,8 @@
           "end": 629,
           "line_start": 1,
           "line_end": 8,
-          "volume_start": 10642,
-          "volume_end": 11271,
+          "volume_start": 10492,
+          "volume_end": 11121,
           "sha256": "d17e2c22bad6c5bd9ea3bbe5118874ef696e66183cf148b009866d9d47650d7f"
         }
       ]
@@ -4150,8 +4150,8 @@
           "end": 715,
           "line_start": 1,
           "line_end": 6,
-          "volume_start": 11462,
-          "volume_end": 12177,
+          "volume_start": 11312,
+          "volume_end": 12027,
           "sha256": "1c4e60ebcb0216eb941f053da266b6f3629e5ff6c9b895fddcb6f20401345729"
         }
       ]
