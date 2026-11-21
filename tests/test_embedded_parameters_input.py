@@ -138,6 +138,10 @@ class EmbeddedParametersInputTests(unittest.TestCase):
         self.assertEqual(_embedded_parameter_source_issues(accepted, config), [])
         rejected = 'params = RUN_CONFIG["embedded_parameters"]\nbook = open("extra.csv")'
         self.assertTrue(_embedded_parameter_source_issues(rejected, config))
+        workbook_reader = 'params = RUN_CONFIG["embedded_parameters"]\nbook = load_workbook("extra.xlsx")'
+        self.assertTrue(_embedded_parameter_source_issues(workbook_reader, config))
+        path_reader = 'params = RUN_CONFIG["embedded_parameters"]\nraw = Path("extra.txt").read_text()'
+        self.assertTrue(_embedded_parameter_source_issues(path_reader, config))
 
     def test_primary_quality_receipt_accepts_an_empty_embedded_input_list(self) -> None:
         digest = "a" * 64
