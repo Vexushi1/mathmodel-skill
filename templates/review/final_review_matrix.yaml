@@ -43,6 +43,15 @@ coverage:
     status: unverifiable
     rule_source: modules/05_latex_compile_quality.md#终稿检查
     evidence: "TODO: assistant records actual page coverage, findings/repairs and any uncovered pages for the current review_context.compiled_pdf_sha256; unavailable viewing remains unverifiable."
+    # 核验时向现有 score_submission.py 传入 --pdf 当前文件。旧散文记录保留供复核。
+    # 交付范围确实无需 PDF 时在 evidence 写明依据、标 not_applicable 并留空 PDF 哈希。
+    # 正式提交仍须通过原有审计、编译及提交包验证。
+    page_review:
+      method: null          # assistant_visual after viewing the rendered pages
+      pdf_sha256: null      # digest of the exact file viewed
+      page_count: null
+      viewed_ranges: []     # inclusive, one-based pairs such as [[1, 3]]
+      uncovered_ranges: []  # complement of viewed_ranges over the current PDF
   - check_family: figure_table_information_value
     applicability: applicable
     verification_mode: manual

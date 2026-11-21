@@ -314,6 +314,10 @@ Module 02 的 Comparator 按具体比较问题关联稳定检验 ID。数学／�
 # protected hashes still reject unrelated edits to these writing authorities.
 HANDOFF_AUTHORITY_REWRITES = {
     "modules/05_writing/paper_writing_protocol.md": (
+        # Restore the three v11 chapter-read/registration changes before the older handoff inverse.
+        ("正式启动与跨会话恢复沿用固定提交的启动合同。已选择全文启动时，先取得规范全文。开始或切换小问、章节时仍须重新取得当前动作适用的规则原文、当前框架及相应证据。前一问尚缺的结果继续留待核验。已有规范正文只提供规则依据，正式写入仍须满足当前项目的模型、结果与写作门。\n\n新论文或结构性重写先确定实际骨架、目标位置与本轮范围。采用 Template-First 的项目按 `core/writing_runtime_contract.yaml#template_first_progressive_authoring` 读活动模板和主文件，再按“读取当前章节规则 → 写当前章节 → 通过当前 gate → 再读取下一章节规则”推进。其他赛事及明确选择的 Word 载体沿用其实际骨架；缺赛事专属模板时，根据题目和已有项目材料组织当前章节。", "本文件是普通正文内容 Authority，但**不是开篇一次性预读的长提示词**。每次新论文或结构性重写必须服从 `core/writing_runtime_contract.yaml#template_first_progressive_authoring`：先读 Template Manifest 与主文件，只确定骨架和目标槽；随后按“读取当前章节规则 → 写当前章节 → 通过当前 gate → 再读取下一章节规则”推进。"),
+        ("一并查看用户本轮提供的章节交接材料；其中的预留标识可帮助定位对象，结果仍须回到已验收的来源核实。", ""),
+        ("LaTeX 按生效的源文件和 label/ref 核对，Word 按实际标题、题注或交叉引用核对。仅交付提纲时登记拟放位置，正文形成后再回填实际锚点。", ""),
         ("前期图表预登记是后续写作的输入。每问开始前按 §13.0 盘点相关登记并安排用途，不能只凭图型或聊天记忆临时找图。\n\n", ""),
         ("""**预登记到写作的交接。** 图表可以先于论文制作；前期在现有“论文位置”／Paper location 中登记“所属小问或共享范围＋预期论证功能”，例如“问题二／结果与分析，具体小节写作时确定”。尚无正文时，“正文引用位置”留空，不预写物理行号、页码，不提前锁死三级标题；归属未定时在原位置或既有待办中说明。Figure role 保持原有证据用途定义，不改成章节槽位。
 
@@ -662,6 +666,180 @@ def _prior_reviewed_blocks(relative: str, text: str, blocks, label: str) -> str:
         start, = matches
         lines[start:start + count] = previous.splitlines(keepends=True)
     return "".join(lines)
+
+
+# Exact candidate changes relative to the P4a source. Older projections run on its recovered bytes.
+ORDINARY_EXPERIMENT_BLOCKS = {
+    "core/workbook_schema.yaml": (
+        (
+            '  - 同模型多算法检验', 16,
+            "3521050ad239dcc7d67c3c5346af8f37d7434c830b318d4610092c7664c86277",
+            (
+                '  - 同模型多算法检验\n'
+                '  # Each recognized ordinary method in the current plan requires its own substantive table.\n'
+            ),
+        ),
+    ),
+    "modules/03_result_analysis.md": (
+        (
+            '独立深化入口 是独立可复现程序，不复制主求解主链，不通过改写 主求解入口 实现深化分析。新生成脚本必须只定义一个按执行 Authority 可静态读取的 `RUN_CONFIG`，其中 `stage="analysis"` 并锁定当前数据事实源的 `data_sha256`；user/full-fidelity/no-degradation 政策由 `core/user_execution_contract.yaml` 继承，不在脚本中重复自报。工作簿中的 `code_sha256` 必须对应该深化分析脚本，并继续完整记录 solver/version、stop、platform、fallback 与 no-degradation 等实际运行事实。旧 `FULL_FIDELITY_CONFIG/FULL_RUN_CONFIG` 仅作只读兼容。', 8,
+            "fa6e15591e01d3fdd896e1635f89d36e470da906a64be3bfaa6239da9a1d1414",
+            (
+                '独立深化入口 是独立可复现程序，不复制主求解主链，不通过改写 主求解入口 实现深化分析。新生成脚本必须只定义一个按执行 Authority 可静态读取的 `RUN_CONFIG`，其中 `stage="analysis"` 并锁定当前数据事实源的 `data_sha256`；user/full-fidelity/no-degradation 政策由 `core/user_execution_contract.yaml` 继承，不在脚本中重复自报。工作簿中的 `code_sha256` 必须对应该深化分析脚本，并继续完整记录 solver/version、stop、platform、fallback 与 no-degradation 等实际运行事实。旧 `FULL_FIDELITY_CONFIG/FULL_RUN_CONFIG` 仅作只读兼容。\n'
+                '\n'
+            ),
+        ),
+    ),
+    "scripts/validate_code_delivery.py": (
+        (
+            '    SOURCE_RECEIPT_VERSIONS, is_source_receipt, auxiliary_config_issues, comparison_config_issues,', 3,
+            "fae3b548190ec1b4b2b9dcab519639504fd8365e1cc4e67ebaa3bdd909088eb4",
+            (
+                '    SOURCE_RECEIPT_VERSIONS, is_source_receipt, auxiliary_config_issues, comparison_config_issues,\n'
+                '    primary_quality_config_issues,\n'
+                ')\n'
+            ),
+        ),
+        (
+            '    modern = is_source_receipt(receipt_protocol)', 3,
+            "8071d9cb68cf93d4fab86f720a177d27e74a39733d5c7b03a296834942253e5e",
+            (
+                '    modern = is_source_receipt(receipt_protocol)\n'
+                '    issues.extend(auxiliary_config_issues(config))\n'
+            ),
+        ),
+        (
+            '            issues.append(str(exc))', 9,
+            "c9c09cb7342b88c367ec22187f5dade3b08cc2e319b74173234d82c614783ca4",
+            (
+                '            issues.append(str(exc))\n'
+                '    if stage == "primary":\n'
+            ),
+        ),
+        (
+            '    configuration_issues.extend(scale_issues)', 3,
+            "25f1db8dacfa218e69b452152e25fb9e9b6a675b7473e6695df3f08f9dd41131",
+            (
+                '    configuration_issues.extend(scale_issues)\n'
+                '    if configuration_issues:\n'
+            ),
+        ),
+        (
+            '    observed_state = load_yaml(state_path)', 3,
+            "e0b58ac9849fc3a0080ad6c59d9655882b5561ecb1a28a7e944a99c487bb8272",
+            (
+                '    observed_state = load_yaml(state_path)\n'
+                '    guarded = scale_plan is not None or PRIMARY_QUALITY.binding_present(config) or any(\n'
+                '        CONFORMANCE.present(entry) or COMPARISON.present(entry, config=config)\n'
+            ),
+        ),
+        (
+            '    quality_observed = {"project": {}, "skill": {}}', 21,
+            "37666265bd014848c15edc98b1506bf906e6dc32bb36a0d91ce19bb9dd3ce164",
+            (
+                '    quality_observed = {"project": {}, "skill": {}}\n'
+                '    specification = None\n'
+            ),
+        ),
+        (
+            '        expected_file_hashes=observed["project"] or None,', 3,
+            "05eda83d002ac46c25eedfa65a4a9901f91aaef51c952dff40e12feba6019e59",
+            (
+                '        expected_file_hashes=observed["project"] or None,\n'
+                '        validators=[CONFORMANCE.skill_validator(observed)] if conformance["enabled"] or comparison["enabled"] else (),\n'
+                '    )\n'
+            ),
+        ),
+    ),
+}
+
+
+# Reverse the exact P4d workbook and numerical contract edits for older byte-level checks.
+WORKBOOK_ACCEPTANCE_BLOCKS = {
+    "core/workbook_schema.yaml": (
+        (
+            '  key_policy: 显式记录键或样本键必须非空且唯一', 3,
+            "17ea9cb5e5edbeb887d0c935fbe0e2420978a839ba3f18016fb689d82185b0f8",
+            (
+                '  key_policy: 显式记录键或样本键必须非空且唯一\n'
+                '  numeric_policy: 数值字段不得包含正负无穷；有依据的缺失值必须在数据审计中说明\n'
+                '  constraint_judgement_policy: 违反量、容差和是否满足必须逻辑一致\n'
+            ),
+        ),
+        (
+            '      required_columns: [指标, 数值]', 8,
+            "abb9e712d55cc85b3175e4adc2c217de16e2506d24e96b322b3de36d22c393c5",
+            (
+                '      required_columns: [指标, 数值]\n'
+                '      optional_columns: [单位, 统计口径, 说明]\n'
+                '    数据审计:\n'
+            ),
+        ),
+        (
+            '      required_columns: [主体或均衡, 残差, 容差, 是否满足]', 6,
+            "2717aa8b0b8a3d8cd7ba0e5d8b33d7fe898864b17e6535786f12d0d55993ee79",
+            (
+                '      required_columns: [主体或均衡, 残差, 容差, 是否满足]\n'
+                '    守恒残差:\n'
+                '      required_columns: [守恒量, 残差, 容差, 是否满足]\n'
+                '    离散精度:\n'
+            ),
+        ),
+        (
+            '      required_columns: [指标, 下界, 上界]', 7,
+            "8556d5a081afb5e0479334ead3a78d52ef3f89d49cd8a71cc4de559fa2f4cce3",
+            (
+                '      required_columns: [指标, 下界, 上界]\n'
+                '      optional_columns: [置信水平, 分位数口径, 样本数, 单位]\n'
+                '    泄漏检查:\n'
+            ),
+        ),
+    ),
+    "core/numerical_verification_contract.yaml": (
+        (
+            '    evidence_sheet: 不确定性区间', 3,
+            "8db50dcb9ce1d4828c9149a27abfa60e9edc9344f6cb700151aadc19f97c6ea8",
+            (
+                '    evidence_sheet: 不确定性区间\n'
+                '    recheck_mode: summary_criterion\n'
+            ),
+        ),
+        (
+            '    source_columns: [残差, 容差, 是否满足]', 12,
+            "3ea95af15688372a370898d4287f01cdadf126f9b62fba53520b9830ed6f6b1c",
+            (
+                '    source_columns: [残差, 容差, 是否满足]\n'
+                '    computed_metric: max_abs_value\n'
+            ),
+        ),
+    ),
+}
+
+
+# P5 extended two applicability windows (9f23163) and clarified when legacy
+# workbook IDs select strict validation (d525b06). Recover only those lines.
+P5_COMPATIBILITY_BLOCKS = {
+    "core/workbook_schema.yaml": (
+        ("skill_compatibility: '>=6.3.2,<12.0.0'", 1,
+         "fe75013e74f69d8e89b4566e226eb562b4aa6a1d09d6ca0186318af626cfe867",
+         "skill_compatibility: '>=6.3.2,<11.0.0'\n"),
+    ),
+    "core/numerical_verification_contract.yaml": (
+        ("skill_compatibility: '>=7.14.0,<12.0.0'", 1,
+         "1a49db9812496e2cdd76b25d40e8d682754b9c0478fc8aeec9426257f6964632",
+         "skill_compatibility: '>=7.14.0,<11.0.0'\n"),
+        ("    - 主结果质量门 contains a Verification ID other than an absent cell, an empty cell, or whitespace-only text", 1,
+         "c1ea648035fc1e445c04f947beb9b7aca93b7f25c6548826e8f08d1d46816177",
+         "    - 主结果质量门 contains a non-empty Verification ID\n"),
+    ),
+}
+
+
+def p4a_authority_text(relative: str) -> str:
+    text = (ROOT / relative).read_text(encoding="utf-8")
+    text = _prior_reviewed_blocks(relative, text, P5_COMPATIBILITY_BLOCKS, "P5 compatibility")
+    text = _prior_reviewed_blocks(relative, text, WORKBOOK_ACCEPTANCE_BLOCKS, "workbook acceptance")
+    return _prior_reviewed_blocks(relative, text, ORDINARY_EXPERIMENT_BLOCKS, "ordinary experiment")
 
 
 # Reconstruct only the approved v10.35.1 ordinary-method schema additions.
@@ -1178,7 +1356,8 @@ class ContractAndDriftTests(unittest.TestCase):
         # C1 distinguishes optional receipt metadata from the internal review matrix.
         "modules/06_review_delivery.md": "4d2bc78193c14f2ee72983db7d58b1870e9ca59f",
         "config/competition_profiles.yaml": "0cfe08e2edac99f07f2e527643499b8bc73c0479",
-        "scripts/validate_semantic_governance.py": "3a91083546ce0bd0cc20ca3e1c5593611f00f77d",
+        # P4c binds typed dependencies and semantic revisions before updating validated baselines.
+        "scripts/validate_semantic_governance.py": "769eb05089111a11624db7da880a1402ecfec853",
         # A5 requires current per-question files and exact official allowlist entries.
         # B2c additionally binds the selected LaTeX entrypoint and blocks
         # DOCX submission until a supported rendered proof exists. C2 adds
@@ -1205,7 +1384,7 @@ class ContractAndDriftTests(unittest.TestCase):
         # those live bytes before applying the unchanged historical projections;
         # neither the old protected blob hash nor its inverse rules are waived.
         text = (historical_review_text(ROOT) if relative == "modules/06_review_delivery.md"
-                else (ROOT / relative).read_text(encoding="utf-8"))
+                else p4a_authority_text(relative))
         text = prior_primary_quality_binding(relative, prior_execution_scale_binding(relative, text))
         if relative == "core/workbook_schema.yaml":
             # Renderer-neutral handoff wording does not change the workbook
@@ -1423,7 +1602,7 @@ class ContractAndDriftTests(unittest.TestCase):
                         b"blob " + str(len(data)).encode("ascii") + b"\0" + data
                     ).hexdigest()
                 elif relative in PRIMARY_QUALITY_BINDING_BLOCKS:
-                    predecessor = prior_execution_scale_binding(relative, path.read_text(encoding="utf-8"))
+                    predecessor = prior_execution_scale_binding(relative, p4a_authority_text(relative))
                     text = prior_primary_quality_binding(relative, predecessor)
                     data = text.encode("utf-8")
                     actual = hashlib.sha1(
@@ -1435,7 +1614,7 @@ class ContractAndDriftTests(unittest.TestCase):
 
     def test_defensive_writing_inverse_projection_rejects_missing_or_duplicate_blocks(self):
         for relative, replacements in DEFENSIVE_WRITING_AUTHORITY_REWRITES.items():
-            source = (ROOT / relative).read_text(encoding="utf-8")
+            source = p4a_authority_text(relative)
             for current, _ in replacements:
                 for changed in (
                     source.replace(current, "", 1),
@@ -1447,7 +1626,7 @@ class ContractAndDriftTests(unittest.TestCase):
 
     def test_defensive_writing_inverse_projection_preserves_unrelated_changes(self):
         for relative in DEFENSIVE_WRITING_AUTHORITY_REWRITES:
-            source = (ROOT / relative).read_text(encoding="utf-8")
+            source = p4a_authority_text(relative)
             projected = inverse_defensive_writing_changes(relative, source)
             unrelated = "\nunauthorized unrelated authority change\n"
             self.assertEqual(
@@ -1455,9 +1634,24 @@ class ContractAndDriftTests(unittest.TestCase):
                 projected + unrelated,
             )
 
+    def test_p5_compatibility_projection_accepts_only_the_reviewed_lines(self):
+        for relative, blocks in P5_COMPATIBILITY_BLOCKS.items():
+            source = (ROOT / relative).read_text(encoding="utf-8")
+            expected = source
+            for first, _, _, previous in blocks:
+                line = first + "\n"
+                expected = expected.replace(line, previous, 1)
+                with self.subTest(relative=relative, line=first):
+                    for altered in (source + line, source.replace(line, first + " changed\n", 1)):
+                        with self.assertRaisesRegex(ValueError, "missing or duplicated"):
+                            _prior_reviewed_blocks(relative, altered, P5_COMPATIBILITY_BLOCKS, "P5 compatibility")
+            extra = "# unrelated change must remain visible\n"
+            projected = _prior_reviewed_blocks(relative, source + extra, P5_COMPATIBILITY_BLOCKS, "P5 compatibility")
+            self.assertEqual(projected, expected + extra)
+
     def test_ordinary_analysis_coverage_inverse_restores_exact_scale_source(self):
         relative = "core/workbook_schema.yaml"
-        text = (ROOT / relative).read_text(encoding="utf-8")
+        text = p4a_authority_text(relative)
         prior = prior_ordinary_analysis_coverage(relative, text)
         self.assertEqual(hashlib.sha256(prior.encode("utf-8")).hexdigest(),
                          "568d2fa949b04748acf512a9883d7a5bd6c958221675d3548cee2fc88cded095")
@@ -1480,7 +1674,7 @@ class ContractAndDriftTests(unittest.TestCase):
         }
         for relative, expected in source_hashes.items():
             with self.subTest(relative=relative):
-                current = (ROOT / relative).read_text(encoding="utf-8")
+                current = p4a_authority_text(relative)
                 prior = prior_execution_scale_binding(relative, current)
                 self.assertEqual(hashlib.sha256(prior.encode("utf-8")).hexdigest(), expected)
                 extra = "\n# unauthorized separate change\n"
@@ -1504,7 +1698,7 @@ class ContractAndDriftTests(unittest.TestCase):
         }
         for relative, expected in source_hashes.items():
             with self.subTest(relative=relative):
-                current = (ROOT / relative).read_text(encoding="utf-8")
+                current = p4a_authority_text(relative)
                 current = prior_execution_scale_binding(relative, current)
                 prior = prior_primary_quality_binding(relative, current)
                 self.assertEqual(hashlib.sha256(prior.encode("utf-8")).hexdigest(), expected)
@@ -1522,7 +1716,7 @@ class ContractAndDriftTests(unittest.TestCase):
 
     def test_preprocessing_redelivery_inverse_is_exact(self):
         relative = "scripts/validate_code_delivery.py"
-        current = (ROOT / relative).read_text(encoding="utf-8")
+        current = p4a_authority_text(relative)
         source = prior_primary_quality_binding(relative, prior_execution_scale_binding(relative, current))
         predecessor = prior_preprocessing_delivery(source)
         data = predecessor.encode("utf-8")
@@ -1542,7 +1736,7 @@ class ContractAndDriftTests(unittest.TestCase):
             *P6_SOURCE_PROVENANCE_REWRITES.items(),
             *USER_CHECKER_AUTHORITY_REWRITES.items(),
         ):
-            live = (ROOT / relative).read_text(encoding="utf-8")
+            live = p4a_authority_text(relative)
             text = prior_primary_quality_binding(relative, prior_execution_scale_binding(relative, live))
             for current, _ in replacements:
                 for changed in (text.replace(current, "unauthorized replacement\n", 1), text + current):
@@ -1552,7 +1746,7 @@ class ContractAndDriftTests(unittest.TestCase):
 
     def test_checker_inverse_projection_does_not_erase_unrelated_changes(self):
         for relative in set(USER_CHECKER_AUTHORITY_REWRITES) | set(P6_SOURCE_PROVENANCE_REWRITES):
-            current = (ROOT / relative).read_text(encoding="utf-8")
+            current = p4a_authority_text(relative)
             text = prior_primary_quality_binding(relative, prior_execution_scale_binding(relative, current))
             changed = text + "\nunauthorized unrelated change\n"
             projected = inverse_user_checker_changes(relative, text)
@@ -1560,7 +1754,7 @@ class ContractAndDriftTests(unittest.TestCase):
                 inverse_user_checker_changes(relative, changed),
                 projected + "\nunauthorized unrelated change\n",
             )
-            self.assertEqual((ROOT / relative).read_text(encoding="utf-8"), current)
+            self.assertEqual(p4a_authority_text(relative), current)
 
     def test_matlab_ownership_and_conditional_per_question_layout_are_explicit(self):
         output = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))

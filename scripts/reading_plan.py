@@ -6,7 +6,9 @@ Selections name exact source ranges; they are not a record of completed reading.
 from __future__ import annotations
 
 import hashlib
+import os
 import re
+import subprocess
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
@@ -18,6 +20,8 @@ from yaml.tokens import AliasToken
 from artifact_fingerprint import combined_hash, sha256_file
 from runtime_assurance import ProjectStateReadError, ProjectStateSnapshot
 from project_transaction import STATE_RELATIVE_PATH
+from state_transitions import dependency_edges
+from validate_model_paper_framework import sha256_text
 import plot_backend as PLOT_BACKEND
 
 
@@ -45,16 +49,58 @@ def _merge_ranges(ranges: list[tuple[int, int]]) -> list[tuple[int, int]]:
     return merged
 
 
+_SOURCE_ROOT = Path(__file__).resolve().parents[1]
+
+
+def _pinned_chunk_source(chunk: dict[str, Any]) -> bytes | None:
+    """Read the exact local commit and path. An unknown pin has no independent bytes here."""
+    commit = chunk["source_commit"]
+    if chunk.get("origin", "skill") != "skill" or not re.fullmatch(r"[0-9a-fA-F]{40}", commit):
+        return None
+    git = ["git", "--no-replace-objects", "--literal-pathspecs", "-C", str(_SOURCE_ROOT)]
+    environment = {**os.environ, "GIT_NO_LAZY_FETCH": "1"}
+    try:
+        commit_type = subprocess.run([*git, "cat-file", "-t", commit], capture_output=True, env=environment)
+    except OSError:
+        return None
+    if commit_type.returncode:
+        return None
+    if commit_type.stdout.strip() != b"commit":
+        raise ValueError("selected Git object is not a commit")
+
+    path = chunk["path"]
+    if "\0" in path or "\\" in path or any(part in ("", ".", "..") for part in path.split("/")):
+        raise ValueError("source path must be a repository-relative file in the selected commit")
+    tree = subprocess.run([*git, "ls-tree", "-z", "--full-tree", commit, "--", path], capture_output=True, env=environment)
+    if tree.returncode:
+        return None
+    metadata, separator, stored_path = tree.stdout.partition(b"\t")
+    if not separator or stored_path != path.encode("utf-8") + b"\0":
+        raise ValueError("source path is absent from the selected commit")
+    mode, kind, blob = metadata.split()
+    if kind != b"blob" or mode not in (b"100644", b"100755"):
+        raise ValueError("selected Git path is not a regular source file")
+    blob_id = blob.decode("ascii")
+    if chunk["source_blob_sha"] is not None and chunk["source_blob_sha"].lower() != blob_id:
+        raise ValueError("source blob ID differs from the selected commit and path")
+    result = subprocess.run([*git, "cat-file", "blob", blob_id], capture_output=True, env=environment)
+    return result.stdout if result.returncode == 0 else None
+
+
 def validate_chunk_coverage(
     expected_ranges: list[list[int] | tuple[int, int]],
     chunks: list[dict[str, Any]],
+    *, expected_source: bytes | None = None,
 ) -> dict[str, Any]:
     """Validate returned source chunks against a planned 1-based inclusive read set.
 
-    This pure helper validates transport completeness only. It neither fetches text nor
-    establishes semantic review, approval, artifact acceptance, or delivery-gate status.
+    Coverage describes transport only, independently of any review or delivery gate.
     Each chunk must carry path, selected commit, an explicit SHA-256 value (or None when
     unavailable), a separately named blob ID, its inclusive line range, and returned text.
+    With no explicit original, use local Git objects at the selected Skill commit when
+    available. Structural coverage alone retains its prior result and reports byte_verification
+    as unavailable. A verified byte result covers returned chunks; missing_ranges still
+    identifies outstanding intervals. Never build expected bytes from the response.
     """
     issues: list[str] = []
     expected_raw: list[tuple[int, int]] = []
@@ -72,6 +118,7 @@ def validate_chunk_coverage(
         return {
             "complete": False,
             "missing_ranges": [],
+            "byte_verification": "unavailable",
             "issues": issues + ["no valid required ranges declared"],
         }
 
@@ -129,11 +176,11 @@ def validate_chunk_coverage(
         if chunk["source_blob_sha"] is not None and not isinstance(chunk["source_blob_sha"], str):
             issues.append(f"chunk {index} has an invalid blob ID")
         actual_lines = len(chunk["text"].splitlines())
-        expected_lines = end - start + 1
-        if actual_lines != expected_lines:
+        declared_lines = end - start + 1
+        if actual_lines != declared_lines:
             issues.append(
                 f"chunk {index} line count mismatch for {start}-{end}: "
-                f"expected {expected_lines}, received {actual_lines}"
+                f"expected {declared_lines}, received {actual_lines}"
             )
         identities.add((
             chunk["path"], chunk["source_commit"], source_sha256, chunk["source_blob_sha"],
@@ -145,6 +192,37 @@ def validate_chunk_coverage(
 
     if len(identities) > 1:
         issues.append("source identity differs across chunks")
+    explicit_source = expected_source is not None
+    byte_verification = "unavailable"
+    if expected_source is None and normalized_chunks and not issues:
+        try:
+            expected_source = _pinned_chunk_source(normalized_chunks[0][3])
+        except ValueError as exc:
+            issues.append(str(exc))
+            normalized_chunks.clear()
+            byte_verification = "failed"
+    if expected_source is not None:
+        expected_sha = hashlib.sha256(expected_source).hexdigest()
+        try:
+            expected_lines = expected_source.decode("utf-8").splitlines(keepends=True)
+        except UnicodeDecodeError:
+            issues.append("independent source is not UTF-8 text")
+            normalized_chunks.clear()
+            expected_lines = []
+        verified = []
+        for item in normalized_chunks:
+            start, end, index, chunk = item
+            reported_sha = chunk["source_sha256"]
+            hash_conflict = ((explicit_source or reported_sha is not None)
+                             and str(reported_sha).lower() != expected_sha)
+            if (hash_conflict or end > len(expected_lines)
+                    or chunk["text"] != "".join(expected_lines[start - 1:end])):
+                issues.append(f"chunk {index} differs from independent source bytes at {start}-{end}")
+            else:
+                verified.append(item)
+        normalized_chunks = verified
+        byte_verification = "failed" if issues or not verified else "verified"
+
     for start, end, index, _ in normalized_chunks:
         if not any(left <= start and end <= right for left, right in expected):
             issues.append(f"chunk {index} range {start}-{end} is outside the required ranges")
@@ -175,6 +253,7 @@ def validate_chunk_coverage(
     ]
     return {
         "complete": bool(normalized_chunks) and not missing_ranges and not issues,
+        "byte_verification": byte_verification,
         "missing_ranges": missing_ranges,
         "issues": issues,
     }
@@ -533,6 +612,12 @@ def describe_resources(
     return rows
 
 
+def _framework_hash_matches(record: dict[str, Any], text: str) -> bool:
+    # The state validator binds normalized UTF-8 text. Transport and project
+    # read-set identities continue to bind the exact bytes captured on disk.
+    return str(record.get("sha256") or "").lower() == sha256_text(text)
+
+
 def _current_project(
     plan: dict[str, Any], state_snapshot: ProjectStateSnapshot | None,
 ) -> tuple[Path | None, dict[str, Any], list[str]]:
@@ -548,7 +633,8 @@ def _current_project(
         state = state_snapshot.payload()
         framework = _inside(root, "模型论文框架.md")
         record = state.get("paper_framework") or {}
-        if record.get("sync_status") != "current" or record.get("sha256") != sha256_file(framework):
+        if (record.get("sync_status") != "current"
+                or not _framework_hash_matches(record, framework.read_text(encoding="utf-8"))):
             return root, state, ["framework current status/hash is missing or changed"]
         question = state["subproblems"][context["question"]]
         if question.get("artifacts_stale") or question.get("stale_layers"):
@@ -628,8 +714,15 @@ def _figure_binding(root: Path, state: dict[str, Any], question: str) -> list[st
     return []
 
 
-def _scope(plan: dict[str, Any], request: str, policy: dict[str, Any]) -> tuple[str, str, list[str]]:
+def _scope(plan: dict[str, Any], request: str, policy: dict[str, Any],
+           figure_policy: dict[str, Any] | None = None) -> tuple[str, str, list[str]]:
     intents = plan.get("intents", [])
+    composition = plan.get("figure_composition") or {}
+    if (composition.get("layout") in {"separate", "single_numeric"} and intents
+            and set(intents) <= {"figures", "editable_mechanism_diagram"}):
+        # Each delivery keeps its own qualification. Both source contracts apply
+        # even when numerical evidence is still missing.
+        return "figure_composition", "planned", []
     if len(intents) != 1 or plan["assurance"]["status"] != "pass":
         return "full", "conservative_fallback", ["mixed intents or unresolved assurance diagnostics"]
     intent = intents[0]
@@ -651,6 +744,9 @@ def _scope(plan: dict[str, Any], request: str, policy: dict[str, Any]) -> tuple[
             return "framework_result_sync", "candidate", []
         return "full", "needs_adjudication", ["framework update scope is not explicitly limited"]
     if intent == "editable_mechanism_diagram" or (intent == "figures" and re.search(signals["mechanism"], request)):
+        semantic_change = (figure_policy or {}).get("semantic_change")
+        if semantic_change and re.search(semantic_change, clean, re.IGNORECASE):
+            return "full", "semantic_change_or_adjudication", ["figure request also changes mathematical semantics"]
         return "mechanism", "planned", []
     if intent == "figures":
         style = bool(re.search(signals["style_only"], request))
@@ -704,45 +800,113 @@ def _project_backend_navigation(
     return authority, interface
 
 
+def _framework_event(plan: dict[str, Any], request: str, memory: dict[str, Any]) -> str | None:
+    """Classify a whole-framework request using the router's registered events."""
+    selected = plan.get("startup_reading") or {}
+    signals = memory.get("full_read_signals", {})
+    events = memory.get("full_read_when", [])
+    for event in events:
+        if selected.get("event") in signals.get(event, {}).get("startup_events", []):
+            return event
+    if selected.get("profile") == "scoped":
+        return None
+
+    # Titles and quoted example prompts describe text; only an affirmative
+    # action in the surrounding request selects a project-wide event.
+    action = re.sub(r'“[^”]*”|‘[^’]*’|「[^」]*」|『[^』]*』|"[^"]*"|`[^`]*`',
+                    " ", request)
+    clauses = re.split(r"[，,。；;！？!\n]+", action)
+    intents = set(plan.get("intents", []))
+    for event in events:
+        signal = signals.get(event, {})
+        if signal.get("intents") and not intents.intersection(signal["intents"]):
+            continue
+        pattern = signal.get("request_pattern")
+        if not pattern:
+            continue
+        for clause in clauses:
+            for match in re.finditer(pattern, clause, re.IGNORECASE):
+                prefix = clause[:match.start()].rstrip()
+                negative = re.search(r"(?:无需|无须|暂缓|跳过|(?:暂|先)?不(?:要|必|用|需|再)?|"
+                                     r"\b(?:without|skip|do not|don't))\s*"
+                                     r"(?:(?:对|做|作|进行|重做|开始|重新|这篇|该|论文|稿件|the)\s*)*$",
+                                     prefix, re.IGNORECASE)
+                postponed = re.match(r"\s*(?:留(?:待|到)|以后再|稍后再)", clause[match.end():])
+                if not negative and not postponed:
+                    return event
+    return None
+
+
 def _project_reads(
-    root: Path, state: dict[str, Any], question: str, *, style: bool,
-    state_snapshot: ProjectStateSnapshot,
-) -> list[dict[str, Any]]:
+    root: Path, state: dict[str, Any], scope_questions: list[str], *, style: bool,
+    state_snapshot: ProjectStateSnapshot, memory: dict[str, Any], whole: bool,
+    writing: bool, per_figure: bool,
+) -> tuple[list[dict[str, Any]], list[str]]:
     state_snapshot.assert_current(root)
     if state_snapshot.raw is None:
-        raise ProjectStateReadError("invalid_project_state", "a narrow read requires captured state bytes")
+        raise ValueError("current project state is unavailable for framework reading")
     reader = SourceReader(root, "project")
     reader.seed(STATE_RELATIVE_PATH, state_snapshot.raw)
-    text = _inside(root, "模型论文框架.md").read_text(encoding="utf-8")
-    scoped = {question}
-    pending = [question]
-    valid_dependencies = True
-    while pending:
-        current = pending.pop()
-        for dependency in state.get("subproblems", {}).get(current, {}).get("depends_on", []):
-            target = dependency.get("question") if isinstance(dependency, dict) else None
-            if not target or target not in state.get("subproblems", {}):
-                valid_dependencies = False
+    framework_path = memory.get("project_file", "模型论文框架.md")
+    record = state.get("paper_framework") or {}
+    if record.get("sync_status") != "current":
+        raise ValueError("framework current status is missing or stale")
+    framework = reader.describe({"path": framework_path})
+    framework_lines = reader.cache[framework_path][1]
+    if not framework["source_bytes"] or not _framework_hash_matches(record, "".join(framework_lines)):
+        raise ValueError("framework bytes differ from the current project-state record")
+    missing_sections = []
+    if not whole:
+        known = _headings(framework_lines)
+        titles = {"## 当前有效口径", "## 图表证据链", "## 待办与缺口"}
+        writing_titles = set(memory.get("scoped_writing_headings", [])) if writing else set()
+        headings = []
+        question_level = None
+        for _, level, heading in known:
+            if question_level and level <= question_level:
+                question_level = None
+            if re.match(r"^#{2,6}\s+Q\d+[：:]", heading):
+                question_level = level
+            if not question_level and (heading in titles or heading.lstrip("#").strip() in writing_titles):
+                headings.append(heading)
+        scoped = set()
+        pending = list(scope_questions)
+        questions = state.get("subproblems", {})
+        upstream = {}
+        # Names from legacy untyped edges identify what to read, not what
+        # evidence is current or what kind of dependency was approved.
+        for edge in dependency_edges(questions):
+            upstream.setdefault(edge["target"], []).append(edge["source"])
+        while pending:
+            current = pending.pop()
+            if current in scoped:
                 continue
-            if target not in scoped:
-                scoped.add(target)
-                pending.append(target)
-    headings = ["## 当前有效口径", "## 图表证据链", "## 待办与缺口"]
-    known = _headings(text.splitlines(keepends=True))
-    for target in sorted(scoped):
-        matches = [s for _, _, s in known if re.match(r"^###\s+" + re.escape(target) + r"[：:]", s)]
-        headings.append(matches[0] if len(matches) == 1 else f"missing-unique-question-{target}")
-    spec: dict[str, Any] = {"path": "模型论文框架.md"}
-    if valid_dependencies:
-        spec["headings"] = headings
-    rows = [reader.describe(spec), reader.describe({"path": "state/project_state.yaml"})]
+            scoped.add(current)
+            if current not in questions:
+                reason = f"framework question is absent from project state: {current}"
+                if per_figure:
+                    missing_sections.append(reason)
+                    continue
+                raise ValueError(reason)
+            matches = [s for _, _, s in known if re.match(r"^###\s+" + re.escape(current) + r"[：:]", s)]
+            if len(matches) == 1:
+                headings.append(matches[0])
+            elif per_figure:
+                missing_sections.append(f"missing unique framework section for {current}")
+            else:
+                headings.append(f"missing-unique-question-{current}")
+            pending.extend(upstream.get(current, []))
+        if not headings:
+            raise ValueError("no shared framework section located; select a question or identify its section")
+        framework = reader.describe({"path": framework_path, "headings": headings})
+    rows = [framework, reader.describe({"path": STATE_RELATIVE_PATH})]
     if style:
         report = PLOT_BACKEND.inspect_plotting(state)
         if report["issues"]:
             raise ValueError("Figure backend conflict: " + "; ".join(report["issues"]))
         role = "plot_script" if report["backend"] == "python" else "matlab_script"
-        rows.append(reader.describe({"path": state["subproblems"][question][role]}))
-    return reader.consolidate(rows)
+        rows.append(reader.describe({"path": state["subproblems"][scope_questions[0]][role]}))
+    return reader.consolidate(rows), missing_sections
 
 
 def build_reading_plan(root: Path, plan: dict[str, Any], router: dict[str, Any],
@@ -753,21 +917,18 @@ def build_reading_plan(root: Path, plan: dict[str, Any], router: dict[str, Any],
         state_snapshot.assert_current(plan["assurance"]["context"]["project_root"])
     policy = router.get("reading_policy") or {}
     reader = SourceReader(root)
-    profile, status, reasons = (_scope(plan, request, policy) if policy else
+    profile, status, reasons = (_scope(plan, request, policy, router.get("figure_delivery_policy", {})) if policy else
                                 ("full", "conservative_fallback", ["no reading policy declared"]))
     profiles = policy.get("profiles", {})
     config = profiles.get(profile, {})
-    if profile == "figure_style_and_design":
-        # Reuse the existing two reading profiles; no parallel Figure Authority
-        # or copy of their selector lists is introduced.
-        style_config = profiles.get("figure_style", {})
-        design_config = profiles.get("figure_design", {})
-        if style_config.get("read_now") and design_config.get("read_now"):
+    if profile in {"figure_style_and_design", "figure_composition"}:
+        first = profiles.get("figure_style" if profile == "figure_style_and_design" else "mechanism", {})
+        design = profiles.get("figure_design", {})
+        if first.get("read_now") and design.get("read_now"):
             config = {
-                **deepcopy(style_config),
-                "read_now": deepcopy(style_config["read_now"]) + deepcopy(design_config["read_now"]),
-                "conditional": deepcopy(style_config.get("conditional", []))
-                + deepcopy(design_config.get("conditional", [])),
+                **deepcopy(first),
+                "read_now": first["read_now"] + design["read_now"],
+                "conditional": first.get("conditional", []) + design.get("conditional", []),
             }
         else:
             config = {}
@@ -779,6 +940,7 @@ def build_reading_plan(root: Path, plan: dict[str, Any], router: dict[str, Any],
         config = {}
     context = plan["assurance"]["context"]
     project_root, state, project_rows = None, {}, []
+    verified_project = False
     if config.get("needs_current_project"):
         project_root, state, issues = _current_project(plan, state_snapshot)
         evidence = plan["assurance"]["artifact_assurance"]["evidence"]
@@ -824,10 +986,62 @@ def build_reading_plan(root: Path, plan: dict[str, Any], router: dict[str, Any],
             reasons.extend(issues)
         else:
             status = "planned"
-            project_rows = _project_reads(
-                project_root, state, context["question"], style=profile in {"figure_style", "figure_style_and_design"},
+            verified_project = True
+
+    memory = router.get("project_memory_contract") or {}
+    event = _framework_event(plan, request, memory)
+    memory_modules = {manifest["modules"][key]["path"] for key in memory.get("read_before_modules", [])
+                      if key in manifest.get("modules", {})}
+    downstream = bool(memory.get("full_read_signals") and memory_modules.intersection(plan.get("modules", [])))
+    framework_read = None
+    if state_snapshot is None and event and memory["full_read_signals"][event].get("startup_events"):
+        framework_read = {
+            "scope": "full", "event": event, "status": "evidence_required",
+            "reason": "recovery needs the current project root, framework and state",
+        }
+    if state_snapshot is not None and (verified_project or event or downstream):
+        writing = bool(set(plan.get("intents", [])) & {"latex", "docx", "review", "full_workflow"})
+        scope_questions = [context["question"]] if context.get("question") else []
+        figure_deliveries = (plan.get("figure_composition") or {}).get("deliveries", [])
+        unresolved_figure = False
+        if not event:
+            for delivery in figure_deliveries:
+                owner = delivery.get("question")
+                if owner and owner != "unresolved":
+                    if owner not in scope_questions:
+                        scope_questions.append(owner)
+                elif "question" in delivery:
+                    unresolved_figure = True
+        scope = "question_and_dependencies" if scope_questions else "shared_sections"
+        if event:
+            scope = "full"
+        framework_read = {"scope": scope, "event": event, "status": "planned"}
+        try:
+            if not context.get("project_state_loaded") or state_snapshot.raw is None:
+                raise ValueError("current project state was not loaded for framework reading")
+            state = state_snapshot.payload()
+            if not event and not scope_questions and not unresolved_figure and len(state.get("subproblems", {})) == 1:
+                scope_questions = list(state["subproblems"])
+                framework_read["scope"] = "question_and_dependencies"
+            project_rows, missing_sections = _project_reads(
+                state_snapshot.root, state, scope_questions, memory=memory, whole=bool(event), writing=writing,
+                per_figure=bool(figure_deliveries),
+                style=verified_project and profile in {"figure_style", "figure_style_and_design"},
                 state_snapshot=state_snapshot,
             )
+            if unresolved_figure:
+                missing_sections.append("figure question unresolved; only identified framework sections can be read")
+            if missing_sections:
+                framework_read["status"] = status = "evidence_required"
+                reasons.extend(missing_sections)
+            if project_rows[0]["resolution"] == "whole_file_fallback":
+                framework_read["scope"] = "whole_file_fallback"
+        except ProjectStateReadError:
+            raise
+        except (OSError, ValueError, AttributeError, TypeError, KeyError) as exc:
+            framework_read["status"] = "evidence_required"
+            reasons.append(f"current project framework unavailable: {exc}")
+            status = "evidence_required"
 
     backend_authority, backend_interface = _project_backend_navigation(plan, policy, reader)
     if profile == "full":
@@ -916,6 +1130,8 @@ def build_reading_plan(root: Path, plan: dict[str, Any], router: dict[str, Any],
             "meaning": "planned_initial_read_only_not_full_task_cost_or_observed_token_savings",
         },
     }
+    if framework_read is not None and memory.get("full_read_signals"):
+        result["framework_read"] = framework_read
     if profile == "progressive_writing":
         result["delegated_writing_sequence"] = deepcopy(plan["writing_runtime"])
     if state_snapshot is not None:

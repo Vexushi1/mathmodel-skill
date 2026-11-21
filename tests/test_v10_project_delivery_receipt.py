@@ -94,13 +94,15 @@ class ProjectDeliveryReceiptTests(unittest.TestCase):
         self.deliver()
         self.assertEqual(DELIVERY.discover_scripts(self.root), [self.code])
 
-    def approved_question_scope(self, payload=None):
+    def approved_question_scope(self, payload=None, *, depends_on=()):
         state = self.state()
         payload = identity() if payload is None else payload
         payload["preprocessing_decision"] = "not_needed"
+        if depends_on:
+            payload["dependencies"] = list(depends_on)
         state["semantic_governance_version"] = "1.0.0"
         state["subproblems"]["Q1"].update(
-            structured_question(payload),
+            structured_question(payload), depends_on=payload["dependencies"],
             problem_contract_status="frozen", semantic_closure_status="passed",
             complexity_sanity_status="passed", semantic_change_categories=["initial_design"],
         )
@@ -178,15 +180,19 @@ class ProjectDeliveryReceiptTests(unittest.TestCase):
         command = plan["pre_delivery_gates"][1]["command"]
         self.assertEqual(shlex.split(command)[-2:], ["--workbook", "<returned_workbook>"])
 
-    def approve_additional_question(self, question):
+    def approve_additional_question(self, question, *, depends_on=None):
         state = self.state()
-        payload = dict(identity(), question=question, preprocessing_decision="not_needed")
+        entry = state["subproblems"].setdefault(question, {})
+        if depends_on is not None:
+            entry["depends_on"] = depends_on
+        typed = [{"question": edge["question"], "kind": edge["kind"]}
+                 for edge in entry.get("depends_on", []) if isinstance(edge, dict)]
+        payload = dict(identity(), question=question, preprocessing_decision="not_needed", dependencies=typed)
         section = (framework(payload)
                    .replace("### Q1：", f"### {question}：")
                    .replace("IDENTITY_BEGIN Q1", f"IDENTITY_BEGIN {question}")
                    .replace("IDENTITY_END Q1", f"IDENTITY_END {question}"))
         inspection = inspect_question_semantics(question_sections(section)[question], question)
-        entry = state["subproblems"].setdefault(question, {})
         entry.update(
             structured_question(),
             status="designed",
@@ -241,12 +247,9 @@ class ProjectDeliveryReceiptTests(unittest.TestCase):
         self.assertNotEqual(diagnostic["result_dependencies"][0]["status"], "verified")
 
     def test_unresolved_result_cycle_is_scoped_and_ends_at_a_verified_result(self):
-        self.approved_question_scope()
+        self.approved_question_scope(depends_on=[{"question": "Q2", "kind": "result"}])
         self.approve_additional_question("Q2")
         self.approve_additional_question("Q3")
-        state = self.state()
-        state["subproblems"]["Q1"]["depends_on"] = [{"question": "Q2", "kind": "result"}]
-        self.save(state)
 
         for question in ("Q1", "Q2", None):
             with self.subTest(question=question):
@@ -273,15 +276,11 @@ class ProjectDeliveryReceiptTests(unittest.TestCase):
         self.assertEqual(analysis["stage"], "analysis")
 
     def test_legacy_and_model_edges_do_not_close_a_result_cycle(self):
-        self.approved_question_scope()
-        self.approve_additional_question("Q2")
-        state = self.state()
-        state["subproblems"]["Q1"]["depends_on"] = [{"question": "Q2", "kind": "result"}]
-        state["subproblems"]["Q2"]["depends_on"] = [
+        self.approved_question_scope(depends_on=[{"question": "Q2", "kind": "result"}])
+        self.approve_additional_question("Q2", depends_on=[
             {"question": "Q1", "kind": "model", "note": "joint model equations"}, "Q1",
             {"question": "Q4", "kind": "result"},
-        ]
-        self.save(state)
+        ])
         plan, diagnostic = self.dependency_plan("Q1")
         self.assertEqual(diagnostic["unresolved_result_cycles"], [])
         self.assertIn({"question": "Q2", "upstream": "Q1"}, diagnostic["legacy_dependencies"])
@@ -291,8 +290,33 @@ class ProjectDeliveryReceiptTests(unittest.TestCase):
             [("Q1", "Q2", "not_accepted"), ("Q2", "Q4", "unregistered")],
         )
         self.assertIn("code_delivery", plan["runtime_plan"]["pre_delivery_gate_names"])
+        consumer, direct = self.dependency_plan("Q2")
+        self.assertIn("locked_model_spec", consumer["assurance"]["artifact_assurance"]["effective_artifacts"])
+        self.assertIn("code_delivery", consumer["runtime_plan"]["pre_delivery_gate_names"])
+        self.assertEqual([(row["upstream"], row["status"]) for row in direct["result_dependencies"]],
+                         [("Q4", "unregistered")])
         _, diagnostic = self.dependency_plan("Q1", intent="returned_workbook_validation")
         self.assertIsNone(diagnostic)
+
+    def test_unregistered_execution_inputs_do_not_revoke_an_approved_model(self):
+        for kind in ("data", "parameter"):
+            with self.subTest(kind=kind):
+                self.approved_question_scope(depends_on=[{"question": "Q4", "kind": kind}])
+                plan, diagnostic = self.dependency_plan("Q1")
+                self.assertIsNone(diagnostic)
+                self.assertIn("locked_model_spec", plan["assurance"]["artifact_assurance"]["effective_artifacts"])
+                self.assertIn("code_delivery", plan["runtime_plan"]["pre_delivery_gate_names"])
+
+    def test_unregistered_upstream_model_cannot_qualify_a_dependent_model_lock(self):
+        self.approved_question_scope()
+        self.approve_additional_question("Q2", depends_on=[{"question": "Q4", "kind": "model"}])
+        plan, diagnostic = self.dependency_plan("Q2")
+        self.assertIsNone(diagnostic)
+        self.assertEqual(plan["pause_state"], "awaiting_model_approval")
+        assurance = plan["assurance"]["artifact_assurance"]
+        self.assertNotIn("locked_model_spec", assurance["effective_artifacts"])
+        lock = next(row for row in assurance["evidence"] if row["artifact"] == "locked_model_spec")
+        self.assertIn("Q4/model", lock["reason"])
 
     def test_missing_or_conflicting_policy_cannot_deliver(self):
         state = self.state()
@@ -382,13 +406,13 @@ class ProjectDeliveryReceiptTests(unittest.TestCase):
         self.assertTrue(any("项目后端" in item for item in issues))
         self.assertEqual(state, before)
 
-    def configure_approved_primary_quality(self, additional_items=()):
+    def configure_approved_primary_quality(self, additional_items=(), *, residual_unit="1", residual_threshold=0.05):
         specification = {
             "version": "1.0.0",
             "items": [
                 {"id": "PQ-Q1-01", "metric": "方程残差", "relation": "abs<=",
-                 "threshold": 0.05, "threshold_source": "solver_tolerance",
-                 "evidence_sheet": "均衡残差", "unit": "1"},
+                 "threshold": residual_threshold, "threshold_source": "solver_tolerance",
+                 "evidence_sheet": "均衡残差", "unit": residual_unit},
                 {"id": "PQ-Q1-02", "metric": "输出齐备", "relation": "bool_true",
                  "threshold": True, "threshold_source": "mathematical_definition",
                  "evidence_sheet": "核心指标", "unit": None},
@@ -403,7 +427,7 @@ class ProjectDeliveryReceiptTests(unittest.TestCase):
             run_receipt_protocol_version="1.3.0",
             primary_quality_protocol_version="1.1.0",
             primary_quality_spec_sha256=digest,
-            tolerance=0.05,
+            tolerance=residual_threshold,
         )
         rewrite_config(self.code, self.config)
         source = self.code.read_text(encoding="utf-8")
@@ -421,9 +445,17 @@ class ProjectDeliveryReceiptTests(unittest.TestCase):
         )
         source = replace_once(
             source, 'residual, "均衡残差", "solver_tolerance")],',
-            'residual, "均衡残差", "solver_tolerance", "1"),\n'
+            f'residual, "均衡残差", "solver_tolerance", {residual_unit!r}),\n'
             '                    ("PQ-Q1-02", "输出齐备", True, "主输出", "bool_true", True, True,\n'
             '                     "核心指标", "mathematical_definition", None)],',
+        )
+        source = replace_once(
+            source, '("主体或均衡", "残差", "容差", "是否满足"),',
+            '("主体或均衡", "残差", "容差", "是否满足", "单位"),',
+        )
+        source = replace_once(
+            source, '("a*x=b", residual, config["tolerance"], passed)',
+            f'("a*x=b", residual, config["tolerance"], passed, {residual_unit!r})',
         )
         self.code.write_text(source, encoding="utf-8", newline="\n")
         return payload

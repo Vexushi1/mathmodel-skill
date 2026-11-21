@@ -1,8 +1,7 @@
-skill_version: 10.35.3
+skill_version: 11.0.0
 bootstrap_schema_version: 1.1.0
 purpose: >-
-  Read first, load workflow_router.default_load, and use
-  scripts/resolve_runtime.py for the task plan. Do not preload domain contracts.
+  Pin the source, load workflow_router.default_load, then apply startup_contract before the requested action.
 authoritative_sources:
   global_policy: core/hsk_core_policy.md
   routing: core/workflow_router.yaml
@@ -36,24 +35,38 @@ startup_contract:
   principle: minimal_route_specific
   default_policy_source: core/hsk_core_policy.md
   resolver: scripts/resolve_runtime.py
+  activation:
+    default_profile: stage_scoped
+    candidate_selector: v11_full_read
+    rule: Use candidate_events when the selected project instructions explicitly choose v11_full_read at a pinned commit that declares it. A pin alone uses default_profile. Retain existing project pins.
+  candidate_events:
+    new_contest: formal
+    formal_single_question: formal
+    promote_to_formal: formal
+    field_explanation: scoped
+    visual_only_edit: scoped
+    maintenance: scoped
+    cross_chat_formal_resume: recovery
+    formal_context_lost: recovery
+  profiles:
+    stage_scoped: {reading: current_action_text}
+    formal: {reading: full_normative_text}
+    scoped: {reading: current_action_text}
+    recovery: {reading: full_normative_text_and_current_framework}
   rules:
-    - Bootstrap stores startup pointers; global rules live in core/hsk_core_policy.md.
-    - Load route contracts only when needed.
-    - Reading plans and resolver-owned gates follow core/runtime_assurance_contract.yaml#reading_plan.
-    - Context hydration, intent provenance, artifact assurance and contract closure follow core/runtime_assurance_contract.yaml.
-    - Load resolver manifests and taxonomies only when the route needs them.
-    - Current project semantics are restored from current 模型论文框架.md when available; numerical facts still come from accepted workbooks and machine state from project_state.
-    - New 模型论文框架.md instances use scripts/instantiate_model_paper_framework.py; core/output_contract.yaml owns compact/full modes and the canonical full template.
-    - Paper writing follows core/writing_runtime_contract.yaml, the active template manifest and paper_writing_protocol; full writing_reasoning_contract is a declared fallback.
-    - For a project-wide numerical backend, inspect before writing; select records a first choice, while migration of historical or locked choices requires a reviewed preview and explicit project confirmation. Follow core/user_execution_contract.yaml#solver_backends.
+    - Match new requests by effect. Starting design, solving, writing or formal review for one question is formal. Keep fixed-detail edits scoped; promote changes to model, evidence or conclusions.
+    - Read selected originals before action. See core/hsk_core_policy.md section 3 for continuity, scope changes and missing sources.
+    - Use core/runtime_assurance_contract.yaml for stage reads, assurance and dependency closure. Use the router for business actions.
+    - Instantiate new frameworks via scripts/instantiate_model_paper_framework.py under core/output_contract.yaml (compact/full modes and canonical full template).
+    - Writing follows the active template manifest, paper_writing_protocol and writing_runtime; writing_reasoning_contract supplies the declared fallback.
+    - Under core/user_execution_contract.yaml inspect before writing solver backend choices. Select a first choice; migrate a historical or locked choice only after preview and explicit project confirmation.
 hard_invariants:
-  - Global modeling, preprocessing, solving, figure, writing and review rules are governed by their authoritative sources above; bootstrap must not restate those contracts in detail.
-  - Resolve the smallest task-specific load order and stop after the user-requested deliverable; do not preload unrelated contracts or modules.
-  - Formal delivery must execute every `pre_delivery_gates` entry returned by the resolver, in resolver order. The resolver owns this list.
-  - Current 模型论文框架.md is the assistant-readable semantic memory; accepted workbooks are numerical fact sources and project state is the machine-state source.
-  - Problem Contract freezing does not authorize task code by itself; before current model code is generated, the Model Challenge must pass and the user must explicitly approve the current semantic_revision and validated semantic_identity_hash under core/model_approval_contract.yaml; legacy semantic_hash approval is read-only provenance only.
-  - Task-specific preprocessing, solve and result-analysis code remains user-executed; the assistant generates, statically checks and validates returned artifacts under the existing execution contracts.
-  - legacy/ remains outside default execution; compatibility pointers are read-only bridges and may not become active dependencies.
+  - Follow the owning contracts. Stop at the requested deliverable.
+  - Execute every `pre_delivery_gates` entry returned by the resolver in order for formal delivery.
+  - Restore project semantics from current 模型论文框架.md, machine state from project state, and numerical facts from accepted workbooks.
+  - Project preprocessing and primary solve code require Model Challenge and explicit user approval of the current semantic_revision and validated semantic_identity_hash under core/model_approval_contract.yaml. Legacy semantic_hash is read-only.
+  - The user executes task-specific preprocessing, solve and result-analysis code. The assistant generates and statically checks code and validates returned artifacts.
+  - Keep legacy/ outside default execution; read-only compatibility pointers cannot become active dependencies.
 entrypoints:
   resolve: python scripts/resolve_runtime.py
   read_stage: python scripts/read_stage.py

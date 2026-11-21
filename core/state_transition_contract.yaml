@@ -228,6 +228,10 @@ transition_events:
     own_profile: analysis_result
     emitted_impacts: []
   semantic_identity_changed:
+    trigger: >-
+      A structured model's identity or semantic revision changes after validation, or
+      the validated baseline already advanced while the recorded approval still claims
+      a different revision or structured identity.
     own_profile: semantic
     emitted_impacts: [model, result]
     category_impacts:
@@ -281,6 +285,12 @@ transition_events:
   paper_fragment_changed:
     own_profile: paper
     emitted_impacts: []
+
+dependency_alignment:
+  framework: The structured identity retains each upstream question, dependency kind and selector.
+  state: The typed depends_on edges record the distinct upstream (question, kind) pairs used for propagation.
+  conflict: Report the differing edges and affected questions. Block consumption of affected model approvals until the declarations agree. Preserve both declarations for correction.
+  compatibility: A legacy string edge retains conservative untyped propagation for that upstream question.
 
 dependency_rules:
   model:

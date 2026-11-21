@@ -128,6 +128,11 @@ _FALLBACK_SCHEMA: dict[str, Any] = {
             "结构稳健性", "异质性分析", "误差分解", "外样本稳定性",
             "多模型检验", "同模型多算法检验",
         ],
+        "ordinary_experiment_protocol": {
+            "version": "1.0.0",
+            "observation_statuses": ["completed", "technical_failure", "exploratory"],
+            "dispositions": ["support", "modify", "reject"],
+        },
         "ordinary_method_sheets": {
             "参数敏感性": "参数敏感性",
             "阈值与失效边界": "阈值与失效边界",
@@ -247,6 +252,7 @@ def validate_workbook_tables(
     require_quality_passed: bool = True,
     analysis_methods: Sequence[str] = (),
     comparison_plan: Mapping[str, Any] | None = None,
+    ordinary_experiments: Sequence[Mapping[str, Any]] | None = None,
 ) -> list[tuple[str, pd.DataFrame]]:
     if workbook_kind not in VALID_WORKBOOK_KINDS:
         raise ValueError(f"未知工作簿类型: {workbook_kind}")
@@ -256,6 +262,7 @@ def validate_workbook_tables(
         objective=objective, structures=structures, name_normalizer=_sheet_name,
         require_quality_passed=require_quality_passed,
         analysis_methods=analysis_methods, comparison_plan=comparison_plan,
+        ordinary_experiments=ordinary_experiments,
     )
 
 
@@ -275,6 +282,7 @@ def validate_workbook_file(
     require_quality_passed: bool = True,
     analysis_methods: Sequence[str] = (),
     comparison_plan: Mapping[str, Any] | None = None,
+    ordinary_experiments: Sequence[Mapping[str, Any]] | None = None,
 ) -> list[tuple[str, pd.DataFrame]]:
     return WORKBOOK_VALIDATION.validate_workbook_file(
         Path(path), workbook_kind, schema=load_workbook_schema(schema_path),
@@ -282,6 +290,7 @@ def validate_workbook_file(
         objective=objective, structures=structures,
         require_quality_passed=require_quality_passed,
         analysis_methods=analysis_methods, comparison_plan=comparison_plan,
+        ordinary_experiments=ordinary_experiments,
     )
 
 
@@ -308,9 +317,12 @@ def write_workbook(
     require_quality_passed: bool = True,
     analysis_methods: Sequence[str] = (),
     comparison_plan: Mapping[str, Any] | None = None,
+    ordinary_experiments: Sequence[Mapping[str, Any]] | None = None,
 ) -> Path:
     path = Path(path)
     kind = workbook_kind or _infer_workbook_kind(path)
+    if kind is None and ordinary_experiments is not None:
+        kind = "result_analysis"
     if kind is None:
         prepared = WORKBOOK_VALIDATION.prepare_tables(tables, name_normalizer=_sheet_name)
     else:
@@ -320,6 +332,7 @@ def write_workbook(
             objective=objective, structures=structures,
             require_quality_passed=require_quality_passed,
             analysis_methods=analysis_methods, comparison_plan=comparison_plan,
+            ordinary_experiments=ordinary_experiments,
         )
     path.parent.mkdir(parents=True, exist_ok=True)
     with pd.ExcelWriter(path, engine="openpyxl", mode="w") as writer:

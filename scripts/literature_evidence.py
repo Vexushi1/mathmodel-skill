@@ -18,6 +18,9 @@ from jsonschema import Draft202012Validator
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = ROOT / "core/literature_research_contract.yaml"
 MAX_BYTES = 262144
+SUBSTANTIVE_DISPOSITIONS = frozenset({
+    "adopt_as_basis", "adapt_to_problem", "use_as_comparator", "use_for_validation",
+})
 
 
 class EvidenceError(ValueError):
@@ -121,16 +124,15 @@ def validate_report(report: dict[str, Any]) -> dict[str, Any]:
             if level == "E0" and access != "metadata":
                 issues.append(f"source:{source['id']}:metadata_only_level_mismatch")
 
-        substantive = {
-            "adopt_as_basis", "adapt_to_problem", "use_as_comparator", "use_for_validation",
-        }
         for method in methods:
             mid = method["id"]
             source = source_by_id.get(method["source_id"])
             if source is None:
                 issues.append(f"method:{mid}:missing_source")
                 continue
-            if method["disposition"] in substantive:
+            if method["disposition"] in SUBSTANTIVE_DISPOSITIONS:
+                if source.get("is_retracted") is True:
+                    issues.append(f"method:{mid}:source:{source['id']}:retracted_for:{method['disposition']}")
                 if scope["mode"] != "model_design":
                     issues.append(f"method:{mid}:standalone_cannot_adopt")
                 if source["evidence_level"] not in {"E2", "E3"}:

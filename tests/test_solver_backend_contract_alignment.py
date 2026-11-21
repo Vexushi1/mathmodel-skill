@@ -148,6 +148,11 @@ class SolverBackendContractAlignmentTests(unittest.TestCase):
         (root / "state").mkdir()
         (root / "state/project_state.yaml").write_text(yaml.safe_dump(state, allow_unicode=True), encoding="utf-8")
         config, receipt = analysis_pair()
+        config["ordinary_experiment_protocol_version"] = receipt["ordinary_experiment_protocol_version"] = "1.0.0"
+        config["ordinary_experiments"] = [{
+            "id": "parameter-shift", "method": "参数敏感性",
+            "target": "输入参数扰动是否改变排序", "claim": "方案排序保持",
+        }]
         config["data_sha256"] = receipt["data_sha256"] = data_sha
         accepted = state
         for key in BINDING["accepted_state_field"].replace("<question>", "Q1").split("."):

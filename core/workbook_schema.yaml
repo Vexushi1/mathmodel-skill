@@ -1,5 +1,5 @@
 schema_version: 2.4.0
-skill_compatibility: '>=6.3.2,<11.0.0'
+skill_compatibility: '>=6.3.2,<12.0.0'
 purpose: 约束主求解工作簿与按需结果深化分析工作簿的工作表、字段、三轴条件、非空规则和Python/MATLAB绘图交接。
 runtime_enforcement:
   writer: templates/code/hsk_pipeline/result_io.py  # Legacy Python writer pointer.
@@ -36,7 +36,7 @@ global_rules:
   missing_analysis_policy: 不生成空表；未采用某类方法时在分析设计中说明选择依据，不创建占位工作表
   units_policy: 物理量、时间、成本、距离、概率或比例必须在列名或单位列中明确单位
   key_policy: 显式记录键或样本键必须非空且唯一
-  numeric_policy: 数值字段不得包含正负无穷；有依据的缺失值必须在数据审计中说明
+  numeric_policy: 数值字段不得包含正负无穷。有依据的缺失值在数据审计中说明，核心指标的可选缺失使用同一行的缺失原因。
   constraint_judgement_policy: 违反量、容差和是否满足必须逻辑一致
 capability_contract:
   allowed:
@@ -75,7 +75,12 @@ solution_workbook:
       required_columns: [项目, 值]
     核心指标:
       required_columns: [指标, 数值]
-      optional_columns: [单位, 统计口径, 说明]
+      optional_columns: [单位, 统计口径, 说明, 值类型, 是否必需, 缺失原因]
+      record_policy: >-
+        指标为非空名称。值类型缺省为数值，数值必须是有限数。显式逻辑和文本行分别保存真实布尔值和非占位文字。
+        是否必需缺省为真，仅显式布尔假允许本行数值单元格缺失，并须将具体原因写入同一指标记录的缺失原因。
+        可选缺失使用 Excel 空单元格或写入时的 None/pandas.NA。IEEE NaN 和无穷会使该行验收失败。
+        核心指标表至少保留一条符合声明类型的实际观测，数值零和逻辑假均有效。数据审计中的笼统说明不补足必需指标。
     数据审计:
       required_columns: [等级, 检查项, 信息, 处理方式]
     主结果质量门:
@@ -93,8 +98,10 @@ solution_workbook:
       optional_columns: [左端值, 右端值或界, 最坏样本或时刻]
     均衡残差:
       required_columns: [主体或均衡, 残差, 容差, 是否满足]
+      optional_columns: [Verification ID, 单位]
     守恒残差:
       required_columns: [守恒量, 残差, 容差, 是否满足]
+      optional_columns: [Verification ID, 单位]
     离散精度:
       required_columns: [离散参数, 取值, 目标指标, 相对变化]
       optional_columns: [验证组, 用于主判定, 说明]
@@ -108,7 +115,11 @@ solution_workbook:
       optional_columns: [样本数, 时间范围, 基准模型, 说明]
     不确定性区间:
       required_columns: [指标, 下界, 上界]
-      optional_columns: [置信水平, 分位数口径, 样本数, 单位]
+      optional_columns: [置信水平, 分位数口径, 样本数, 单位, 统计口径, 下界单位, 上界单位, 下界统计口径, 上界统计口径]
+      interval_policy: >-
+        每行上下界属于同一指标，均为有限数且下界不大于上界。两端使用本行共同的单位和统计口径。
+        如另列端点单位或统计口径，两端须一致且与共同声明相符，省略的一端仅可沿用本行共同声明。
+        置信水平及其编码、分位数和实际覆盖率的定义与证据由项目说明，通用端点检查不推断覆盖率。
     泄漏检查:
       required_columns: [检查项, 是否通过, 证据]
     校准结果:
@@ -228,6 +239,20 @@ result_analysis_workbook:
   - 外样本稳定性
   - 多模型检验
   - 同模型多算法检验
+  ordinary_experiment_protocol:
+    version: "1.0.0"
+    source: 已交付且源码身份匹配的分析 RUN_CONFIG.ordinary_experiments
+    declaration_fields: [id, method, target, claim]
+    optional_declaration_fields: [required]
+    design_fields: [检验ID, 方法, 分析问题]
+    observation_fields: [检验ID, 观测状态]
+    summary_fields: [检验ID, 分析方法, 核心结论, 证据工作表, 是否保持, 主张处置]
+    observation_statuses: [completed, technical_failure, exploratory]
+    dispositions: [support, modify, reject]
+    design_binding: 分析设计以检验ID、方法及分析问题绑定预登记目标。
+    observation_binding: 按方法对应工作表中的检验ID归集多行观测。只有标记completed且必需字段完整的观测可交付对应实验。
+    claim_binding: 结论稳定性汇总以检验ID、分析方法、核心结论、证据工作表及主张处置绑定预登记主张。否定性结果和失败记录保留原义。
+    historical_binding: 未启用协议时，仅用已选择普通方法的显式设计ID核对观测。专用比较使用各自协议。
   # Each recognized ordinary method in the current plan requires its own substantive table.
   # Unregistered historical method labels retain their existing compatibility.
   ordinary_method_sheets:

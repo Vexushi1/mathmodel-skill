@@ -10,10 +10,10 @@
 
 ## 启动
 
-以下是执行工具、同版本完整资源根、依赖和必要材料齐备时的 resolver 路径。GitHub-only 按下方读取协议取得固定 commit 的原文，不把导航中的候选来源当作当前 effective plan，也不声称执行了不可用的工具。
+启动范围由所选提交的 `core/bootstrap.yaml` 决定。网页和 App 使用[同一项目指令](PROJECT_INSTRUCTIONS.md#web-app-start)。以下是开场之后，执行工具、同版本完整资源根、依赖和必要材料齐备时的业务 resolver 路径。GitHub-only 按下方读取协议取得固定 commit 的原文，不把导航中的候选来源当作当前 effective plan，也不声称执行了不可用的工具。
 
 ```text
-读取 core/bootstrap.yaml
+按固定提交的 core/bootstrap.yaml 完成相应开场读取
 → 调用 scripts/resolve_runtime.py
 → [可选] 从 current project state 恢复缺失上下文与 verified artifacts
 → 合并显式/推断意图并记录 route provenance / confidence / ambiguity
@@ -29,7 +29,7 @@
 
 ## 按任务读取与工具资源
 
-默认 resolver 另返回 `reading_plan`，语义由 `core/runtime_assurance_contract.yaml#reading_plan` 管理，选择配置只在 `core/workflow_router.yaml#reading_policy`。它是读取安排，不是执行批准，也不替代现有 module/gate/output 计划。
+默认 resolver 另返回 `reading_plan`，语义由 `core/runtime_assurance_contract.yaml#reading_plan` 管理，选择配置只在 `core/workflow_router.yaml#reading_policy`。它给出各阶段的读取安排。正式开场的全部规范范围由启动合同定义；模型批准、module/gate/output 计划分别沿用对应的规则。
 
 当前动作前，按 `core/runtime_assurance_contract.yaml#reading_plan.consumer_protocol` 取得 `read_now` 的实际完整适用正文，并评估 `conditional` 中与实际阶段相关的条件；进入新阶段／小问／章节／图设计或恢复任务时按该协议重取，不能凭“先前读过”继续。GitHub-only 用 `core/stage_reading_guide.md` 定位原 Authority 后分段取齐；同版本资源根和 resolver YAML 可用 `scripts/read_stage.py`，用法见 `scripts/README.md#阶段正文读取`。取得正文后仍须对照实际成果检查，读取不授予批准、accepted 资格或 gate PASS。
 
@@ -136,7 +136,7 @@ pseudocode → 循环、分支、筛选、修复、接受/拒绝或终止逻辑�
 
 默认写作链在 `figure_evidence` 后进入 LaTeX。`writing_docx` 只由显式 DOCX/Word 请求加载，不是 LaTeX 前置。
 
-普通 CUMCM LaTeX 路由加载 `templates/latex/cumcm/hsk/template_manifest.yaml`、`core/writing_runtime_contract.yaml`、`modules/05_writing/paper_writing_protocol.md` 与 `modules/05_writing/latex.md` Adapter，不预载完整 reasoning。命题、复杂 Algorithm Trace、Model/Solver/Validator、优化语义、跨问依赖、Claim Strength 冲突或终审再补读 `core/writing_reasoning_contract.yaml`；MCM/ICM、电工杯与 DOCX 在拥有各自 Template Manifest 前继续使用完整 Authority 回退。`packs/artifact/algorithm_flow.md` 与命题 Pack 仅承担按需呈现细则；AI cleanup、DOCX、review 与其他 Artifact Packs 是 consumer，不重新定义规则。
+正式开场后，普通 CUMCM LaTeX 的当前写作步骤加载 `templates/latex/cumcm/hsk/template_manifest.yaml`、`core/writing_runtime_contract.yaml`、`modules/05_writing/paper_writing_protocol.md` 与 `modules/05_writing/latex.md` Adapter，不预载完整 reasoning。命题、复杂 Algorithm Trace、Model/Solver/Validator、优化语义、跨问依赖、Claim Strength 冲突或终审再补读 `core/writing_reasoning_contract.yaml`；MCM/ICM、电工杯与 DOCX 在拥有各自 Template Manifest 前继续使用完整 Authority 回退。`packs/artifact/algorithm_flow.md` 与命题 Pack 仅承担按需呈现细则；AI cleanup、DOCX、review 与其他 Artifact Packs 是 consumer，不重新定义规则。
 
 `prose/BibTeX/framework audit` 是 AI cleanup 后、最终编译前的非破坏性检查步骤：
 

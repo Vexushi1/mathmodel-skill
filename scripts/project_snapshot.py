@@ -395,16 +395,49 @@ def scoped_figure_files(
     return sorted(figures, key=lambda path: path.as_posix()), sorted(set(issues))
 
 
+def _snapshot_ordinary_plan(root: Path, entry: Mapping[str, Any], source: bytes,
+                            schema: Mapping[str, Any]) -> list[dict[str, Any]] | None:
+    """Recover commitments for a candidate workbook without granting it accepted status."""
+    if entry.get("result_analysis_status") == "not_required" or entry.get("analysis_execution_status") not in {
+        "code_delivered", "awaiting_user_execution", "workbook_received", "accepted", "rejected", "redo_required",
+    }:
+        return None
+    from execution_protocol import ORDINARY_ROWS, ORDINARY_VERSION
+    from validate_user_execution import configuration_map, delivered_stage_config, ordinary_experiment_issues
+
+    methods = entry.get("analysis_methods") or ()
+    active = WORKBOOK_VALIDATION.required_ordinary_sheets(schema["result_analysis_workbook"], methods)
+    config, source_issues = delivered_stage_config(root, {}, entry, "analysis")
+    receipt, receipt_issues = configuration_map(source)
+    if not (active
+            or any(field in obj for obj in (config or {}, receipt) for field in (ORDINARY_ROWS, ORDINARY_VERSION))):
+        return None
+
+    issues = source_issues + receipt_issues + ordinary_experiment_issues(
+        config, methods, schema, require_current=True, receipt=receipt)
+    selection = (entry.get("solver_execution") or {}).get("analysis") or {}
+    for field, recorded in (("code_sha256", entry.get("analysis_code_sha256")),
+                            ("code_bundle_sha256", selection.get("bundle_sha256"))):
+        if not recorded or str(receipt.get(field, "")).lower() != str(recorded).lower():
+            issues.append(f"逐项验收的运行配置 {field} 与已交付的分析源码不符")
+    if issues:
+        raise ValueError("；".join(issues))
+    return config[ORDINARY_ROWS]
+
+
 def _validate_workbook(path: Path, kind: str, schema: Mapping[str, Any], entry: Mapping[str, Any], *,
                        project_root: Path | None = None) -> list[str]:
     objective, structures, problem_types, capabilities = _classification(entry)
     try:
         source: Path | bytes = path
+        ordinary_experiments = None
         require_ordinary_method_coverage = True
         if kind == "result_analysis" and project_root is not None:
             source = path.read_bytes()
             require_ordinary_method_coverage = not accepted_analysis_workbook_matches(
                 project_root, entry, path, workbook_sha256=hashlib.sha256(source).hexdigest())
+            if require_ordinary_method_coverage:
+                ordinary_experiments = _snapshot_ordinary_plan(project_root, entry, source, schema)
         WORKBOOK_VALIDATION.validate_workbook_file(
             source, kind, schema=schema, problem_types=problem_types,
             capabilities=capabilities, objective=objective, structures=structures,
@@ -412,6 +445,7 @@ def _validate_workbook(path: Path, kind: str, schema: Mapping[str, Any], entry: 
             analysis_methods=entry.get("analysis_methods", ()),
             comparison_plan=entry.get("analysis_comparison"),
             require_ordinary_method_coverage=require_ordinary_method_coverage,
+            ordinary_experiments=ordinary_experiments,
         )
     except Exception as exc:  # noqa: BLE001
         return [f"{path.name}: {exc}"]

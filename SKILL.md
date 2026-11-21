@@ -2,12 +2,12 @@
 name: mathmodel-skill
 description: Guide mathematical-modeling competition work from problem analysis and model design through user-run computation, accepted-workbook figures, paper writing and delivery review. Use for CUMCM, MCM/ICM and related modeling projects, including targeted work on an existing modeling project.
 metadata:
-  version: 10.35.3
+  version: 11.0.0
   summary: HSK mathematical-modeling workflow with bootstrap-first task routing, Problem Contract freezing, condition-driven structural reduction and minimal-sufficient main-model generation before solver selection, independent Model Challenge, explicit Human Model Approval bound to the current semantic revision and validated structured identity, one project-wide Python/MATLAB numerical backend choice and user-owned full-fidelity numerical execution, evidence-checked workbooks, project-wide Python/MATLAB evidence visualization, editable draw.io mechanism diagrams with deterministic structural checks and required rendered review, model-construction rationale with solver-precondition evidence, Template-First paper authoring with state-driven per-question writing capability preflight and final-order Cross-File Chapter Handoff, formal LaTeX attestation, evidence-traceable final review compliance, and validated delivery provenance, with optional competition-resource fallback and stage-scoped delivery gates.
   triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 审题, 问题分析, 建模思路, 建模方案, 模型比较, 完整求解, 全流程, 建模论文, 模型论文框架, 模型锁定, 模型审查, 算法流程, 伪代码, 数据预处理, 数据清洗, 主结果质量, 数值有效性, 结果分析, 结果深化分析, Python求解, MATLAB求解, MATLAB绘图, Python绘图, 可编辑机理图, draw.io, drawio, LaTeX, DOCX, 终审, 提交包]
 ---
 
-# HSK 数学建模模块化工作流 v10.35.3
+# HSK 数学建模模块化工作流 v11.0.0
 
 <!-- HSK_RUNTIME_ENTRY_CONTRACT_START -->
 ## 运行时入口合同（非权威摘要）
@@ -16,10 +16,10 @@ metadata:
 
 本文件只负责发现、启动和 Authority 委托，不复制数学建模业务合同。无论从根目录 `SKILL.md` 还是 `skills/mathmodel-skill/SKILL.md` 进入，都按同一链路执行：
 
-1. 首先读取 `core/bootstrap.yaml`；
-2. 由 `core/workflow_router.yaml` 的 `default_load` 加载 `core/hsk_core_policy.md`；
+1. 首先读取 `core/bootstrap.yaml`，确认并沿用本项目固定的 commit。遵守平台指令；
+2. 由 `core/workflow_router.yaml` 的 `default_load` 加载 `core/hsk_core_policy.md`，新项目采用 `PROJECT_INSTRUCTIONS.md#web-app-start` 的启动选择，在固定提交支持时启用 `v11_full_read`。已有项目沿用其固定提交和原选择。按 `core/bootstrap.yaml#startup_contract` 为当前请求选取正式、局部或恢复事件。使用 resolver 执行该选择时，同时传入 `--candidate-startup-event` 和 `--source-commit`；
 3. 执行工具、同版本完整资源根、依赖及必要项目材料齐备时，使用 `scripts/resolve_runtime.py` 根据当前意图、竞赛和项目状态解析 `read_now`、`conditional`、运行时 assurance 与 `pre_delivery_gates`；`load_order` 保留为兼容资源清单，不表示本次正文已读取或门禁已执行。模型批准、条件式预处理与主数值验证分别委托 `core/model_approval_contract.yaml`、`core/global_preprocessing_contract.yaml`、`core/numerical_verification_contract.yaml`；
-4. 按 `core/runtime_assurance_contract.yaml#reading_plan.consumer_protocol`，在当前动作前取得 `read_now` 的实际完整适用正文并评估 `conditional`；进入新阶段／小问／章节／图设计范围、跨聊天恢复或来源／证据范围变化时重新取读，即使版本／哈希相同。分段返回必须核对范围覆盖并补齐缺口；路径、标题、哈希和计划字节不代表正文已消费。只加载当前适用资源，不预载整个仓库；
+4. 按 `core/runtime_assurance_contract.yaml#reading_plan.consumer_protocol`，在当前动作前取得 `read_now` 的实际完整适用正文并评估 `conditional`；进入新阶段／小问／章节／图设计范围、跨聊天恢复或来源／证据范围变化时重新取读，即使版本／哈希相同。分段返回必须核对范围覆盖并补齐缺口；路径、标题、哈希和计划字节不代表正文已消费。开场的读取范围服从启动合同，阶段计划只决定本动作所需的来源；
 5. GitHub-only 使用由现有生成链维护的 `core/stage_reading_guide.md` 定位所选固定 commit 的原 Authority 并分段取读；同版本资源根及真实 resolver YAML 可使用只读 `scripts/read_stage.py` 返回正文与缺口。导航中的候选来源不越过当前批准／执行等待点；工具或必要材料不足时保留未执行／未核验范围，不虚构 resolver 输出。导航、读取结果都不代表审批或 gate 执行；
 6. 需要项目语义时读取 current `模型论文框架.md`，生命周期 revision/structured identity/text provenance/stale 服从 `state/project_state.yaml`，具体数值回到 accepted workbook；
 7. 普通写作由 Template Manifest、Paper Writing Protocol 和 compact writing runtime 渐进加载，并按最终 active assembly 执行 Cross-File Chapter Handoff；复杂数学/证据裁决按 resolver 补读 `core/writing_reasoning_contract.yaml`，终审再读取 `modules/06_review_delivery.md` 与 `templates/review/final_review_matrix.yaml`；
@@ -30,7 +30,7 @@ metadata:
 
 ## 默认执行
 
-用户明确指定 Python 或 MATLAB 求解时，将请求传为 `--solver-backend python` 或 `--solver-backend matlab`，与当前项目根 `execution.solver_backend` 核对；未指定时，新 assured 数值/模型设计入口按 `--solver-backend auto` 解释，已有项目选择由状态恢复；仅旧 `resolve_workflow.py` 保留省略参数时的 Python 兼容投影。`auto` 和无状态兼容默认均不写入项目选择，当前项目缺少根选择时不得正式交付数值代码。完全未选且无历史数值阶段的项目，审视全题需求并衔接既有 Model Approval 后用 `scripts/project_solver_backend.py select` 登记；即使只读迁移预览为 `ready_for_review`，也不能以 `migrate` 替代首次选择。有历史数值阶段或更换已锁后端时，先用该脚本 `inspect --migration-target ... --reason ...` 预览全题影响，再针对该项目目标、原始状态、代际和影响摘要明确确认，才可执行 `migrate --confirm-migration`；仓库代码修改的批准不等于具体项目迁移的确认。迁移同事务登记原始字节归档和报告引用，完成后仍须重新满足当前数值交付门。`RUN_CONFIG` / `RUN_RECEIPT` 的后端是实际运行事实，不能替项目选值。具体规则服从 `core/user_execution_contract.yaml` 与 `core/runtime_assurance_contract.yaml`。默认入口始终是 `scripts/resolve_runtime.py`；`scripts/resolve_workflow.py` 只作为 legacy / 无状态兼容 resolver，不参与默认 assured read path。
+用户明确指定 Python 或 MATLAB 求解时，将请求传为 `--solver-backend python` 或 `--solver-backend matlab`，与当前项目根 `execution.solver_backend` 核对；未指定时，新 assured 数值/模型设计入口按 `--solver-backend auto` 解释，已有项目选择由状态恢复；仅旧 `resolve_workflow.py` 保留省略参数时的 Python 兼容投影。`auto` 和无状态兼容默认均不写入项目选择，当前项目缺少根选择时不得正式交付数值代码。完全未选且无历史数值阶段的项目，审视全题需求并衔接既有 Model Approval 后用 `scripts/project_solver_backend.py select` 登记；即使只读迁移预览为 `ready_for_review`，也不能以 `migrate` 替代首次选择。有历史数值阶段或更换已锁后端时，先用该脚本 `inspect --migration-target ... --reason ...` 预览全题影响，再针对该项目目标、原始状态、代际和影响摘要明确确认，才可执行 `migrate --confirm-migration`；仓库代码修改的批准不等于具体项目迁移的确认。迁移同事务登记原始字节归档和报告引用，完成后仍须重新满足当前数值交付门。`RUN_CONFIG` / `RUN_RECEIPT` 的后端是实际运行事实，不能替项目选值。具体规则服从 `core/user_execution_contract.yaml` 与 `core/runtime_assurance_contract.yaml`。具备运行条件时，业务计划的默认入口是 `scripts/resolve_runtime.py`；`scripts/resolve_workflow.py` 只作为 legacy / 无状态兼容 resolver，不参与默认 assured read path。
 
 ### 项目工作记忆
 
@@ -64,7 +64,7 @@ metadata:
 
 | 主题 | Current Authority / consumer |
 |---|---|
-| 启动、最小加载 | `core/bootstrap.yaml` |
+| 启动、原文读取范围 | `core/bootstrap.yaml` |
 | 全局硬规则 | `core/hsk_core_policy.md` |
 | 路由、阶段、gate | `core/workflow_router.yaml` |
 | 题型与 capability | `core/task_taxonomy.yaml` |

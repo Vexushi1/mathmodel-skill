@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import importlib.util
+from io import BytesIO
 import tempfile
 import unittest
 from pathlib import Path
+from xml.etree import ElementTree as ET
+from zipfile import ZipFile
 
 import openpyxl
 import yaml
@@ -141,6 +144,71 @@ class V714NumericalVerificationTests(unittest.TestCase):
                     self.assertTrue(any("重算指标未达到主质量判据" in item for item in issues), issues)
                 if residual == 1.5e-12:
                     self.assertFalse(any("重算指标不一致" in item for item in issues), issues)
+
+    def bound_residuals(self, criteria, details, *, capabilities=None):
+        from primary_quality_specification import normalize_specification
+        book = openpyxl.Workbook()
+        quality = book.active
+        quality.title = "主结果质量门"
+        quality.append([*QUALITY_COLUMNS, "单位"])
+        sheet = book.create_sheet("均衡残差")
+        sheet.append(["主体或均衡", "残差", "容差", "是否满足", "单位", "Verification ID"])
+        items = []
+        for identifier, unit, summary in criteria:
+            item = dict(id=identifier, metric=f"残差 {identifier}", relation="abs<=", threshold=1,
+                        threshold_source="locked_model_tolerance", evidence_sheet=sheet.title, unit=unit)
+            items.append(item)
+            quality.append([identifier, item["metric"], True, "底层观测", "abs<=", 1,
+                            summary, sheet.title, item["threshold_source"], unit])
+        for value, unit, identifier in details:
+            sheet.append(["观测", value, max(1, abs(value)), True, unit, identifier])
+        output = BytesIO()
+        book.save(output)
+        book.close()
+        spec = normalize_specification({"version": "1.0.0", "items": items}, "Q1")
+        return NUMERICAL.validate_primary_numerical_evidence(
+            output.getvalue(), capabilities, approved_specification=spec,
+        )
+
+    def test_bound_residual_converts_into_approved_unit_before_rechecking_threshold(self):
+        for value, source, target, passed in (
+            (0.5, "m", "m", True), (-50, "cm", "m", True), (0.0005, "km", "m", True),
+            (0.5, "km", "m", False), (500, "m", "m", False), (0.5, "s", "m", False),
+            (0.5, None, "m", False), (0.5, "custom-A", "custom-A", True),
+            (0.5, "custom-B", "custom-A", False), (0.5, 1, "1", True),
+            (0.5, "dimensionless", "1", True), (0.5, None, "1", False),
+            (0.5, False, "1", False), (0.5, "unknown", "unknown", False),
+        ):
+            with self.subTest(value=value, source=source, target=target):
+                outcome, issues, _ = self.bound_residuals(
+                    [("PQ-Q1-01", target, 0.5)], [(value, source, None)],
+                )
+                self.assertEqual(outcome, passed, issues)
+                if not passed:
+                    self.assertTrue(any("PQ-Q1-01" in issue for issue in issues), issues)
+
+    def test_conversion_never_uses_reporting_tolerance_for_the_approved_limit(self):
+        passed, issues, _ = self.bound_residuals(
+            [("PQ-Q1-01", "m", 1)], [(100.0000000001, "cm", "PQ-Q1-01")],
+        )
+        self.assertFalse(passed, issues)
+        self.assertTrue(any("重算指标未达到主质量判据" in issue for issue in issues), issues)
+        self.assertFalse(any("重算指标不一致" in issue for issue in issues), issues)
+
+    def test_two_residual_criteria_share_a_sheet_only_with_distinct_row_bindings(self):
+        distance, timing = "PQ-Q1-01", "PQ-Q1-02"
+        criteria = [(distance, "m", 0.5), (timing, "s", 0.1)]
+        rows = [(25, "cm", distance), (0.1, "s", timing), (-50, "cm", distance)]
+        for details, passed in (
+            (rows, True), (list(reversed(rows)), True), (rows[:1] + rows[2:], False),
+            ([(25, "cm", None), *rows[1:]], False), ([(25, "cm", "PQ-Q1-03"), *rows[1:]], False),
+            ([(25, "cm", timing), *rows[1:]], False), ([*rows, (0.6, "m", distance)], False),
+        ):
+            with self.subTest(rows=details):
+                outcome, issues, _ = self.bound_residuals(
+                    criteria, details, capabilities={"requires_equilibrium_residual": True},
+                )
+                self.assertEqual(outcome, passed, issues)
 
     def test_reporting_relative_tolerance_does_not_apply_unit_scale_floor(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -420,6 +488,93 @@ class V714NumericalVerificationTests(unittest.TestCase):
             passed, issues, report = NUMERICAL.validate_primary_numerical_evidence(path, {})
             self.assertTrue(passed, issues)
             self.assertEqual(report["mode"], "legacy_read")
+
+    def test_historical_id_cells_and_explicit_protocol_dispatch(self):
+        for name, include_column, marker, binding, strict in (
+            ("absent column", False, None, None, False),
+            ("empty cell", True, None, None, False),
+            ("whitespace", True, " \t ", None, False),
+            ("real ID", True, "PQ-Q1-01", None, True),
+            ("bound protocol", True, None, True, True),
+            ("explicit false cannot mask an ID", True, "PQ-Q1-01", False, True),
+            ("malformed numeric ID", True, 0, None, True),
+            ("malformed Boolean ID", True, False, None, True),
+        ):
+            with self.subTest(case=name), tempfile.TemporaryDirectory() as tmp:
+                path = Path(tmp) / "legacy.xlsx"
+                book = openpyxl.Workbook()
+                sheet = book.active
+                sheet.title = "主结果质量门"
+                sheet.append(["检查项", "是否通过", "证据"] + (["Verification ID"] if include_column else []))
+                sheet.append(["完整运行", True, "旧工作簿"] + ([marker] if include_column else []))
+                book.save(path)
+                book.close()
+                before = path.read_bytes()
+                passed, issues, report = NUMERICAL.validate_primary_numerical_evidence(path, force_strict=binding)
+                self.assertEqual(report["strict"], strict, report)
+                self.assertEqual(report["mode"], "v7.14_strict" if strict else "legacy_read")
+                self.assertEqual(passed, not strict, issues)  # These rows contain only the old Boolean gate.
+                self.assertEqual(path.read_bytes(), before)
+
+    def test_verification_formula_requires_a_typed_cached_result(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "quality.xlsx"
+            self.make_book(
+                path, ['="PQ-Q1-01"', "验算", True, "原始记录", "bool_true", True, True,
+                       "验证明细", "solver_tolerance"], "验证明细", ["编码"], [1])
+            original = path.read_bytes()
+            for label, cell_type, value, mode, passed in (
+                ("uncached default numeric", "n", "", "invalid", False),
+                ("missing even with string type", "str", None, "invalid", False),
+                ("computed empty string", "str", "", "legacy_read", True),
+                ("computed whitespace", "str", "  ", "legacy_read", True),
+                ("cached ID", "str", "PQ-Q1-01", "v7.14_strict", True),
+                ("cached number zero", "n", "0", "v7.14_strict", False),
+                ("cached Boolean false", "b", "0", "v7.14_strict", False),
+            ):
+                with self.subTest(case=label):
+                    # Preserve the actual Excel formula while setting its persisted OOXML result.
+                    with ZipFile(BytesIO(original)) as src, ZipFile(path, "w") as target:
+                        for item in src.infolist():
+                            data = src.read(item)
+                            if item.filename == "xl/worksheets/sheet1.xml":
+                                xml = ET.fromstring(data)
+                                cell = xml.find(".//{*}c[@r='A2']")
+                                self.assertIsNotNone(cell.find("{*}f"))
+                                cell.set("t", cell_type)
+                                cache = cell.find("{*}v")
+                                if value is None:
+                                    cell.remove(cache)
+                                else:
+                                    cache.text = value
+                                data = ET.tostring(xml)
+                            target.writestr(item, data)
+                    captured = path.read_bytes()
+                    for source in (path, captured):
+                        ok, issues, report = NUMERICAL.validate_primary_numerical_evidence(source)
+                        self.assertEqual((report["mode"], ok), (mode, passed), issues)
+                        if mode == "invalid":
+                            self.assertTrue(any("主结果质量门!A2" in issue and "缓存" in issue
+                                                for issue in issues), issues)
+                    self.assertEqual(path.read_bytes(), captured)
+
+    def test_sparse_formula_only_in_id_column_blocks_historical_fallback(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "legacy.xlsx"
+            book = openpyxl.Workbook()
+            gate = book.active
+            gate.title = "主结果质量门"
+            gate.append(["检查项", "是否通过", "证据", "Verification ID", "非判定列"])
+            gate.append(["检查", True, "旧记录", None, "=1+2"])
+            book.save(path)
+            self.assertTrue(NUMERICAL.validate_primary_numerical_evidence(path)[0])
+            gate["D9"] = '=""'
+            book.save(path)
+            book.close()
+            ok, issues, report = NUMERICAL.validate_primary_numerical_evidence(path)
+            self.assertFalse(ok)
+            self.assertEqual(report["mode"], "invalid")
+            self.assertTrue(any("主结果质量门!D9" in issue for issue in issues), issues)
 
     def test_runtime_and_receipt_integration_are_declared(self):
         bootstrap = yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8"))

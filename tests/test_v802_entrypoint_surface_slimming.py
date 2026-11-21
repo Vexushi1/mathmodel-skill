@@ -53,6 +53,25 @@ class TestV802EntrypointSurfaceSlimming(unittest.TestCase):
         ):
             self.assertNotIn(token, self.root_skill)
 
+    def test_public_navigation_leads_to_one_copy_of_the_web_app_instructions(self):
+        anchor = '<a id="web-app-start"></a>'
+        self.assertEqual(self.instructions.count(anchor), 1)
+        section = self.instructions.split(anchor, 1)[1].strip().split("\n## ", 1)[0]
+        blocks = re.findall(r"^```text\n(.+?)\n```$", section, re.MULTILINE | re.DOTALL)
+        self.assertEqual(len(blocks), 1)
+        for relative in ("README.md", "RUNTIME_ROUTER.md", "REPOSITORY_INDEX.md",
+                         "scripts/README.md", "docs/stage_reading_execution_refactor_plan.md"):
+            with self.subTest(relative=relative):
+                path = ROOT / relative
+                text = path.read_text(encoding="utf-8")
+                if relative.startswith("docs/"):
+                    before_next = re.split(r"^### 13\.2 .+?$", text, flags=re.MULTILINE)[1]
+                    text = re.split(r"^#{1,3} ", before_next, maxsplit=1, flags=re.MULTILINE)[0]
+                targets = re.findall(r"\[[^\]]+\]\(([^)]+)#web-app-start\)", text)
+                self.assertIn(ROOT / "PROJECT_INSTRUCTIONS.md",
+                              [(path.parent / target).resolve() for target in targets])
+                self.assertNotIn(blocks[0], text)
+
     def test_project_instructions_is_procedure_not_duplicate_contract(self):
         for required in (
             "scripts/resolve_runtime.py",

@@ -1,8 +1,8 @@
-version: 10.35.3
+version: 11.0.0
 bootstrap: core/bootstrap.yaml
 
-# 默认只加载全局硬规则。其余核心合同按 route 显式加载，避免绘图/写作等阶段
-# 无差别读取 taxonomy、用户执行合同和预处理合同。
+# default_load / load_policy 描述本次业务动作的路由资源。开场读取方式由
+# 同一提交的 core/bootstrap.yaml#startup_contract 决定。切换读取范围不改变下列业务门。
 default_load:
 - core/hsk_core_policy.md
 
@@ -29,6 +29,22 @@ project_memory_contract:
   read_before_modules: [data_preprocessing, solve_validate, result_analysis, figure_evidence, writing_docx, writing_latex, review_delivery]
   targeted_read_sections: [当前有效口径, relevant_subproblem, required_dependencies, Model Challenge, Human Model Approval, relevant_result_summary, Algorithm Trace, Terminology Registry, Numeric Profile, 待办与缺口]
   full_read_when: [cross_chat_handoff, long_context_recovery, full_paper_writing, cross_question_synthesis, final_review]
+  full_read_signals:
+    cross_chat_handoff:
+      startup_events: [cross_chat_formal_resume]
+      request_pattern: '(?:跨(?:聊天|会话)|新(?:聊天|会话)).{0,12}(?:接续|交接|恢复|继续)|(?:handoff|resume).{0,12}(?:another|new) (?:chat|session)'
+    long_context_recovery:
+      startup_events: [formal_context_lost]
+      request_pattern: '(?:上下文|对话记录).{0,10}(?:丢失|压缩|中断|恢复)|(?:恢复|重建).{0,8}(?:完整上下文|项目上下文)|context (?:loss|recovery)'
+    full_paper_writing:
+      intents: [latex, docx, full_workflow]
+      request_pattern: '(?:撰写|写|起草|生成|完成|组装|编写).{0,12}(?:全文|全篇|整篇|整稿|完整(?:的)?(?:论文|文稿))|(?:全文|全篇|整篇|整稿|论文全稿).{0,8}(?:写作|撰写|起草|组装)|(?:write|draft|assemble).{0,12}(?:entire|whole|full|complete) (?:paper|manuscript)'
+    cross_question_synthesis:
+      request_pattern: '(?:跨问|跨题|各问|各小问|所有问题).{0,10}(?:综合|归纳|汇总|综合分析)|(?:综合|归纳|汇总).{0,10}(?:跨问|跨题|各问|各小问|所有问题)|cross.question synthesis'
+    final_review:
+      intents: [review, full_workflow, full_submission]
+      request_pattern: '(?:全文|全篇|整篇|全稿|整稿|完整论文).{0,8}(?:终审|评审|审阅|审查|复核)|(?:终审|评审|审阅|审查|复核).{0,8}(?:全文|全篇|整篇|全稿|整稿|完整论文)|(?:^|[，。；\s])(?:请|开始|进行|做)?(?:论文)?终审(?:$|[。！；\s])|final review (?:of )?(?:the )?(?:entire |whole |full )?(?:paper|manuscript)'
+  scoped_writing_headings: [当前写作选择, 逐问写作能力预检, 正文章节与交付映射, Paper Fragment Dependency Map, Chapter Handoff Map, Algorithm Trace]
   numeric_fact_source: accepted_standard_workbooks
   machine_state_source: state/project_state.yaml
   rules:
@@ -366,7 +382,7 @@ routing:
 
   figures:
     triggers: [图表, 可视化, 机理图, 推导图, Nature, SCI, MATLAB图标题, 数据预处理图, 处理前后对比图, 局部放大, 分面图, 联合诊断图]
-    infer_keywords: [Python绘图, Python 绘图, MATLAB绘图, MATLAB 绘图, SCI图, Nature风格绘图, 结果图, 敏感性图, 鲁棒性图, 机理图, 推导图, 可视化, 图表, data_process, 预处理图, 局部放大, inset, small multiples, 分面图, 联合诊断]
+    infer_keywords: [Python绘图, Python 绘图, MATLAB绘图, MATLAB 绘图, SCI图, Nature风格绘图, 结果图, 敏感性图, 鲁棒性图, 机理图, 机制图, 推导图, 可视化, 图表, 机理草图, mechanism diagram, mechanism sketch, 误差图, 误差分布图, 残差图, data_process, 预处理图, 局部放大, inset, small multiples, 分面图, 联合诊断]
     load: [modules/04_figure_evidence.md, packs/artifact/figure.md, templates/figure/chart_selection.md, templates/figure/figure_enhancement_patterns.md]
     terminal_outputs: [preprocessing_matlab_script, preprocessing_figures, matlab_scripts, figure_contracts, approved_figures, model_paper_framework]  # MATLAB historical projection
     project_plotting_outputs:
@@ -378,7 +394,7 @@ routing:
 
   editable_mechanism_diagram:
     triggers: [draw.io, drawio, 可编辑机理图, 约束关系图, 临界状态图]
-    infer_keywords: [draw.io机理图, drawio机理图, 可编辑机理图, draw.io约束关系图, draw.io临界状态图]
+    infer_keywords: [draw.io机理图, drawio机理图, 可编辑机理图, editable mechanism diagram, draw.io约束关系图, draw.io临界状态图]
     load: [modules/04_figure_evidence.md, packs/artifact/figure.md, templates/figure/mechanism_contract.md, templates/figure/mechanism_drawio_spec.yaml, templates/figure/mechanism_drawio_patterns.md, templates/figure/mechanism_qa.md]
     terminal_outputs: [mechanism_diagram_spec, editable_mechanism_source, mechanism_preview, mechanism_exports, figure_contracts, approved_figures, model_paper_framework]
     formal_delivery: true
@@ -421,6 +437,39 @@ routing:
     terminal_outputs: [review_report]
 
 # P2 is a content-reading projection only. Legacy route selection/load_order is unchanged.
+# Identify the physical outputs before deciding their separately applicable Figure evidence.
+figure_delivery_policy:
+  mechanism_figure: '(?:机理|机制|推导|约束关系|临界状态)(?:示意|草|结构|示意草)?图|几何示意图|(?:draw\.io|drawio)(?:机理)?图|mechanism (?:diagram|sketch)'
+  result_figure: '(?:(?:预测|拟合|模拟|观测|数值|绝对|相对)?(?:误差|残差|敏感性|鲁棒性|稳健性|结果)(?:(?:分布|变化|对比|比较|诊断|结果|曲线|散点|直方|箱线|热力)?图|曲线)|(?:error|residual|result) (?:plot|chart|figure))'
+  numerical_evidence: '(?:result_evidence|误差值|残差值|实测值|预测值|数值结果|工作簿数值|(?:标注|展示|叠加|显示|引用|绘入|标出)[^，。；,;]{0,16}(?:工作簿|数值|实测|计算结果|预测结果)|(?:标注|叠加|显示|标出|着色|注明).{0,12}(?:误差|残差)|(?:误差|残差).{0,8}(?:着色|标注|叠加)|(?:按|依照|根据|依据|用|基于)[^，。；,;]{0,26}(?:工作簿|数值|流量|客流|实测|预测值|计算值)[^，。；,;]{0,12}(?:着色|标注|显示|编码|线宽|粗细|颜色)|(?:用|以)?(?:线宽|颜色|粗细|大小|色阶)(?:表示|反映|编码|映射)[^，。；,;]{0,14}(?:流量|客流|数值|误差|残差|实测|计算值)|error values?|numerical results?)'
+  # Mapping a data field onto geometry or appearance requires source verification.
+  # Only an explicitly categorical target or symbolic label has a numerical exemption.
+  visual_mapping:
+    - '(?:面积|半径|直径|长度|宽度|线宽|粗细|大小|色阶|颜色|色深|透明度|高度|距离)\s*(?:来|用于|按比例)?(?:表示|代表|反映|编码|映射|对应|正比于|取决于|体现|区分|展示|显示)\s*(?P<target>.+)'
+    - '(?:根据|依据|依照|按照|按|随)\s*(?P<target>.+?)\s*(?:来|进行)?(?:着色|上色|调整(?:线宽|大小|面积|颜色)|(?:设置|改变)(?:大小|线宽|颜色)|成比例)'
+    - '(?P<target>.+?)(?:映射为|映射到|编码为)(?:节点|连线|图形|箭头|边|圆)?(?:的)?(?:大小|面积|线宽|粗细|颜色|色阶)'
+    - '\b(?:area|radius|diameter|length|width|thickness|size|colou?r|opacity|height)\s+(?:to\s+)?(?:represents?|encodes?|reflects?|depicts?|shows?|maps? to|is proportional to|varies with|scales? with|distinguish(?:es)?)\s+(?P<target>.+)'
+    - '\b(?:scale|colou?r|size|vary|shade|encode)\b[^,.;]{0,40}?\s+(?:by|based on|according to|in proportion to)\s+(?P<target>.+)'
+  categorical_target: '^(?:[\w\s的-]{0,35}(?:类别|来源类型|种类|分类|类型|角色|流程阶段|状态名称|所属组别|组别|标签|变量名|符号)|(?:the )?(?:different )?(?:[a-z-]+\s+){0,4}(?:categor(?:y|ies)|types?|classes|groups?|roles?|labels?|symbols?|stages?))$'
+  symbolic_target: '^(?:(?:符号|变量名|变量符号)\s*[A-Za-z](?:_[a-z0-9]+)?|(?:the )?(?:symbol|variable name)\s+[A-Za-z](?:_[a-z0-9]+)?)$'
+  negated_mapping: '(?:(?:不要|无需|不必|勿|不再|不)(?:使用|以|用|按|标注|写上|引用|映射|编码|叠加|绘入)[^，。；,;]*?(?=而是|但|改用|另外|同时|另用|并(?:用|按|显示|标注)|仍|只(?:用|标注)|$)|\b(?:do not|never|without)\s+(?:use|using|annotate|annotating|encod(?:e|ing)|colou?r(?:ing)?|label(?:ing)?)\b.*?(?=\bbut\b|\binstead\b|$))'
+  observation_source: '(?:已(?:经)?(?:求出|算出|观测|测得|记录|统计|拟合|预测)|实测|实绩|实际测得|测量所得|观测到|计算所得|求解所得|报告中(?:的)?|\b(?:measured|recorded|observed|computed|estimated|predicted|reported|calculated|fitted)\b)'
+  annotation: '(?:写上|写入|标(?:注|出|到|在|上)|填入|注明|绘入|贴到|叠加|展示|显示|附上|列出|\b(?:label|annotate|write|show|display|print|add|overlay)\b)'
+  scalar_assignment: '(?:(?:为|等于|达到|约为|[=:：≈]|\b(?:is|was|equals?|of|at)\s+)[ \t]*[¥$€£]?[+−-]?\d+(?:\.\d+)?|(?<![\w.])[+−-]?\d+\.\d+|[¥$€£]\s*\d+|[+−-]?\d+(?:\.\d+)?\s*(?:%|％|‰|元|万元|吨|千克|分钟|小时|公里|千米|米|摄氏度|\b(?:USD|CNY|kg|km|m|s|h)\b))'
+  layout_value: '(?:(?:画布|网格|字号|字体大小|字距|行距|边距|间距|页边距|图片尺寸|分辨率|线宽|箭头宽度|坐标轴(?:长度?|宽度?|高度?|尺寸)|(?:图|模块|步骤|面板)(?:号|数|个数|宽|高)|面板编号)\s*(?:设为|设置为|为|等于|约为|[=:：])?\s*\d+(?:\.\d+)?(?:\s*(?:pt|px|dpi|mm|cm|毫米|厘米|磅|像素))?|\b(?:grid(?: spacing)?|line width|font(?: size)?|canvas|axis (?:size|width|height|length)|panels?|margin|resolution)\s*(?:of|as|is|at|=|:)?\s*\d+(?:\.\d+)?(?:\s*(?:pt|px|dpi|mm|cm))?|\d+(?:\.\d+)?\s*(?:pt|px|dpi|磅|像素)\b)'
+  editable_backend: '(?:draw\.io|drawio|可编辑(?:机理|机制|推导)图|editable mechanism diagram)'
+  semantic_change: '(?<!不)(?<!勿)(?<!无需)(?:改变|修改|重定|更换|调整|重建)(?:模型|参数(?:值)?|假设|数据口径|约束|目标函数)|(?<!不)(?:重新求解|重算模型)'
+  same_output: '(?:同一[张幅个]?图|同一[张幅]|合[为成并].{0,5}一[张幅个]|只(?:画|绘制|做)一[张幅个]|叠加[在到至]|作为.{0,4}(?:图层|子图|面板)|(?:same|single) (?:figure|diagram)|overlay)'
+  separate_outputs: '(?:两[张幅]独立|独立的两[张幅]|分[开别](?:绘制|画|作图|交付|导出)|各(?:绘制|画|做)一[张幅]|separate (?:figures|outputs))'
+  between_outputs: '\s*(?:[，,]?(?:和|与|及|以及)|、|[，,](?:再|另|为)|；另|并(?:另)?|[,;]?\s*and)\s*(?:为|针对)?\s*(?:的\s*)?(?:(?:再|另|同时)?(?:设计|绘制|画|制作|导出|生成|做))?\s*(?:(?:另)?一[张幅个]|这[张幅]|一份|本问的)?\s*'
+  question: '(?<![a-z0-9])q\s*[1-9][0-9]*|问题\s*[一二三四五六七八九十0-9]+|第[一二三四五六七八九十0-9]+问'
+  negated_output: '(?:不要|不必|无需|不(?:再)?)(?:另行|单独)?(?:设计|绘制|画|生成|导出|做).{0,8}(?:误差|残差|结果图|机理图|机制图)'
+  negated_encoding: '(?:result_evidence\s*[:=：]?\s*(?:\[\s*\]|为空|为空列表)|(?:不要|不必|无需|不再|不)(?:使用|引用|标注|绘入|叠加|包含|含|按|用|依照)[^，。；,;]{0,32}(?:着色|工作簿数值|误差值|残差值|数值结果|result_evidence))'
+  workbook_reference: '(?:已(?:通过)?验收(?:的)?(?:求解)?工作簿|验收(?:过|完成|合格|通过)的工作簿)'
+  requirements:
+    mechanism: [locked_model_spec]
+    figures: [locked_model_spec, accepted_solution_workbook, validated_results]
+
 reading_policy:
   schema_version: 1.1.0
   authority: core/runtime_assurance_contract.yaml#reading_plan

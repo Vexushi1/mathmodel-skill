@@ -1,6 +1,6 @@
 contract_version: 1.0.0
 introduced_in_skill_version: 7.14.0
-skill_compatibility: '>=7.14.0,<11.0.0'
+skill_compatibility: '>=7.14.0,<12.0.0'
 purpose: >-
   Define the single field-level authority for intrinsic numerical validity of one
   primary computation before its solution workbook may be accepted. This contract
@@ -98,7 +98,7 @@ strict_v714_trace:
   activation:
     any:
     - receipt binds current primary_quality_protocol_version from already delivered primary code
-    - 主结果质量门 contains a non-empty Verification ID
+    - 主结果质量门 contains a Verification ID other than an absent cell, an empty cell, or whitespace-only text
   force_strict_when_delivered_protocol_bound: true
   legacy_when_absent_only_without_current_protocol_binding: true
   quality_gate_sheet: 主结果质量门
@@ -155,6 +155,7 @@ capability_protocols:
   requires_uncertainty_quantification:
     protocol: uncertainty_precision
     evidence_sheet: 不确定性区间
+    endpoint_check: core/workbook_schema.yaml checks finite ordered endpoints on the same basis. The project's approved criterion defines precision, quantile semantics and coverage.
     recheck_mode: summary_criterion
   requires_leakage_check:
     protocol: leakage_primary_validity
@@ -177,6 +178,16 @@ recheck_modes:
     failed_row_blocks_acceptance: true
   max_abs_residual:
     source_columns: [残差, 容差, 是否满足]
+    unit_powers_of_ten:
+      length: {mm: -3, cm: -2, m: 0, km: 3}
+      dimensionless: {'1': 0, ratio: 0, dimensionless: 0, 无量纲: 0}
+    criterion_binding: >-
+      Multiple criteria on one residual sheet require a matching Verification ID on every row;
+      one criterion can select the entire sheet when rows omit the ID. The row unit applies
+      to both residual and tolerance. Convert into the criterion unit before taking its maximum.
+      Identical explicit custom units are comparable. Different units require a common registered
+      dimension and exact conversion. A declared or approved unit requires an explicit row unit.
+      An unbound older trace with neither unit retains its original numerical check only.
     computed_metric: max_abs_value
     quality_actual_must_match_computed: true
     failed_row_blocks_acceptance: true

@@ -4,6 +4,8 @@
 
 本目录中的 `classification.py`、`evaluation.py`、`optimization.py`、`prediction.py` 和 `simulation.py` 只用于生成主求解脚本 `问题X求解.py`。主工作簿验收后，不覆盖主脚本；先执行 Analysis Necessity Gate，仅在 Gate=`required` 时根据真实主结果单独生成 `问题X结果深化分析.py`。旧说明中的“主工作簿 accepted 后进入 03B”现在只表示进入 Analysis Necessity Gate；只有 Gate=`required` 才实际激活 03B。
 
+普通 03B 的可运行示例是 `q1_analysis.py`。主簿验收且需要深化分析时，可把它实例化为本问的 `问题X结果深化分析.py`。示例读取已验收的方程解，对每个声明的系数分别记录实际解及其相对基准的绝对偏离，并据此判断两条主张。换题时，在静态 `RUN_CONFIG.ordinary_experiments` 中更新检验目标、主张与 ID，同时替换对应计算和判据。运行配置与返回表字段见 `core/user_execution_contract.yaml` 和 `core/workbook_schema.yaml`。
+
 这些 starter 是数学/管线骨架，复制文件并不等于已交付 1.1 实例。旧 `sync_primary_framework` 钩子及 `framework_sync_hook` 参数已经退出；移除旧调用后，由工作簿回执验收与项目同步控制面登记结果，不能自行把本地成功写成 accepted。新实例必须按下面步骤补齐 RUN_CONFIG、实际执行前后源码/输入绑定与 1.1 RUN_RECEIPT，并把运行事实写入 `运行配置`；不能只替换版本字符串。共用 `hsk_pipeline.result_io.write_workbook()` 接收调用方提供的工作表，因此可原样写入新 1.1 字段，但不会替入口自动生成或验证回执身份。
 
 新 1.1 实例的数据身份模式服从执行 Authority：`project_level` 显式写 `data_identity_mode="preprocessing_workbook"`，只以已验收预处理 XLSX 作为 `data_paths`，沿用其普通文件 SHA；其他两种预处理决策默认 `combined`。不能把预处理工作簿改算为输入集合摘要来迁就模板。

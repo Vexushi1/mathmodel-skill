@@ -19,7 +19,7 @@ import yaml
 
 from test_solver_backend_end_to_end import (
     ROOT, QUESTION, CONFIG, file_hash, load_module,
-    reference_digest, save_state, result_io,
+    reference_digest, save_state, result_io, check_ordinary_experiments,
 )
 
 
@@ -90,92 +90,6 @@ def python_primary(root: Path, question: str, upstream: bool) -> None:
     accept(root, question, "python", 1.5 if upstream else 3)
 
 
-PYTHON_ANALYSIS = '''"""Independent native Python parameter sensitivity on an accepted primary."""
-from pathlib import Path
-import hashlib
-import json
-import math
-import platform
-
-import openpyxl
-
-RUN_CONFIG = {}
-
-
-def digest(root, paths):
-    result = hashlib.sha256()
-    for relative in sorted(paths, key=lambda name: name.encode("utf-8")):
-        result.update(relative.encode("utf-8") + b"\\0")
-        result.update(hashlib.sha256((root / relative).read_bytes()).digest())
-    return result.hexdigest()
-
-
-def main():
-    root = Path(__file__).resolve().parents[1]
-    code = Path(__file__).resolve()
-    config = RUN_CONFIG
-    primary = root / config["primary_workbook"]
-    assert digest(root, config["data_paths"]) == config["data_sha256"]
-    assert hashlib.sha256(primary.read_bytes()).hexdigest() == config["primary_workbook_sha256"]
-    code_sha = hashlib.sha256(code.read_bytes()).hexdigest()
-    bundle_sha = digest(root, [code.relative_to(root).as_posix()])
-    upstream = openpyxl.load_workbook(primary, data_only=True)
-    try:
-        baseline = dict(upstream["核心指标"].iter_rows(min_row=2, values_only=True))["解"]
-    finally:
-        upstream.close()
-    payload = json.loads((root / config["data_paths"][0]).read_text(encoding="utf-8"))
-    coefficients = payload["sensitivity_coefficients"]
-    assert len(coefficients) == config["iteration_or_time_limit"]
-    values = [payload["right_hand_side"] / coefficient for coefficient in coefficients]
-    assert all(math.isfinite(value) and value > 0 for value in values) and baseline > 0
-    receipt = dict(run_receipt_version="1.1.0", execution_owner="user",
-                   execution_profile="full_fidelity", stage="analysis",
-                   problem_name=config["problem_name"], solver_backend="python",
-                   code_sha256=code_sha, code_bundle_sha256=bundle_sha,
-                   data_sha256=config["data_sha256"],
-                   primary_workbook_sha256=config["primary_workbook_sha256"],
-                   solver=config["solver"], solver_version=platform.python_version(),
-                   tolerance=config["tolerance"],
-                   iteration_or_time_limit=config["iteration_or_time_limit"],
-                   actual_stop_reason="all_scenarios_completed",
-                   random_seed=config["random_seed"], repetitions_or_scenarios=len(values),
-                   grid_or_time_range="all declared inputs", fallback_used=False,
-                   platform=platform.platform())
-    receipt.update({name: False for name in (
-        "allow_reduced_data", "allow_coarser_grid", "allow_shorter_horizon",
-        "allow_fewer_repetitions", "allow_relaxed_tolerance",
-        "allow_silent_solver_fallback")})
-    book = openpyxl.Workbook()
-    book.remove(book.active)
-    sheets = {
-        "运行配置": [("项目", "值"), *receipt.items()],
-        "分析设计": [("风险来源", "分析问题", "方法", "指标", "通过标准"),
-                     ("系数变化", "解是否保持正值", "参数敏感性", "x", "全部场景x>0")],
-        "参数敏感性": [("参数", "基准值", "变化值", "结果指标"),
-                       *[("a", payload["coefficient"], coefficient, value)
-                         for coefficient, value in zip(coefficients, values)]],
-        "结论稳定性汇总": [("核心结论", "分析方法", "稳定范围", "是否保持"),
-                           ("解为正值", "参数敏感性", "a in [1.5, 3]", True)],
-    }
-    for name, rows in sheets.items():
-        sheet = book.create_sheet(name)
-        for row in rows:
-            sheet.append(row)
-    assert digest(root, config["data_paths"]) == config["data_sha256"]
-    assert hashlib.sha256(primary.read_bytes()).hexdigest() == config["primary_workbook_sha256"]
-    assert hashlib.sha256(code.read_bytes()).hexdigest() == code_sha
-    book.save(root / config["expected_workbook"])
-    book.close()
-    print(json.dumps({"actual_python_execution": True, "status": "passed",
-                      "sensitivity_values": values, "code_sha256": code_sha}))
-
-
-if __name__ == "__main__":
-    main()
-'''
-
-
 def python_analysis(root: Path) -> None:
     primary = root / QUESTION / "问题一求解结果.xlsx"
     state_path = root / "state/project_state.yaml"
@@ -185,30 +99,28 @@ def python_analysis(root: Path) -> None:
     entry.update(result_analysis_requirement_reason="Check the declared coefficient range",
                  analysis_methods=["参数敏感性"])
     save_state(root, state)
-    paths = ["input.json"]
-    config = dict(stage="analysis", problem_name="问题一", solver_backend="python",
-                  data_paths=paths, data_sha256=reference_digest(root, paths),
-                  solver="analytic_parameter_sweep", random_seed=2026, tolerance=1e-10,
-                  iteration_or_time_limit=3,
-                  expected_workbook=f"{QUESTION}/问题一结果深化分析.xlsx",
-                  run_receipt_protocol_version="1.1.0", code_dependencies=[],
-                  primary_workbook=f"{QUESTION}/问题一求解结果.xlsx",
-                  primary_workbook_sha256=file_hash(primary))
-    source = PYTHON_ANALYSIS.replace("RUN_CONFIG = {}", "RUN_CONFIG = " + repr(config), 1)
-    ast.parse(source)
+    template = ROOT / "templates/code/starter/q1_analysis.py"
+    source = template.read_text(encoding="utf-8").replace("__DATA_SHA256__", reference_digest(root, ["input.json"]))
+    source = source.replace("__ACCEPTED_PRIMARY_SHA256__", file_hash(primary))
     code = root / QUESTION / "问题一结果深化分析.py"
     code.write_text(source, encoding="utf-8", newline="\n")
     delivery = load_module("same_backend_analysis_delivery", "scripts/validate_code_delivery.py")
     issues, parsed = delivery.validate_script(root, code, "analysis")
     assert issues == [], issues
     delivery.update_state(root, parsed, code)
-    process = subprocess.run([sys.executable, str(code)], cwd=root, capture_output=True, text=True, check=True)
-    report = json.loads(process.stdout)
-    assert report["actual_python_execution"] and report["status"] == "passed"
-    assert report["sensitivity_values"] == [4, 3, 2]
-    (root / "analysis_python_report.json").write_text(json.dumps(report), encoding="utf-8")
+    subprocess.run([sys.executable, str(code)], cwd=root, capture_output=True, text=True, check=True)
     workbook = root / QUESTION / "问题一结果深化分析.xlsx"
-    result_io.validate_workbook_file(workbook, "result_analysis", capabilities={})
+    result_io.validate_workbook_file(workbook, "result_analysis", analysis_methods=["参数敏感性"],
+                                     ordinary_experiments=parsed["ordinary_experiments"])
+    book = openpyxl.load_workbook(workbook, read_only=True, data_only=True)
+    try:
+        verified = check_ordinary_experiments(book, {"SENS-Q1-SIGN": [4, 3, 2], "SENS-Q1-CHANGE": [1, 0, 1]},
+                                              {"SENS-Q1-SIGN": True, "SENS-Q1-CHANGE": True})
+    finally:
+        book.close()
+    report = {"actual_python_execution": True, "status": "passed", "sensitivity_values": verified["SENS-Q1-SIGN"],
+              "observations": verified, "code_sha256": file_hash(code)}
+    (root / "analysis_python_report.json").write_text(json.dumps(report), encoding="utf-8")
     receipt = load_module("same_backend_analysis_receipt", "scripts/validate_user_execution.py")
     state = yaml.safe_load(state_path.read_text(encoding="utf-8"))
     issues = receipt.validate_one(root, workbook, state, True)
@@ -297,8 +209,8 @@ def verify(project: Path) -> None:
         assert receipt.validate_one(root, workbook, state, False) == []
         analysis = openpyxl.load_workbook(root / QUESTION / "问题一结果深化分析.xlsx", data_only=True)
         try:
-            values = [row[3] for row in analysis["参数敏感性"].iter_rows(min_row=2, values_only=True)]
-            assert values == [4, 3, 2], values
+            check_ordinary_experiments(analysis, {"SENS-Q1-SIGN": [4, 3, 2], "SENS-Q1-CHANGE": [1, 0, 1]},
+                                       {"SENS-Q1-SIGN": True, "SENS-Q1-CHANGE": True})
         finally:
             analysis.close()
     assert json.loads((python_project / "analysis_python_report.json").read_text(encoding="utf-8"))["actual_python_execution"]

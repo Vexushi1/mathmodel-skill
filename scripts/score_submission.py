@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+import io
 import json
 import re
 from pathlib import Path
@@ -82,10 +84,91 @@ def _validate_sha256(value: Any, field: str) -> None:
         raise ValueError(f"{field} must be null or a lowercase SHA-256 digest")
 
 
+def _page_ranges(value: Any, page_count: int, field: str) -> list[list[int]]:
+    """Merge one-based inclusive intervals without expanding them into individual pages."""
+    items = _require_list(value, field)
+    for item in items:
+        if (
+            not isinstance(item, list) or len(item) != 2
+            or any(type(page) is not int for page in item)
+            or not 1 <= item[0] <= item[1] <= page_count
+        ):
+            raise ValueError(f"{field} must contain inclusive page pairs within 1..{page_count}")
+    merged: list[list[int]] = []
+    for start, end in sorted(items):
+        if merged and start <= merged[-1][1] + 1:
+            merged[-1][1] = max(end, merged[-1][1])
+        else:
+            merged.append([start, end])
+    return merged
+
+
+def _check_rendered_pages(entry: dict[str, Any], context: Mapping[str, Any], pdf_path: Path | None) -> str | None:
+    compiled_hash = context["compiled_pdf_sha256"]
+    record = entry.get("page_review")
+    if entry["applicability"] == "not_applicable":
+        if not isinstance(entry["evidence"], str) or not entry["evidence"].strip():
+            return "document the reason this delivery does not require a PDF"
+        if compiled_hash or pdf_path is not None or context["delivery_mode"] == "official":
+            return "PDF coverage is required for the supplied PDF or official delivery"
+        if record is not None and (
+            not isinstance(record, Mapping) or any(value is not None and value != [] for value in record.values())
+        ):
+            return "a delivery without a PDF cannot claim a PDF review"
+        return None
+    if entry["verification_mode"] == "machine":
+        return "machine checks cannot establish visual page coverage"
+    if not isinstance(record, Mapping):
+        return "no structured visual page review for the current PDF"
+    if record.get("method") != "assistant_visual":
+        return "record assistant_visual only for pages the assistant actually viewed"
+    if not compiled_hash or record.get("pdf_sha256") != compiled_hash:
+        return "visual review digest does not match review_context.compiled_pdf_sha256"
+    if pdf_path is None:
+        return "current PDF was not supplied for digest and page-count verification"
+    try:
+        data = pdf_path.read_bytes()
+    except OSError as exc:
+        return f"current PDF cannot be read: {exc}"
+    if hashlib.sha256(data).hexdigest() != compiled_hash:
+        return "current PDF bytes differ from the reviewed PDF"
+    try:
+        from pypdf import PdfReader
+        from pypdf.errors import PyPdfError
+    except ImportError:
+        return "current PDF page count could not be verified: pypdf is unavailable"
+    try:
+        page_count = len(PdfReader(io.BytesIO(data), strict=True).pages)
+    except (PyPdfError, ValueError, TypeError, KeyError, IndexError, OSError, RecursionError) as exc:
+        return f"current PDF page count could not be verified: {exc}"
+    if page_count < 1 or type(record.get("page_count")) is not int or record["page_count"] != page_count:
+        return f"reviewed page_count does not match current PDF ({page_count} pages)"
+    try:
+        viewed = _page_ranges(record.get("viewed_ranges"), page_count, "viewed_ranges")
+        uncovered = _page_ranges(record.get("uncovered_ranges"), page_count, "uncovered_ranges")
+    except ValueError as exc:
+        return str(exc)
+    remaining = []
+    next_page = 1
+    for start, end in viewed:
+        if next_page < start:
+            remaining.append([next_page, start - 1])
+        next_page = end + 1
+    if next_page <= page_count:
+        remaining.append([next_page, page_count])
+    entry["page_review"] = dict(record, viewed_ranges=viewed, uncovered_ranges=uncovered)
+    if remaining != uncovered:
+        return f"uncovered_ranges disagrees with viewed_ranges; the uncovered pages are {remaining}"
+    if remaining:
+        return f"visual review has uncovered pages: {remaining}"
+    return None
+
+
 def _normalize_review_matrix(
     config: Mapping[str, Any],
     report: Mapping[str, Any],
     allowed_hard_fail: set[str],
+    pdf_path: Path | None,
 ) -> dict[str, Any]:
     version = str(report.get("review_schema_version", ""))
     if version != REVIEW_SCHEMA_VERSION:
@@ -116,9 +199,8 @@ def _normalize_review_matrix(
         raise ValueError(f"unknown delivery_mode: {delivery_mode!r}")
     _validate_sha256(context.get("source_bundle_sha256"), "review_context.source_bundle_sha256")
     _validate_sha256(context.get("compiled_pdf_sha256"), "review_context.compiled_pdf_sha256")
-    for field in ("source_bundle_sha256", "compiled_pdf_sha256"):
-        if not _nonempty(context.get(field)):
-            raise ValueError(f"review_context.{field} is required for a final review matrix")
+    if not context["source_bundle_sha256"]:
+        raise ValueError("review_context.source_bundle_sha256 is required for a final review matrix")
     if rule_status == "verified" and not (
         _nonempty(context.get("rule_verified_at")) and _nonempty(context.get("rule_source"))
     ):
@@ -168,6 +250,16 @@ def _normalize_review_matrix(
     missing_families = sorted(set(CHECK_FAMILIES) - set(coverage_by_family))
     if missing_families or len(coverage_by_family) != len(CHECK_FAMILIES):
         raise ValueError(f"coverage families must contain each stable family exactly once: {missing_families}")
+
+    surface = coverage_by_family["rendered_page_surface"]
+    if surface["status"] == "passed" and not context["compiled_pdf_sha256"]:
+        raise ValueError("review_context.compiled_pdf_sha256 is required for a passed PDF review")
+    surface.pop("page_review_issue", None)
+    page_review_issue = _check_rendered_pages(surface, context, pdf_path)
+    if page_review_issue:
+        surface["page_review_issue"] = page_review_issue
+        if surface["status"] == "passed":
+            surface["status"] = "unverifiable"
 
     dimensions = set((config.get("dimensions") or {}).keys())
     findings = _require_list(report.get("findings"), "findings")
@@ -267,7 +359,7 @@ def _normalize_review_matrix(
     hard_fail = declared | open_blocking_codes
     if hard_fail or "blocking" in open_severities:
         review_status = "blocking"
-    elif "review_required" in open_severities or any(
+    elif page_review_issue or "review_required" in open_severities or any(
         entry.get("status") == "unverifiable" for entry in normalized_coverage
     ):
         review_status = "review_required"
@@ -285,7 +377,9 @@ def _normalize_review_matrix(
     }
 
 
-def score_submission(config: Mapping[str, Any], report: Mapping[str, Any]) -> dict[str, Any]:
+def score_submission(
+    config: Mapping[str, Any], report: Mapping[str, Any], *, pdf_path: Path | None = None
+) -> dict[str, Any]:
     dimensions = config.get("dimensions", {})
     weights = {name: float(item["weight"]) for name, item in dimensions.items()}
     if abs(sum(weights.values()) - 1.0) > 1e-9:
@@ -316,7 +410,7 @@ def score_submission(config: Mapping[str, Any], report: Mapping[str, Any]) -> di
 
     matrix = None
     if "review_schema_version" in report:
-        matrix = _normalize_review_matrix(config, report, allowed_hard_fail)
+        matrix = _normalize_review_matrix(config, report, allowed_hard_fail, pdf_path)
         declared_hard_fail = matrix["hard_fail"]
 
     total = round(sum(contributions.values()), 4)
@@ -347,8 +441,9 @@ def main() -> int:
     parser.add_argument("report", help="YAML/JSON file containing scores, evidence and optional hard_fail codes")
     parser.add_argument("--config", default=str(DEFAULT_CONFIG))
     parser.add_argument("--output")
+    parser.add_argument("--pdf", type=Path, help="current compiled PDF for rendered-page review")
     args = parser.parse_args()
-    result = score_submission(load_payload(Path(args.config)), load_payload(Path(args.report)))
+    result = score_submission(load_payload(Path(args.config)), load_payload(Path(args.report)), pdf_path=args.pdf)
     rendered = yaml.safe_dump(result, allow_unicode=True, sort_keys=False)
     if args.output:
         Path(args.output).write_text(rendered, encoding="utf-8", newline="\n")

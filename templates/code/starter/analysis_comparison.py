@@ -96,7 +96,17 @@ def make_receipt(config, identity, elapsed):
     return result
 
 
+def holdout_index(payload):
+    scenarios = payload["scenarios"]
+    if scenarios.count("holdout") != 1:
+        raise ValueError("Expected exactly one holdout scenario")
+    if len(scenarios) != len(payload["evaluation_t"]) or len(set(scenarios)) != len(scenarios):
+        raise ValueError("Every declared evaluation point needs one unique scenario")
+    return scenarios.index("holdout")
+
+
 def primary_tables(config, payload):
+    holdout = holdout_index(payload)
     coefficients, predictions, residual = fit_polynomial(payload["train_t"], payload["train_y"], 2, "QR", payload["evaluation_t"])
     rows = [[f"prediction-{i}", "prediction", float(value), "dimensionless", scenario, "prediction"]
             for i, (scenario, value) in enumerate(zip(payload["scenarios"], predictions))]
@@ -104,7 +114,7 @@ def primary_tables(config, payload):
                  for i, value in enumerate(coefficients)])
     passed = residual <= config["tolerance"]
     return {
-        "核心指标": [["指标", "数值"], ["留出预测", predictions[-1]], ["正规方程残差", residual]],
+        "核心指标": [["指标", "数值"], ["留出预测", predictions[holdout]], ["正规方程残差", residual]],
         "数据审计": [["等级", "检查项", "信息", "处理方式"], ["info", "有限成对样本", "完整原始训练和评价点", "只读检查"]],
         "主结果质量门": [["Verification ID", "检查项", "是否通过", "证据", "判定关系", "阈值或容差", "实际值", "证据工作表", "阈值来源"],
                         ["PQ-Q1-01", "最小二乘正规方程残差", passed, "从完整训练设计矩阵重算", "abs<=", config["tolerance"], residual, "均衡残差", "solver_tolerance"]],
@@ -114,10 +124,14 @@ def primary_tables(config, payload):
 
 
 def analysis_tables(root, config, payload):
+    holdout = holdout_index(payload)
     book = openpyxl.load_workbook(bounded(root, config["primary_workbook"]), read_only=True, data_only=True)
     try:
-        records = {row["记录键"]: row for row in _records(book["状态明细"])}
-        baseline = [float(records[f"prediction-{i}"]["数值"]) for i in range(len(payload["evaluation_t"]))]
+        rows = [row for row in _records(book["状态明细"]) if row["指标"] == "prediction"]
+        by_scenario = {row["实例或场景"]: row["数值"] for row in rows}
+        if len(by_scenario) != len(rows) or set(by_scenario) != set(payload["scenarios"]):
+            raise ValueError("Expected one primary prediction per declared scenario")
+        baseline = [float(by_scenario[scenario]) for scenario in payload["scenarios"]]
     finally:
         book.close()
     _, linear, linear_residual = fit_polynomial(payload["train_t"], payload["train_y"], 1, "QR", payload["evaluation_t"])
@@ -125,14 +139,14 @@ def analysis_tables(root, config, payload):
     model_rows, algorithm_rows = [], []
     for i, scenario in enumerate(payload["scenarios"]):
         model_difference, algorithm_difference = linear[i] - baseline[i], svd[i] - baseline[i]
-        if scenario == "holdout":
+        if i == holdout:
             model_rows.append(["CMP-Q1-01", f"model-{i}", "MODEL-Q1-01", "MODEL-Q1-02", "EVAL-Q1-01", scenario,
                                "prediction", "dimensionless", baseline[i], linear[i], "difference", model_difference,
                                "CRIT-CMP-Q1-01", abs(model_difference) >= payload["model_difference_threshold"], linear_residual, f"QR/NumPy {np.__version__}", "decomposition_completed"])
         algorithm_rows.append(["CMP-Q1-02", f"algorithm-{i}", "MODEL-Q1-01", "ALGO-Q1-01", "ALGO-Q1-02", "EVAL-Q1-02", scenario,
                                1, "prediction", "dimensionless", baseline[i], svd[i], "difference", algorithm_difference,
                                "CRIT-CMP-Q1-02", abs(algorithm_difference) <= config["tolerance"], svd_residual, f"SVD/NumPy {np.__version__}", "decomposition_completed"])
-    model_kept = bool(model_rows[-1][13])
+    model_kept = bool(model_rows[0][13])
     algorithm_kept = all(row[15] for row in algorithm_rows)
     return {
         "分析设计": [["风险来源", "分析问题", "方法", "指标", "通过标准", "检验ID", "判据ID"],
@@ -184,8 +198,6 @@ def main():
     random.seed(config["random_seed"])
     started = time.perf_counter()
     payload = json.loads(bounded(root, config["data_paths"][0]).read_text(encoding="utf-8"))
-    if len(payload["scenarios"]) != len(payload["evaluation_t"]) or not payload["scenarios"] or len(set(payload["scenarios"])) != len(payload["scenarios"]):
-        raise ValueError("Every declared evaluation point needs one unique scenario")
     sheets = primary_tables(config, payload) if config["stage"] == "primary" else analysis_tables(root, config, payload)
     receipt = make_receipt(config, identity, time.perf_counter() - started)
     sheets["运行配置"] = [["项目", "值"], *[list(item) for item in receipt.items()]]

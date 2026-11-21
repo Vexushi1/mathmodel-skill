@@ -41,11 +41,11 @@ def identity_payload(*, objective_expression: str = "sum_i c_i * x_i") -> dict:
     }
 
 
-def framework(payload: dict | None = None, *, prose: str = "当前模型说明。") -> str:
+def framework(payload: dict | None = None, *, prose: str = "当前模型说明。", question: str = "Q1") -> str:
     if payload is None:
         return f"""# 模型论文框架
 ## 各问模型与结果
-### Q1：第一问
+### {question}：第一问
 #### 当前模型口径
 - 目标：min f(x)
 - 说明：{prose}
@@ -55,12 +55,12 @@ def framework(payload: dict | None = None, *, prose: str = "当前模型说明�
     identity_yaml = yaml.safe_dump(payload, allow_unicode=True, sort_keys=False)
     return f"""# 模型论文框架
 ## 各问模型与结果
-### Q1：第一问
+### {question}：第一问
 #### 当前模型口径
-<!-- HSK_SEMANTIC_IDENTITY_BEGIN Q1 -->
+<!-- HSK_SEMANTIC_IDENTITY_BEGIN {question} -->
 ```yaml
 {identity_yaml}```
-<!-- HSK_SEMANTIC_IDENTITY_END Q1 -->
+<!-- HSK_SEMANTIC_IDENTITY_END {question} -->
 
 {prose}
 #### 结果摘要
@@ -118,6 +118,25 @@ def write_project(root: Path, state: dict, framework_text: str) -> Path:
     )
     (root / "模型论文框架.md").write_text(framework_text, encoding="utf-8")
     return state_path
+
+
+def dependency_project(root: Path) -> Path:
+    state = base_state()
+    prototype = deepcopy(state["subproblems"]["Q1"])
+    dependencies = {
+        "Q1": [], "Q2": [("Q1", "model")], "Q3": [("Q2", "model")],
+        "Q4": [], "Q5": [("Q1", "result")],
+    }
+    sections = []
+    for question, edges in dependencies.items():
+        typed = [{"question": source, "kind": kind} for source, kind in edges]
+        state["subproblems"][question] = dict(deepcopy(prototype), depends_on=typed)
+        identity = dict(identity_payload(), question=question, dependencies=typed)
+        if question == "Q2":
+            identity["dependencies"] = [dict(typed[0], selector=name) for name in ("objective", "C1")]
+        section = framework(identity, question=question).split("## 各问模型与结果\n", 1)[1]
+        sections.append(section)
+    return write_project(root, state, "# 模型论文框架\n## 各问模型与结果\n" + "\n".join(sections))
 
 
 class TestV900SemanticGovernance(unittest.TestCase):
@@ -304,6 +323,181 @@ class TestV900SemanticGovernance(unittest.TestCase):
         self.assertTrue(saved["artifacts_stale"])
         self.assertEqual(saved["human_model_approval_status"], "stale")
         self.assertEqual(saved["model_challenge_status"], "stale")
+
+    def test_dependency_conflict_names_edges_and_chain_without_advancing_baselines(self):
+        for declarations, expected in (
+            ([], ["Q1/model"]),
+            ([{"question": "Q1", "kind": "result"}], ["Q1/model", "Q1/result"]),
+            ([{"question": "Q4", "kind": "model"}], ["Q1/model", "Q4/model"]),
+            (17, ["depends_on must be a list"]),
+        ):
+            with self.subTest(declarations=declarations), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                path = dependency_project(root)
+                first = SEMANTIC.validate_project(root, write=True, strict=True)
+                self.assertEqual(first["status"], "passed", first)
+                self.assertEqual(first["affected_questions"], [])
+                state = yaml.safe_load(path.read_bytes())
+                original = state["subproblems"]["Q2"]["depends_on"]
+                state["subproblems"]["Q2"]["depends_on"] = declarations
+                path.write_text(yaml.safe_dump(state), encoding="utf-8")
+                before = path.read_bytes()
+                for write in (False, True):
+                    report = SEMANTIC.validate_project(root, write=write, strict=True)
+                    self.assertEqual(report["status"], "failed", report)
+                    self.assertEqual(report["affected_questions"], ["Q2", "Q3"])
+                    self.assertEqual(set(report["dependency_conflicts"]), {"Q2"})
+                    detail = " ".join(report["dependency_conflicts"]["Q2"])
+                    for label in expected:
+                        self.assertIn(label, detail)
+                    self.assertEqual(path.read_bytes(), before)
+
+                # A source revision observed during disagreement must be replayable
+                # once the operator reconciles State with the two selectors in the SIB.
+                state["subproblems"]["Q1"]["semantic_revision"] = 2
+                path.write_text(yaml.safe_dump(state), encoding="utf-8")
+                conflicted = path.read_bytes()
+                report = SEMANTIC.validate_project(root, write=True, strict=True)
+                self.assertEqual(report["status"], "failed", report)
+                self.assertEqual(path.read_bytes(), conflicted)
+                state["subproblems"]["Q2"]["depends_on"] = original
+                path.write_text(yaml.safe_dump(state), encoding="utf-8")
+                repaired = SEMANTIC.validate_project(root, write=True, strict=True)
+                self.assertEqual(repaired["status"], "passed", repaired)
+                self.assertEqual(repaired["affected_questions"], ["Q1", "Q2", "Q3", "Q5"])
+
+    def test_revision_only_change_uses_typed_propagation_and_refuses_regression(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            path = dependency_project(root)
+            initial = SEMANTIC.validate_project(root, write=True, strict=True)
+            self.assertEqual(initial["status"], "passed", initial)
+            for revision, baseline, status in ((2, 2, "passed"), (1, 2, "failed")):
+                state = yaml.safe_load(path.read_bytes())
+                for entry in state["subproblems"].values():
+                    entry.update(approved_semantic_identity_hash=entry["semantic_identity_hash"],
+                                 approved_semantic_revision=entry["validated_semantic_revision"],
+                                 model_challenge_status="passed", human_model_approval_status="approved")
+                state["subproblems"]["Q1"]["semantic_revision"] = revision
+                path.write_text(yaml.safe_dump(state), encoding="utf-8")
+                before = path.read_bytes()
+                preview = SEMANTIC.validate_project(root, write=False, strict=True)
+                self.assertEqual(preview["changed_sources"], ["Q1"])
+                self.assertEqual(path.read_bytes(), before)
+                written = SEMANTIC.validate_project(root, write=True, strict=True)
+                self.assertEqual(written["status"], status, written)
+                self.assertEqual(written["affected_questions"], ["Q1", "Q2", "Q3", "Q5"])
+                entries = yaml.safe_load(path.read_bytes())["subproblems"]
+                self.assertEqual(entries["Q1"]["validated_semantic_revision"], baseline)
+                for name in ("Q1", "Q2", "Q3"):
+                    self.assertEqual(entries[name]["model_challenge_status"], "stale")
+                    self.assertEqual(entries[name]["human_model_approval_status"], "stale")
+                for name in ("Q4", "Q5"):
+                    self.assertEqual(entries[name]["human_model_approval_status"], "approved")
+                self.assertFalse(entries["Q4"]["artifacts_stale"])
+                self.assertTrue(entries["Q5"]["artifacts_stale"])
+
+    def test_previously_advanced_baseline_retires_old_approval_before_upstream_reapproval(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            path = dependency_project(root)
+            self.assertEqual(SEMANTIC.validate_project(root, write=True, strict=True)["status"], "passed")
+            baseline = yaml.safe_load(path.read_bytes())
+            for entry in baseline["subproblems"].values():
+                entry["approved_semantic_identity_hash"] = entry["semantic_identity_hash"]
+            for anchor in ("revision", "identity"):
+                with self.subTest(previous_approval=anchor):
+                    state = deepcopy(baseline)
+                    q1 = state["subproblems"]["Q1"]
+                    if anchor == "revision":
+                        q1.update(semantic_revision=2, validated_semantic_revision=2)
+                    else:
+                        q1["approved_semantic_identity_hash"] = "f" * 64
+                    path.write_text(yaml.safe_dump(state), encoding="utf-8")
+                    report = SEMANTIC.validate_project(root, write=True, strict=True)
+                    self.assertEqual(report["status"], "passed", report)
+                    self.assertEqual(report["changed_sources"], ["Q1"])
+                    rows = yaml.safe_load(path.read_bytes())["subproblems"]
+                    for name in ("Q1", "Q2", "Q3"):
+                        self.assertEqual(rows[name]["human_model_approval_status"], "stale")
+                    for name in ("Q4", "Q5"):
+                        self.assertEqual(rows[name]["human_model_approval_status"], "approved")
+
+                    # Re-binding only the upstream model cannot revive its dependents.
+                    saved = yaml.safe_load(path.read_bytes())
+                    q1 = saved["subproblems"]["Q1"]
+                    q1.update(model_challenge_status="passed", human_model_approval_status="approved",
+                              approved_semantic_revision=q1["semantic_revision"],
+                              approved_semantic_identity_hash=q1["semantic_identity_hash"])
+                    path.write_text(yaml.safe_dump(saved), encoding="utf-8")
+                    again = SEMANTIC.validate_project(root, write=True, strict=True)
+                    self.assertEqual(again["changed_sources"], [])
+                    rows = yaml.safe_load(path.read_bytes())["subproblems"]
+                    self.assertEqual(rows["Q1"]["human_model_approval_status"], "approved")
+                    self.assertEqual(rows["Q2"]["human_model_approval_status"], "stale")
+
+            for status, complete in (("pending", True), ("stale", True), ("approved", False)):
+                with self.subTest(approval_status=status, recorded=complete):
+                    state = deepcopy(baseline)
+                    q1 = state["subproblems"]["Q1"]
+                    q1.update(semantic_revision=2, validated_semantic_revision=2,
+                              human_model_approval_status=status)
+                    if not complete:
+                        del q1["approved_semantic_identity_hash"]
+                    path.write_text(yaml.safe_dump(state), encoding="utf-8")
+                    report = SEMANTIC.validate_project(root, write=True, strict=True)
+                    self.assertEqual(report["affected_questions"], [], report)
+
+    def test_invalid_revision_cannot_preserve_approval_through_integer_equality(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            path = dependency_project(root)
+            first = SEMANTIC.validate_project(root, write=True, strict=True)
+            self.assertEqual(first["status"], "passed", first)
+            previous = yaml.safe_load(path.read_bytes())
+            for bad in (True, 0, None):
+                with self.subTest(invalid_revision=bad):
+                    state = deepcopy(previous)
+                    entry = state["subproblems"]["Q1"]
+                    if bad is None:
+                        del entry["semantic_revision"]
+                    else:
+                        entry["semantic_revision"] = bad
+                    path.write_text(yaml.safe_dump(state), encoding="utf-8")
+                    report = SEMANTIC.validate_project(root, write=True, strict=True)
+                    self.assertEqual(report["status"], "failed", report)
+                    self.assertIn("Q3", report["affected_questions"])
+                    rows = yaml.safe_load(path.read_bytes())["subproblems"]
+                    self.assertEqual(rows["Q3"]["human_model_approval_status"], "stale")
+                    self.assertEqual(rows["Q1"]["validated_semantic_revision"], 1)
+                    self.assertEqual(rows["Q4"]["human_model_approval_status"], "approved")
+
+    def test_legacy_string_and_missing_revision_baseline_keep_compatibility(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            path = dependency_project(root)
+            state = yaml.safe_load(path.read_bytes())
+            state["subproblems"]["Q2"]["depends_on"] = ["Q1"]
+            path.write_text(yaml.safe_dump(state), encoding="utf-8")
+            initial = SEMANTIC.validate_project(root, write=True, strict=True)
+            self.assertEqual(initial["status"], "passed", initial)
+            state = yaml.safe_load(path.read_bytes())
+            q1 = state["subproblems"]["Q1"]
+            q1.pop("validated_semantic_revision")
+            q1["semantic_revision"] = 3
+            path.write_text(yaml.safe_dump(state), encoding="utf-8")
+            filled = SEMANTIC.validate_project(root, write=True, strict=True)
+            self.assertEqual(filled["status"], "passed", filled)
+            self.assertEqual(filled["affected_questions"], [])
+            state = yaml.safe_load(path.read_bytes())
+            self.assertNotIn("approved_semantic_identity_hash", state["subproblems"]["Q1"])
+            state["subproblems"]["Q1"]["semantic_revision"] = 4
+            path.write_text(yaml.safe_dump(state), encoding="utf-8")
+            updated = SEMANTIC.validate_project(root, write=True, strict=True)
+            self.assertEqual(updated["status"], "passed", updated)
+            state = yaml.safe_load(path.read_bytes())
+            self.assertEqual(state["subproblems"]["Q2"]["depends_on"], ["Q1"])
+            self.assertEqual(state["subproblems"]["Q2"]["human_model_approval_status"], "stale")
 
     def test_malformed_sib_markers_fail_closed(self):
         with tempfile.TemporaryDirectory() as temp:

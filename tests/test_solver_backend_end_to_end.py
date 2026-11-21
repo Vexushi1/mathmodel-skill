@@ -1,7 +1,7 @@
 """Prepare synthetic fixtures and verify outputs of an actual MATLAB process.
 
-Ordinary unittest discovery checks fixture instantiation only. Native-output tests
-run only when HSK_MATLAB_SOLVER_OUTPUT points to a completed MATLAB smoke run.
+Ordinary unittest discovery also runs the Python analysis template in an isolated
+project. Native-output tests read a completed MATLAB run from HSK_MATLAB_SOLVER_OUTPUT.
 """
 from __future__ import annotations
 
@@ -24,8 +24,11 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+if str(ROOT / "scripts") not in sys.path:
+    sys.path.insert(0, str(ROOT / "scripts"))
 from templates.code.hsk_pipeline import result_io
 QUESTION = "问题一求解"
+NEGATIVE_ANALYSIS = Path("negative/ordinary-claim")
 CONFIG = re.compile(r"RUN_CONFIG = jsondecode\('([^\n]*)'\);")
 
 
@@ -49,6 +52,29 @@ def reference_digest(root: Path, paths: list[str]) -> str:
         digest.update(relative.encode("utf-8") + b"\0")
         digest.update(bytes.fromhex(file_hash(root / relative)))
     return digest.hexdigest()
+
+
+def check_ordinary_experiments(book, expected, kept):
+    def records(sheet):
+        rows = book[sheet].iter_rows(values_only=True)
+        headers = next(rows)
+        return [dict(zip(headers, row)) for row in rows]
+
+    design = {row["检验ID"]: row for row in records("分析设计")}
+    summary = {row["检验ID"]: row for row in records("结论稳定性汇总")}
+    detail = records("参数敏感性")
+    assert set(design) == set(summary) == set(expected) == {row["检验ID"] for row in detail}
+    observed = {}
+    for identifier, values in expected.items():
+        rows = [row for row in detail if row["检验ID"] == identifier]
+        observed[identifier] = [row["结果指标"] for row in rows]
+        assert observed[identifier] == values
+        assert all(row["观测状态"] == "completed" for row in rows)
+        claim = summary[identifier]
+        assert claim["是否保持"] == kept[identifier]
+        assert claim["主张处置"] == ("support" if kept[identifier] else "reject")
+        assert claim["证据工作表"] == "参数敏感性"
+    return observed
 
 
 def instantiate(root: Path, stage: str, **updates) -> Path:
@@ -263,8 +289,9 @@ def verify(root: Path, stage: str) -> None:
             assert values["绝对方程残差"] <= 1e-10
             assert book["状态明细"]["A2"].value == "0001"
         else:
-            actual = [row[3] for row in book["参数敏感性"].iter_rows(min_row=2, values_only=True)]
-            assert actual == [4, 3, 2]
+            assert config["ordinary_experiment_protocol_version"] == "1.0.0"
+            check_ordinary_experiments(book, {"SENS-Q1-SIGN": [4, 3, 2], "SENS-Q1-CHANGE": [1, 0, 1]},
+                                       {"SENS-Q1-SIGN": True, "SENS-Q1-CHANGE": True})
     finally:
         book.close()
     if stage == "primary" and runtime_report.get("type_probe") == "text_keys_logicals_missing_rows_and_rejections_passed":
@@ -324,6 +351,8 @@ def verify_approved_primary_quality(root: Path, runtime_report: dict, receipt) -
     try:
         assert book["主结果质量门"]["J1"].value == "单位"
         assert book["主结果质量门"]["J2"].value == "1"
+        assert book["均衡残差"]["E1"].value == "单位"
+        assert book["均衡残差"]["E2"].value == "1"
     finally:
         book.close()
     result_io.validate_workbook_file(
@@ -365,12 +394,14 @@ def verify_execution_scale(root: Path, runtime_report: dict, receipt) -> None:
     save_state(project, state)
 
 
-def prepare_analysis(root: Path) -> None:
+def prepare_analysis(root: Path, *, tolerance: float | None = None) -> None:
     state = yaml.safe_load((root / "state/project_state.yaml").read_text(encoding="utf-8"))
     entry = state["subproblems"]["Q1"]
     assert entry["primary_execution_status"] == "accepted"
     primary = root / QUESTION / "问题一求解结果.xlsx"
     updates = {"primary_workbook_sha256": file_hash(primary)}
+    if tolerance is not None:
+        updates["tolerance"] = tolerance
     if state["preprocessing"]["decision"] == "project_level":
         updates.update(data_identity_mode="preprocessing_workbook", data_paths=["数据预处理/数据预处理结果.xlsx"],
                        data_sha256=file_hash(root / "数据预处理/数据预处理结果.xlsx"))
@@ -382,9 +413,62 @@ def prepare_analysis(root: Path) -> None:
     save_state(root, state)
 
 
-def deliver(root: Path, stage: str, matlab_command: str) -> None:
+def require_synthetic_fixture(root: Path) -> None:
     marker = json.loads((root / "synthetic_fixture.json").read_text(encoding="utf-8"))
     assert marker["fixture"] == "solver_backend_native_v1" and marker["purpose"] == "repository_test"
+
+
+def prepare_negative_analysis(root: Path) -> None:
+    require_synthetic_fixture(root)
+    project = root / NEGATIVE_ANALYSIS
+    for name in ("synthetic_fixture.json", "input.json", "state/project_state.yaml",
+                 f"{QUESTION}/q1_solver.m", f"{QUESTION}/问题一求解结果.xlsx"):
+        target = project / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(root / name, target)
+    # Maximum observed deviation is 1. Raise the predeclared threshold to 2.
+    prepare_analysis(project, tolerance=2)
+
+
+def run_negative_analysis(root: Path, matlab_command: str) -> None:
+    project = root / NEGATIVE_ANALYSIS
+    require_synthetic_fixture(project)
+    folder = project / QUESTION
+    primary = folder / "问题一求解结果.xlsx"
+    baseline_hash = file_hash(root / QUESTION / primary.name)
+    assert file_hash(primary) == baseline_hash
+    code = folder / "q1_analysis.m"
+    quote = str(code.parent).replace("'", "''")
+    # MATLAB resolves the current directory first. Launch beside the delivered file in a fresh process.
+    expression = (f"cd('{quote}'); a=which('q1_analysis'); b=fullfile(pwd,'q1_analysis.m'); "
+                  "assert(strcmp(a,b) || (ispc && strcmpi(a,b))); q1_analysis();")
+    process = subprocess.run([matlab_command, "-batch", expression], capture_output=True, encoding="utf-8",
+                             errors="replace", timeout=300)
+    (project / "analysis_native.log").write_text(process.stdout + process.stderr, encoding="utf-8")
+    assert process.returncode == 0, process.stdout + process.stderr
+    assert file_hash(primary) == file_hash(root / QUESTION / primary.name) == baseline_hash
+    workbook = folder / "问题一结果深化分析.xlsx"
+    state = yaml.safe_load((project / "state/project_state.yaml").read_text(encoding="utf-8"))
+    entry = state["subproblems"]["Q1"]
+    # The validator distinguishes a completed counterexample from an invalid receipt.
+    receipt = load_module("native_negative_receipt", "scripts/validate_user_execution.py")
+    issues = receipt.validate_one(project, workbook, state, True)
+    assert issues == ["存在核心结论未保持"], issues
+    assert entry["analysis_execution_status"] == entry["result_analysis_status"] == "redo_required"
+    assert entry["primary_execution_status"] == "accepted"
+    with workbook.open("rb") as stream:
+        book = openpyxl.load_workbook(stream, read_only=True, data_only=True)
+        try:
+            observed = check_ordinary_experiments(book, {"SENS-Q1-SIGN": [4, 3, 2], "SENS-Q1-CHANGE": [1, 0, 1]},
+                                                  {"SENS-Q1-SIGN": True, "SENS-Q1-CHANGE": False})
+            assert type(observed["SENS-Q1-CHANGE"][1]) in (int, float)
+        finally:
+            book.close()
+    save_state(project, state)
+
+
+def deliver(root: Path, stage: str, matlab_command: str) -> None:
+    require_synthetic_fixture(root)
     state = yaml.safe_load((root / "state/project_state.yaml").read_text(encoding="utf-8"))
     entry = state["subproblems"]["Q1"]
     assert entry.get(f"{stage}_execution_status") != "accepted"
@@ -411,6 +495,8 @@ def deliver(root: Path, stage: str, matlab_command: str) -> None:
     assert entry[f"{stage}_execution_status"] == "awaiting_user_execution"
     assert entry["solver_execution"][stage]["bundle_sha256"] == reference_digest(root, [script])
     assert "validated_bundle_sha256" not in entry["solver_execution"][stage]
+    if stage == "analysis" and (root / NEGATIVE_ANALYSIS).is_dir():
+        deliver(root / NEGATIVE_ANALYSIS, stage, matlab_command)
     if stage == "primary":
         for profile in ("approved-primary-quality", "execution-scale"):
             if (root / profile).is_dir():
@@ -418,6 +504,58 @@ def deliver(root: Path, stage: str, matlab_command: str) -> None:
 
 
 class SolverBackendFixtureTests(unittest.TestCase):
+    def test_ordinary_python_analysis_runs_with_statically_bound_matlab_equivalent_plan(self):
+        from validate_user_execution import analysis_passed
+        import stage_code
+
+        template = ROOT / "templates/code/starter/q1_analysis.py"
+        matlab = ROOT / "templates/code/matlab/q1_analysis.m"
+        expected_plan = stage_code.parse_stage_config(matlab, "matlab")[1]["ordinary_experiments"]
+        for rhs in (6, 0):
+            with self.subTest(right_hand_side=rhs), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                folder = root / QUESTION
+                folder.mkdir()
+                primary = folder / "问题一求解结果.xlsx"
+                book = openpyxl.Workbook()
+                book.active.title = "核心指标"
+                book.active.append(["指标", "数值"])
+                book.active.append(["解", rhs / 2])
+                book.save(primary)
+                book.close()
+                before = primary.read_bytes()
+                (root / "input.json").write_text(json.dumps({
+                    "coefficient": 2, "right_hand_side": rhs, "sensitivity_coefficients": [1.5, 2, 3],
+                }), encoding="utf-8")
+                script = folder / "问题一结果深化分析.py"
+                source = template.read_text(encoding="utf-8").replace("__ACCEPTED_PRIMARY_SHA256__", file_hash(primary))
+                script.write_text(source.replace("__DATA_SHA256__", reference_digest(root, ["input.json"])),
+                                  encoding="utf-8", newline="\n")
+                config = stage_code.parse_stage_config(script, "python")[1]
+                self.assertEqual(config["ordinary_experiments"], expected_plan)
+                process = subprocess.run([sys.executable, str(script)], cwd=root, capture_output=True,
+                                         encoding="utf-8", env={**os.environ, "PYTHONUTF8": "1"})
+                self.assertEqual(process.returncode, 0, process.stderr)
+                workbook = root / config["expected_workbook"]
+                result_io.validate_workbook_file(workbook, "result_analysis", analysis_methods=["参数敏感性"],
+                                                 ordinary_experiments=expected_plan)
+                observed_status = analysis_passed(workbook, ordinary_experiments=expected_plan)
+                self.assertEqual(observed_status[:2], (True, "passed") if rhs else (False, "redo_required"))
+                with workbook.open("rb") as stream:
+                    book = openpyxl.load_workbook(stream, read_only=True, data_only=True)
+                    try:
+                        check_ordinary_experiments(book, {"SENS-Q1-SIGN": [4, 3, 2] if rhs else [0, 0, 0],
+                                                         "SENS-Q1-CHANGE": [1, 0, 1] if rhs else [0, 0, 0]},
+                                                   {"SENS-Q1-SIGN": bool(rhs), "SENS-Q1-CHANGE": bool(rhs)})
+                        receipt = dict(list(book["运行配置"].values)[1:])
+                        self.assertEqual(receipt["ordinary_experiment_protocol_version"], "1.0.0")
+                        self.assertEqual(receipt["code_sha256"], file_hash(script))
+                        self.assertEqual(receipt["code_bundle_sha256"], reference_digest(root, [script.relative_to(root).as_posix()]))
+                        self.assertEqual(receipt["primary_workbook_sha256"], file_hash(primary))
+                    finally:
+                        book.close()
+                self.assertEqual(primary.read_bytes(), before)
+
     def test_instantiation_binds_real_input_bytes_without_running_matlab(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -459,17 +597,21 @@ if __name__ == "__main__":
         parser = argparse.ArgumentParser()
         parser.add_argument("action")
         parser.add_argument("--project", type=Path, required=True)
-        parser.add_argument("--matlab-command", default="matlab")
+        parser.add_argument("--matlab-command", default=os.environ.get("HSK_MATLAB_CI_COMMAND", "matlab"))
         args = parser.parse_args()
         if args.action == "prepare":
             prepare(args.project.resolve())
         elif args.action == "prepare-preprocessed":
             prepare_preprocessed(args.project.resolve())
         elif args.action == "prepare-analysis":
+            if not (args.project / "preprocessing_native_fixture.json").exists():
+                prepare_negative_analysis(args.project.resolve())
             prepare_analysis(args.project.resolve())
         elif args.action.startswith("deliver-"):
             deliver(args.project.resolve(), args.action.removeprefix("deliver-"), args.matlab_command)
         else:
+            if args.action == "verify-analysis" and not (args.project / "preprocessing_native_fixture.json").exists():
+                run_negative_analysis(args.project.resolve(), args.matlab_command)
             verify(args.project.resolve(), args.action.removeprefix("verify-"))
     else:
         unittest.main()

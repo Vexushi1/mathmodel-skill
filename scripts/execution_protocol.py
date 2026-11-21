@@ -21,6 +21,30 @@ COMPARISON_PROTOCOL_VERSION = "1.0.0"
 COMPARISON_FIELDS = ("analysis_comparison_protocol_version", "analysis_comparison_plan_sha256")
 
 
+ORDINARY_VERSION = "ordinary_experiment_protocol_version"
+ORDINARY_ROWS = "ordinary_experiments"
+
+
+def ordinary_protocol_issues(config: Mapping[str, Any], *, required=False, receipt=None) -> list[str]:
+    """The source declares the plan; a workbook can only echo its protocol marker."""
+    fields = (ORDINARY_VERSION, ORDINARY_ROWS)
+    if not (required or any(k in config for k in fields)
+            or (receipt is not None and any(k in receipt for k in fields))):
+        return []
+    issues = []
+    if config.get("stage") != "analysis" or config.get("run_receipt_protocol_version") not in (
+            "1.1.0", "1.2.0", SCALE_RECEIPT_VERSION):
+        issues.append("普通深化实验须绑定已交付的 analysis 源码与适用的源码回执协议")
+    if config.get(ORDINARY_VERSION) != "1.0.0" or ORDINARY_ROWS not in config:
+        issues.append(f"普通深化实验缺少或不支持已交付源码声明 {ORDINARY_VERSION}=1.0.0 / {ORDINARY_ROWS}")
+    if receipt is not None:
+        if ORDINARY_ROWS in receipt:
+            issues.append(f"RUN_RECEIPT 不得重新声明 {ORDINARY_ROWS}")
+        if receipt.get(ORDINARY_VERSION) != "1.0.0" or receipt.get(ORDINARY_VERSION) != config.get(ORDINARY_VERSION):
+            issues.append(f"RUN_RECEIPT.{ORDINARY_VERSION} 与已交付源码不符")
+    return issues
+
+
 def comparison_config_issues(config: Mapping[str, Any], *, required: bool = False) -> list[str]:
     """Validate the analysis-only overlay without changing receipt 1.1/1.2."""
     if not required and not any(field in config for field in COMPARISON_FIELDS):

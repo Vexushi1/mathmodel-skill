@@ -24,7 +24,8 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.measurement = load_measurement()
-        cls.fixture = ROOT / "tests/fixtures/v10353_approved_source_spans.json"
+        cls.fixture = ROOT / "tests/fixtures/v11_candidate_source_spans.json"
+        cls.frozen_v10353 = ROOT / "tests/fixtures/v10353_approved_source_spans.json"
         cls.frozen_v10352 = ROOT / "tests/fixtures/v10352_approved_source_spans.json"
         cls.frozen_v10351 = ROOT / "tests/fixtures/v10351_approved_source_spans.json"
         cls.frozen_v10350 = ROOT / "tests/fixtures/v10350_approved_source_spans.json"
@@ -148,12 +149,18 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "candidate bytes changed"):
             self.measurement.approved_source_span_migrations(self.frozen_v10352)
 
+    def test_v10353_release_migration_remains_frozen(self):
+        self.assertEqual(self.measurement.digest(self.frozen_v10353.read_bytes()),
+                         '01fd0de70c1d96623a1aec114e3bd4d4dd811f08699d4b96e409cbb88303d41c')
+        with self.assertRaisesRegex(ValueError, "candidate bytes changed"):
+            self.measurement.approved_source_span_migrations(self.frozen_v10353)
+
     def cases(self):
         manifest = self.measurement.approved_source_span_migrations(self.fixture)
         before = {"id": "pure_model_design", "behavior": {"read_now": [], "load_order": []},
                   "source_identity": {"skill_version": "10.27.0", "sources": []}}
         after = {"id": "pure_model_design", "behavior": {"read_now": [], "load_order": []},
-                 "source_identity": {"skill_version": "10.35.3", "sources": []}}
+                 "source_identity": {"skill_version": "11.0.0", "sources": []}}
         for item in manifest["migrations"]:
             original = {
                 "origin": "skill", "path": item["path"],
@@ -180,6 +187,7 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
 
     def test_exact_current_bytes_and_spans_project_without_mutating_actual_evidence(self):
         fixture, old, new = self.cases()
+        self.assertEqual(fixture["version"], "11.0.0")
         preserved = deepcopy(new)
         projected, evidence = self.measurement.project_exact_approved_source_spans(
             old, new, fixture)
@@ -209,7 +217,7 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
         projected, _ = self.measurement.project_exact_approved_source_spans(old, new, fixture)
         self.assertEqual(projected["read_now"][-1]["ranges"], [[1, rule["new_last_line"]]])
         new["source_identity"]["sources"][-1]["sha256"] = "0" * 64
-        with self.assertRaisesRegex(ValueError, "PQS source span identity drift"):
+        with self.assertRaisesRegex(ValueError, "source span identity drift"):
             self.measurement.project_exact_approved_source_spans(old, new, fixture)
 
     def test_full_span_restores_an_exact_g2_added_read(self):
@@ -228,7 +236,7 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
         candidate = {"id": case_id, "behavior": {"read_now": [candidate_row]},
                      "source_identity": {"sources": []}}
         observed = deepcopy(candidate["behavior"])
-        evidence = self.measurement._project_pqs_full_source_spans(
+        evidence = self.measurement._project_approved_read_spans(
             old, candidate, observed, [rule], {"read_now": transition},
         )
         self.assertEqual(observed["read_now"], [approved_row])
@@ -237,7 +245,7 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
 
         old["behavior"]["read_now"].append({"path": "unreviewed.md"})
         observed = deepcopy(candidate["behavior"])
-        evidence = self.measurement._project_pqs_full_source_spans(
+        evidence = self.measurement._project_approved_read_spans(
             old, candidate, observed, [rule], {"read_now": transition},
         )
         self.assertEqual(evidence, [])
@@ -352,6 +360,31 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
         self.assertTrue(any(x.get("actual_conditional_ranges") for x in evidence))
         new["behavior"]["conditional"][0]["when"] = "wrong_condition"
         with self.assertRaisesRegex(ValueError, "conditional output source span or selector drift"):
+            self.measurement.project_exact_approved_source_spans(old, new, fixture)
+
+    def test_candidate_scoped_section_requires_the_same_selector_and_hash(self):
+        fixture, old, new = self.cases()
+        rule = next(item for item in fixture["legacy_profile_read_shifts"]
+                    if item["path"] == "modules/05_writing/paper_writing_protocol.md")
+        span = next(span for span in rule["spans"] if span["before"] == [[1, 6], [174, 218]])
+        old_row = {"origin": "skill", "path": rule["path"], "resolution": "exact",
+                   "ranges": span["before"], "when": "current_cumcm_modular_latex_review",
+                   "selectors": {"headings": ["## 5A. Cross-File Chapter Handoff"]}}
+        new_row = {**old_row, "ranges": span["after"]}
+        for case, row, key in ((old, old_row, "baseline_sha256"), (new, new_row, "candidate_sha256")):
+            case["behavior"]["conditional"] = [deepcopy(row)]
+            case["source_identity"]["sources"].append({"path": rule["path"], "sha256": rule[key]})
+        projected, _ = self.measurement.project_exact_approved_source_spans(old, new, fixture)
+        self.assertEqual(projected["conditional"], [old_row])
+        for field, value in (("selectors", {}), ("when", "wrong_condition"),
+                             ("ranges", [[1, 1]])):
+            with self.subTest(field=field):
+                altered = deepcopy(new)
+                altered["behavior"]["conditional"][0][field] = value
+                projected, _ = self.measurement.project_exact_approved_source_spans(old, altered, fixture)
+                self.assertEqual(projected["conditional"], altered["behavior"]["conditional"])
+        new["source_identity"]["sources"][-1]["sha256"] = "0" * 64
+        with self.assertRaisesRegex(ValueError, "source span identity drift"):
             self.measurement.project_exact_approved_source_spans(old, new, fixture)
 
     def test_manifest_fails_if_candidate_source_bytes_or_paths_change(self):

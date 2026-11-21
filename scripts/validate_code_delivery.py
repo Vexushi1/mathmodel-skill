@@ -28,7 +28,7 @@ import conformance_gate as CONFORMANCE  # noqa: E402
 import analysis_comparison_gate as COMPARISON  # noqa: E402
 from execution_protocol import (
     SOURCE_RECEIPT_VERSIONS, is_source_receipt, auxiliary_config_issues, comparison_config_issues,
-    primary_quality_config_issues,
+    primary_quality_config_issues, ordinary_protocol_issues, ORDINARY_ROWS, ORDINARY_VERSION,
 )
 from execution_scale import adaptive_plan_issues, inspect_scale_plan
 from stage_inputs import InputUnavailableError, input_files, observe_inputs, observe_preprocessing_inputs
@@ -438,6 +438,7 @@ def validate_script(
     if backend == "matlab" and not is_source_receipt(receipt_protocol):
         issues.append("新MATLAB阶段必须声明run_receipt_protocol_version=1.1.0/1.2.0")
     modern = is_source_receipt(receipt_protocol)
+    issues.extend(ordinary_protocol_issues(config))
     issues.extend(auxiliary_config_issues(config))
     issues.extend(comparison_config_issues(config))
     scale_plan, scale_issues = inspect_scale_plan(config)
@@ -480,6 +481,13 @@ def validate_script(
                 issues.append("项目后端与源码/RUN_CONFIG/协议不一致，不得静默替换或降级")
         except STAGE_CODE.StageCodeError as exc:
             issues.append(str(exc))
+    if stage == "analysis":
+        from validate_user_execution import ordinary_experiment_issues
+
+        entry = state.get("subproblems", {}).get(_question_key(problem), {})
+        issues.extend(ordinary_experiment_issues(
+            config, entry.get("analysis_methods"), load_yaml(SKILL_ROOT / "core/workbook_schema.yaml"), require_current=True,
+        ))
     if stage == "primary":
         for field in sorted(PRIMARY_REQUIRED_FIELDS):
             if field not in config or config[field] in (None, "", []):
@@ -705,6 +713,7 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
     configuration_issues.extend(comparison_config_issues(config))
     scale_plan, scale_issues = inspect_scale_plan(config)
     configuration_issues.extend(scale_issues)
+    configuration_issues.extend(ordinary_protocol_issues(config))
     if configuration_issues:
         raise ValueError("; ".join(configuration_issues))
     state_path = project_root / "state" / "project_state.yaml"
@@ -713,7 +722,7 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
             return []
         raise ValueError("缺少项目状态与已锁项目后端，禁止正式数值代码交付")
     observed_state = load_yaml(state_path)
-    guarded = scale_plan is not None or PRIMARY_QUALITY.binding_present(config) or any(
+    guarded = ORDINARY_ROWS in config or scale_plan is not None or PRIMARY_QUALITY.binding_present(config) or any(
         CONFORMANCE.present(entry) or COMPARISON.present(entry, config=config)
         for entry in (observed_state.get("subproblems") or {}).values()
     )
@@ -830,6 +839,25 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
     key = _question_key(problem)
     entry = state.setdefault("subproblems", {}).setdefault(key, {})
     quality_observed = {"project": {}, "skill": {}}
+    if stage == "analysis":
+        from validate_user_execution import ordinary_experiment_issues
+
+        source = script.read_bytes()
+        if hashlib.sha256(source).hexdigest() != new_hash:
+            raise ValueError("普通深化实验绑定期间已交付源码发生变化")
+        _, declared = RUN_CONFIG_PARSER.parse_embedded_config(
+            source.decode("utf-8-sig"), messages=RUN_CONFIG_PARSER.DELIVERY_MESSAGES, backend=actual_backend)
+        if any(declared.get(field) != config.get(field) for field in (ORDINARY_VERSION, ORDINARY_ROWS)):
+            raise ValueError("调用参数中的普通深化实验声明与已交付源码不一致")
+        schema_bytes = (SKILL_ROOT / "core/workbook_schema.yaml").read_bytes()
+        plan_issues = ordinary_experiment_issues(
+            declared, entry.get("analysis_methods"), yaml.safe_load(schema_bytes), require_current=True,
+        )
+        if plan_issues:
+            raise ValueError("; ".join(plan_issues))
+        if ORDINARY_ROWS in declared:
+            quality_observed["project"][relative] = new_hash
+            quality_observed["skill"]["core/workbook_schema.yaml"] = hashlib.sha256(schema_bytes).hexdigest()
     specification = None
     if stage == "primary":
         specification, quality_issues, quality_observed = PRIMARY_QUALITY.inspect_gate(
@@ -1038,7 +1066,7 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
     PROJECT_TX.commit_project_state(
         project_root, state, expected_generation=base_generation,
         expected_file_hashes=observed["project"] or None,
-        validators=[CONFORMANCE.skill_validator(observed)] if conformance["enabled"] or comparison["enabled"] else (),
+        validators=[CONFORMANCE.skill_validator(observed)] if conformance["enabled"] or comparison["enabled"] or ORDINARY_ROWS in config else (),
     )
     return transition_reports
 

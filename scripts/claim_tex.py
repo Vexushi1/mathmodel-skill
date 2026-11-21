@@ -180,7 +180,9 @@ def _blank(chars: list[str], start: int, end: int) -> None:
             chars[index] = " "
 
 
-def _mask_nonprose(text: str) -> tuple[str, list[tuple[str, int]]]:
+def _mask_nonprose(
+    text: str, *, listing_material: list[int] | None = None
+) -> tuple[str, list[tuple[str, int]]]:
     """Blank comments and known verbatim forms without shifting source offsets."""
     chars = list(text)
     issues: list[tuple[str, int]] = []
@@ -196,6 +198,11 @@ def _mask_nonprose(text: str) -> tuple[str, list[tuple[str, int]]]:
                 _blank(chars, index, len(text))
                 issues.append(("unclosed_verbatim", index))
                 break
+            if listing_material is not None and name != "comment":
+                # Listing options and minted's language belong to the opening line.
+                _, _, content = text[environment.end():ending.start()].partition("\n")
+                if content.strip():
+                    listing_material.append(index)
             end = ending.end()
             _blank(chars, index, end)
             index = end

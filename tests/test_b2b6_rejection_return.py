@@ -336,12 +336,41 @@ class B2b6RejectionReturnTests(unittest.TestCase):
         self.assertNotIn("modules/03_solve_validate.md", resolved["modules"])
 
     def test_unsynced_core_reject_revokes_typed_dependent_runtime_qualification(self):
+        from semantic_identity import inspect_question_semantics, question_sections
+        from tests.conformance_a2_smoke import run_stage
+        from tests.test_v900_semantic_governance import framework
+        from tests.test_v900_semantic_identity_binding import structured_question
+
         dependent = self.state["subproblems"]["Q1"]
-        source = deepcopy(dependent)
-        source["analysis_evidence_dispositions"] = []
+        source = structured_question()
+        source.update(analysis_evidence_dispositions=[], status="designed", framework_section="### Q2：第二问")
         dependent["depends_on"] = [{"question": "Q2", "kind": "result"}]
         self.state["subproblems"]["Q2"] = source
+        path = self.root / "模型论文框架.md"
+        text = path.read_text(encoding="utf-8")
+        original = inspect_question_semantics(question_sections(text)["Q1"], "Q1")["identity"]
+        q1_payload = dict(original, dependencies=dependent["depends_on"])
+        q2_payload = dict(original, question="Q2", dependencies=[])
+        original_yaml = yaml.safe_dump(original, allow_unicode=True, sort_keys=False)
+        self.assertEqual(text.count(original_yaml), 1)
+        text = text.replace(original_yaml, yaml.safe_dump(q1_payload, allow_unicode=True, sort_keys=False))
+        q2_section = question_sections(framework(q2_payload, question="Q2"))["Q2"].replace(
+            "### Q2：第一问", source["framework_section"], 1)
+        text = text.replace("## 待办与缺口", q2_section + "\n## 待办与缺口", 1)
+        path.write_text(text, encoding="utf-8")
+        self.state["paper_framework"]["sha256"] = synchronizer.sha256_text(text)
+        for question, section in question_sections(text).items():
+            identity = inspect_question_semantics(section, question)
+            entry = self.state["subproblems"][question]
+            entry.update(semantic_text_hash=identity["semantic_text_hash"],
+                         semantic_identity_hash=identity["semantic_identity_hash"],
+                         validated_semantic_identity_hash=identity["semantic_identity_hash"],
+                         approved_semantic_identity_hash=identity["semantic_identity_hash"])
         save(self.root, self.state)
+        # Establish current numerical and code-conformance receipts for the new Q1 identity.
+        for stage in ("primary", "analysis"):
+            self.state, _ = run_stage(self.root, "python", stage, self.state)
+        dependent, source = (self.state["subproblems"][key] for key in ("Q1", "Q2"))
         baseline = runtime_assurance.hydrate_project_context(self.root, "Q1")
         self.assertIn("accepted_solution_workbook", baseline["verified_artifacts"])
 

@@ -113,6 +113,69 @@ class StageReadingLifecycleTests(unittest.TestCase):
                     self.assertNotEqual((plan.get("writing_runtime") or {}).get("mode"), "compact")
                     self.assertIn("core/writing_reasoning_contract.yaml", plan["load_order"])
 
+    def test_web_candidate_uses_bootstrap_scopes_before_the_business_route(self):
+        # P2 publishes the human/assistant-facing selector. The case labels below
+        # exercise that decision table, not an NLP classifier or corpus reader.
+        instructions = (ROOT / "PROJECT_INSTRUCTIONS.md").read_text(encoding="utf-8")
+        opening = instructions.split('<a id="web-app-start"></a>', 1)[1]
+        copied = opening.split("```text\n", 1)[1].split("\n```", 1)[0]
+        self.assertIn("core/bootstrap.yaml", copied)
+        startup = yaml.safe_load((ROOT / "core/bootstrap.yaml").read_bytes())["startup_contract"]
+        profiles = startup["profiles"]
+        activation = startup["activation"]
+        self.assertIn(activation["candidate_selector"], copied)
+        self.assertEqual(profiles[activation["default_profile"]]["reading"], "current_action_text")
+
+        expected = {
+            "current_action_text": ("field_explanation", "visual_only_edit", "maintenance"),
+            "full_normative_text": ("new_contest", "formal_single_question", "promote_to_formal"),
+            "full_normative_text_and_current_framework": ("cross_chat_formal_resume", "formal_context_lost"),
+        }
+        for reading, events in expected.items():
+            for event in events:
+                with self.subTest(event=event):
+                    selected = startup["candidate_events"][event]
+                    self.assertEqual(profiles[selected]["reading"], reading)
+
+        plan = resolve_runtime("new_problem_design", objective="optimization", question="Q1",
+                               request="为第一问建立正式模型。")
+        self.assertEqual(plan["pause_state"], "awaiting_model_approval")
+        self.assertFalse(plan["task_code_execution_allowed"])
+        _, returned = self.consume(plan, "modules/02_model_design.md")
+        self.assertEqual(returned[0]["gate_status"], "not_executed_by_reader")
+
+    def test_candidate_resolver_selects_the_pinned_reader_without_changing_gates(self):
+        arguments = dict(objective="optimization", question="Q1")
+        original = resolve_runtime("new_problem_design", **arguments)
+        self.assertNotIn("startup_reading", original)
+        for event, profile in (("formal_single_question", "formal"),
+                               ("visual_only_edit", "scoped"),
+                               ("formal_context_lost", "recovery")):
+            with self.subTest(event=event):
+                candidate = resolve_runtime("new_problem_design", **arguments,
+                                            candidate_startup_event=event, source_commit=self.commit)
+                selection = candidate.pop("startup_reading")
+                if profile == "recovery":
+                    missing = candidate["reading_plan"].pop("framework_read")
+                    self.assertEqual((missing["scope"], missing["event"], missing["status"]),
+                                     ("full", "long_context_recovery", "evidence_required"))
+                    self.assertIn("project root", missing["reason"])
+                self.assertEqual(candidate, original)
+                self.assertEqual(selection["profile"], profile)
+                self.assertEqual(selection["source_commit"], self.commit)
+                self.assertEqual(selection["status"], "selection_only")
+                if profile == "scoped":
+                    self.assertNotIn("manifest", selection)
+                else:
+                    self.assertEqual(selection["manifest"], "core/full_reading/manifest.json")
+                    self.assertEqual(selection["reader"], "scripts/read_stage.py")
+        for extra in (dict(candidate_startup_event="new_contest"),
+                      dict(source_commit=self.commit),
+                      dict(candidate_startup_event="unknown", source_commit=self.commit),
+                      dict(candidate_startup_event="new_contest", source_commit="0" * 40)):
+            with self.subTest(extra=extra), self.assertRaises(ValueError):
+                resolve_runtime("new_problem_design", **arguments, **extra)
+
     def test_preprocessing_dispositions_keep_their_original_execution_pause(self):
         for decision in ("not_needed", "question_local", "project_level"):
             with self.subTest(decision=decision):

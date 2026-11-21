@@ -2,13 +2,21 @@
 from __future__ import annotations
 
 import importlib.util
+import os
+import shutil
 from pathlib import Path
 import tempfile
 import unittest
 from unittest import mock
+from urllib.parse import quote
+import warnings
+from xml.etree import ElementTree
+from zipfile import ZipFile
 
 import matplotlib
 matplotlib.use("Agg")
+from matplotlib import font_manager, image as mpl_image
+import matplotlib.pyplot as plt
 import numpy as np
 from openpyxl import Workbook
 
@@ -21,6 +29,61 @@ def module(name: str):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def cjk_family():
+    font_file = os.environ.get("HSK_TEST_CJK_FONT")
+    if font_file:
+        font_manager.fontManager.addfont(font_file)
+        return font_manager.FontProperties(fname=font_file).get_name()
+    for family in ("Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", "SimHei", "PingFang SC"):
+        try:
+            font_manager.findfont(family, fallback_to_default=False)
+        except ValueError:
+            continue
+        return family
+    raise unittest.SkipTest("The export check needs a CJK font (HSK_TEST_CJK_FONT)")
+
+
+def keep_ci_sample(path):
+    directory = os.environ.get("HSK_CJK_EXPORT_EVIDENCE")
+    if directory:
+        target = Path(directory)
+        target.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(path, target / path.name)
+
+
+def assert_svg_labels(test, path, labels, family):
+    parser = ElementTree.XMLParser(target=ElementTree.TreeBuilder(insert_comments=True))
+    root = ElementTree.parse(path, parser=parser).getroot()
+    paths = {p.get("id"): p.get("d") for p in root.findall(".//{*}path")}
+    label_uses = {}
+    for group in root.findall(".//{*}g"):
+        for comment, content in zip(group, list(group)[1:]):
+            if comment.tag is ElementTree.Comment and (comment.text or "").strip() in labels:
+                label = comment.text.strip()
+                label_uses[label] = {u.get("{http://www.w3.org/1999/xlink}href", "").lstrip("#")
+                                     for u in content.findall(".//{*}use")}
+    face = font_manager.get_font(font_manager.findfont(family, fallback_to_default=False))
+    prefix = quote(face.postscript_name).replace("%20", "_")
+    outlines = {}
+    for label in labels:
+        test.assertIn(label, label_uses)
+        for char in set(label):
+            if not "\u4e00" <= char <= "\u9fff":
+                continue
+            index = face.get_char_index(ord(char))
+            test.assertGreater(index, 0, char)
+            # SVG backends use either a Unicode code point or a font glyph index.
+            ids = {f"{prefix}-{value:x}" for value in (index, ord(char))}
+            found = label_uses[label].intersection(ids)
+            test.assertEqual(len(found), 1, (label, char, ids))
+            outline = paths.get(found.pop())
+            test.assertTrue(outline, char)
+            outlines[char] = outline
+    test.assertTrue(outlines, "expected Chinese labels")
+    test.assertEqual(len(set(outlines.values())), len(outlines), "distinct Chinese glyph outlines")
+    keep_ci_sample(path)
 
 
 class PlotRenderingSmoke(unittest.TestCase):
@@ -45,15 +108,150 @@ class PlotRenderingSmoke(unittest.TestCase):
             self.assertEqual(x.tolist(), [0, 1, 2])
             self.assertTrue(np.isnan(y[1]))
             fig = plot.make_figure(x, y, color=(.2, .4, .6),
-                                   x_label="时刻 / s", y_label="误差率 / %",
-                                   series_label="误差", connect=True)
+                                   x_label="Time / s", y_label="Error / %",
+                                   series_label="Error", connect=True)
             self.assertEqual(fig.axes[0].get_title(), "")
             self.assertEqual(fig.axes[0].lines[0].get_ydata()[0], 1.2)
             output = Path(tmp) / "q1_evidence.png"
-            fig.savefig(output)
-            self.assertGreater(output.stat().st_size, 1000)
-            import matplotlib.pyplot as plt
+            with warnings.catch_warnings():
+                warnings.filterwarnings("error", message=r"Glyph \d+ .*missing from .*font")
+                fig.savefig(output)
+            self.assertGreater(float(mpl_image.imread(output)[..., :3].std()), .01)
             plt.close(fig)
+
+    def test_exported_svg_contains_each_chinese_label_glyph(self):
+        family = cjk_family()
+        for name in ("q1_plot", "data_process"):
+            with self.subTest(template=name), tempfile.TemporaryDirectory() as tmp:
+                plot = module(name)
+                directory = Path(tmp) / "问题一求解"
+                directory.mkdir()
+                plot.__file__ = str(directory / (name + ".py"))
+                plot.WORKSHEET = "逐时结果"
+                plot.X_HEADER, plot.X_LABEL = "时刻", "时刻 / s"
+                if name == "q1_plot":
+                    workbook = "问题一求解结果.xlsx"
+                    headers = ["时刻", "误差率"]
+                    rows = [[0, 2], [1, 1]]
+                    plot.Y_HEADER, plot.Y_LABEL = "误差率", "误差率 / %"
+                    plot.SERIES_LABEL, plot.SERIES_RGB = "预测误差", (.2, .4, .6)
+                    labels = [plot.X_LABEL, plot.Y_LABEL, plot.SERIES_LABEL]
+                else:
+                    workbook = "数据预处理结果.xlsx"
+                    headers = ["时刻", "处理前", "处理后"]
+                    rows = [[0, 2, 1], [1, 4, 3]]
+                    plot.BEFORE_HEADER, plot.AFTER_HEADER = headers[1:]
+                    plot.Y_LABEL = "温度变化 / K"
+                    plot.BEFORE_LABEL, plot.AFTER_LABEL = "处理前能耗", "处理后能耗"
+                    plot.SERIES_COLORS = ((.2, .4, .6), (.7, .3, .1))
+                    labels = [plot.X_LABEL, plot.Y_LABEL, plot.BEFORE_LABEL, plot.AFTER_LABEL]
+                self._book(directory / workbook, headers, rows)
+                plot.EXPORT_FILE = name + ".svg"
+                output = directory / plot.EXPORT_FILE
+                try:
+                    with mock.patch.object(plt, "show"), matplotlib.rc_context({"svg.fonttype": "path"}):
+                        output.write_bytes(b"prior export")
+                        plot.FONT_FAMILY = "DejaVu Sans"
+                        with self.assertRaisesRegex(UserWarning, "Glyph"):
+                            plot.main()
+                        self.assertEqual(output.read_bytes(), b"prior export")
+                        plot.FONT_FAMILY = family
+
+                        def failed_export(path, **kwargs):
+                            Path(path).write_bytes(b"incomplete image")
+                            raise OSError("export interrupted")
+
+                        before = set(directory.iterdir())
+                        with mock.patch("matplotlib.figure.Figure.savefig", side_effect=failed_export):
+                            with self.assertRaisesRegex(OSError, "export interrupted"):
+                                plot.main()
+                        self.assertEqual(output.read_bytes(), b"prior export")
+                        self.assertEqual(set(directory.iterdir()), before)
+                        with mock.patch("matplotlib.figure.Figure.savefig",
+                                        side_effect=lambda path, **kwargs: Path(path).touch()):
+                            with self.assertRaisesRegex(OSError, "No Figure data"):
+                                plot.main()
+                        self.assertEqual(output.read_bytes(), b"prior export")
+                        self.assertEqual(set(directory.iterdir()), before)
+                        plot.main()
+                        plot.EXPORT_FILE = name + ".png"
+                        plot.main()
+                        pixels = mpl_image.imread(directory / plot.EXPORT_FILE)
+                        self.assertGreater(float(pixels[..., :3].std()), .01)
+                        keep_ci_sample(directory / plot.EXPORT_FILE)
+                    assert_svg_labels(self, output, labels, family)
+                finally:
+                    plt.close("all")
+
+    def test_selected_formula_cache_and_true_blank_in_both_templates(self):
+        plot, prep = module("q1_plot"), module("data_process")
+        sheet = "逐时结果"
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "source.xlsx"
+            self._book(path, ["t", "before", "after", "explore"], [
+                [0, 0, 3, "=1+2"], [1, None, None], [2, "=1+2", "=1-1"],
+            ])
+            # openpyxl writes formulas without results. Insert genuine OOXML numeric caches.
+            cached = path.with_name("cached.xlsx")
+            with ZipFile(path) as src, ZipFile(cached, "w") as target:
+                for entry in src.infolist():
+                    data = src.read(entry)
+                    if entry.filename == "xl/worksheets/sheet1.xml":
+                        xml = ElementTree.fromstring(data)
+                        for coordinate, value in (("B4", "3"), ("C4", "0")):
+                            cell = xml.find(f".//{{*}}c[@r='{coordinate}']")
+                            self.assertIsNotNone(cell.find("{*}f"))
+                            cell.find("{*}v").text = value
+                        data = ElementTree.tostring(xml)
+                    target.writestr(entry, data)
+            for header, expected in [("before", [0, np.nan, 3]), ("after", [3, np.nan, 0])]:
+                with self.subTest(header=header):
+                    x, y = plot.read_xy(cached, sheet, "t", header, allow_y_missing=True)
+                    np.testing.assert_array_equal(x, [0, 1, 2])
+                    np.testing.assert_array_equal(y, expected)
+            x, before, after = prep.read_before_after(cached, sheet, "t", "before", "after",
+                                                       allow_missing_headers=("before", "after"))
+            np.testing.assert_array_equal(x, [0, 1, 2])
+            np.testing.assert_array_equal(before, [0, np.nan, 3])
+            np.testing.assert_array_equal(after, [3, np.nan, 0])
+
+    def test_sparse_sheet_without_dimensions_preserves_a_trailing_blank(self):
+        plot, prep = module("q1_plot"), module("data_process")
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "streamed.xlsx"
+            book = Workbook(write_only=True)
+            sheet = book.create_sheet("trace")
+            sheet.append(["t", "before", "after"])
+            sheet.append([0, 0, 3])
+            sheet.append([1, 2])
+            book.save(path)
+            _, y = plot.read_xy(path, "trace", "t", "after", allow_y_missing=True)
+            _, _, after = prep.read_before_after(path, "trace", "t", "before", "after",
+                                                 allow_missing_headers=("after",))
+            np.testing.assert_array_equal(y, [3, np.nan])
+            np.testing.assert_array_equal(after, [3, np.nan])
+
+    def test_uncached_formula_identifies_the_selected_coordinate_and_layer(self):
+        plot, prep = module("q1_plot"), module("data_process")
+        sheet = "逐时结果"
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "uncached.xlsx"
+            for column, header in enumerate(("t", "before", "after")):
+                with self.subTest(header=header):
+                    row = [1, 2, 3]
+                    row[column] = "=1+2"
+                    self._book(path, ["t", "before", "after"], [[0, 0, 0], row])
+                    where = f"{sheet}!{'ABC'[column]}3.*{header}, row 3.*numeric cache.*plot layer "
+                    series = "after" if column == 2 else "before"
+                    with self.assertRaisesRegex(ValueError, where + series):
+                        plot.read_xy(path, sheet, "t", series, allow_y_missing=True)
+                    prep_layer = "before/after" if column == 0 else header
+                    with self.assertRaisesRegex(ValueError, where + prep_layer):
+                        prep.read_before_after(path, sheet, "t", "before", "after",
+                                               allow_missing_headers=("before", "after"))
+                    if column == 1:
+                        _, unaffected = plot.read_xy(path, sheet, "t", "after")
+                        np.testing.assert_array_equal(unaffected, [0, 3])
 
     def test_raw_duplicate_headers_do_not_get_silently_renamed(self):
         plot = module("q1_plot")

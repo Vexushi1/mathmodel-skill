@@ -1,6 +1,6 @@
 version: 3.3.0
 introduced_in_skill_version: 10.0.0
-skill_compatibility: '>=10.0.0,<11.0.0'
+skill_compatibility: '>=10.0.0,<12.0.0'
 purpose: 定义用户本地完整版数值执行链；所有数据项目先根据当前题目、当前附件和模型输入要求锁定preprocessing_decision，只有project_level才增加项目级预处理执行边界。每问主求解使用项目唯一已选Python或MATLAB后端的独立入口；结果深化分析仅在主工作簿accepted后经过Analysis Necessity Gate且判定required时使用独立入口，并必须继承同一项目数值后端。P5a起新生成阶段脚本使用RUN_CONFIG承载任务可变输入，全局user/full-fidelity/no-degradation政策由本Authority继承；P5b起新生成阶段脚本通过run_receipt_protocol_version绑定版本化RUN_RECEIPT，实际运行事实仍写入既有工作簿运行配置工作表。v7.14起新生成主求解还绑定Primary Quality Specification与主数值证据独立复核，但不得把结果深化分析提前塞进主求解。
 numerical_verification_authority: core/numerical_verification_contract.yaml
 solver_backends:
@@ -16,7 +16,7 @@ solver_backends:
   template_resources:
     python:
       primary: [templates/code/starter/README.md]
-      analysis: [templates/code/starter/README.md]
+      analysis: [templates/code/starter/README.md, templates/code/starter/q1_analysis.py]
     matlab:
       primary: [templates/code/matlab/README.md, templates/code/matlab/q1_solver.m]
       analysis: [templates/code/matlab/README.md, templates/code/matlab/q1_analysis.m]
@@ -348,6 +348,25 @@ analysis_necessity_state_mapping:
   invalidation: 按state_transition_contract清除primary/data/semantic失效及其相关依赖后的旧requirement reason；保留的方法列表只是候选计划。分析代码重交或图形改动不单独清除此决定。
   historical_read: 已accepted且passed的同一已验收分析工作簿可只读且不补写新reason；新交付或新验收不能借legacy配置绕过当前前置。
   implementation: scripts/analysis_prerequisites.py
+ordinary_analysis_experiments:
+  protocol_version: 1.0.0
+  stage: analysis
+  activation: 当前 03B 已激活，且本问选择了工作簿 Schema 登记的普通深化方法；新交付与新验收均核对该方法的逐项计划。
+  config_fields: [ordinary_experiment_protocol_version, ordinary_experiments]
+  receipt_marker: ordinary_experiment_protocol_version
+  experiment_fields:
+    id: 本问内唯一且运行前冻结的检验标识
+    method: 工作簿 Schema 登记的普通方法或别名
+    target: 该项分析要回答的具体问题
+    claim: 根据返回证据予以支持、修改或否决的具体主张
+    required: 布尔值，省略时为 true；false 登记探索项
+  binding: >-
+    两种后端都从已交付入口的静态 RUN_CONFIG 读取预期集合，沿用阶段入口 SHA、源码 bundle
+    与运行配置表内的回执版本握手。每个已选普通方法要出现在计划中，已删除的设计或明细仍须逐 ID 报出。
+  workbook: core/workbook_schema.yaml#result_analysis_workbook
+  compatibility: >-
+    已验收的同一路径、同一摘要保留原有只读资格。再次交付或验收以当前已绑定的代码和证据为准。
+    专用比较使用 analysis_comparison；同一问同时采用两类检验时，各自核验对应记录。
 analysis_comparison:
   introduced_in_skill_version: 10.18.0
   minimum_reader_skill_version: 10.18.0

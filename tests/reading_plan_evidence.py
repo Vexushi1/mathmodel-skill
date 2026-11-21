@@ -1996,6 +1996,44 @@ def approved_v10263_release_carrier_change(identifier, old, new, candidate_autho
     return projected, review_changes + changes
 
 
+# The v11 candidate may use the inherited historical comparison only for its exact
+# default-route authority tuple and pinned source hashes. Opt-in startup and composed
+# figure routes remain outside this legacy projection.
+V11_P3_DEFAULT_READER_HASHES = {
+    "scripts/resolve_runtime.py": "9ff66ad41d0a65a501a8af0eb40b7cef03533459d5cca61a1d880cbf8bcf43a4",
+    "scripts/reading_plan.py": "53d463ac5091074e51abdcfb6228b7f1aa6f117c65a497e9c846fe9751aeb2d9",
+    "scripts/read_stage.py": "1f5bf49a5aed466c7b01b5bbd745760b8bd66750512dd7b1804d433298dbf45f",
+}
+
+
+V11_P4_DEFAULT_READER_HASHES = {
+    "scripts/resolve_workflow.py": "88c06bfd1af7bc9d147f84304524402f884c2dd19eee3a7d20dd80efa18a3629",
+    "scripts/resolve_runtime.py": "ea898ad8bb67272414ec3840d2fe8028c6201b182f0bb896c00435a50298b54e",
+    "scripts/reading_plan.py": "7250cac816ac53f439b7eca826f8f052ae955fc2d89ae62a8d00f3ed6845b67d",
+    "scripts/read_stage.py": V11_P3_DEFAULT_READER_HASHES["scripts/read_stage.py"],
+}
+
+V11_P4B_EXECUTION_CONTRACT = {
+    "path": "core/user_execution_contract.yaml",
+    "sha256": "c6dba3775f9cc721043fbb1e62db1f3526cf267ea74ad6361e17f91ad71fa6a4",
+}
+
+
+# The candidate retains the stage-scoped default after the P5 applicability
+# changes and independent Git-blob verification for the old two-argument reader.
+V11_P5_DEFAULT_SOURCE_HASHES = {
+    **V11_P4_DEFAULT_READER_HASHES,
+    "scripts/reading_plan.py": "c0da676439af8c7466a90a8a59f097da8f5ff5e5b1c3248fb3b0892e163f08e0",
+    "core/user_execution_contract.yaml": "1b018787540da4f7a9adbc21d85655c194e80eedeb34622aeb3bfe05ff2d9306",
+    "core/code_quality_contract.yaml": "d203441e5793a45c05871d0f6feb6488aa2ce3c3efbd3d1f0d74708d9d214b0a",
+}
+
+V11_DEFAULT_AUTHORITY_VERSIONS = {
+    **V10353_LITERATURE_QUERY_COVERAGE_AUTHORITY_VERSIONS,
+    "skill": "11.0.0",
+}
+
+
 def runtime_consistency_predecessor(identifier, new, candidate_authority_versions):
     """Reverse only measured repair leaves, preserving all unrelated differences.
 
@@ -2004,6 +2042,8 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
     """
     fixture = RUNTIME_CONSISTENCY_PROJECTION
     original = deepcopy(new)
+    if "startup_reading" in original or "figure_composition" in original:
+        return original, []
     # Only the exact patch release carrier may reuse the frozen v10.27.0
     # inverse; no other field, source fingerprint, or historical fixture is waived.
     accepted_carriers = (
@@ -2019,6 +2059,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
         V10351_ORDINARY_ANALYSIS_COVERAGE_AUTHORITY_VERSIONS,
         V10352_AFFIRMATIVE_FULL_WORKFLOW_AUTHORITY_VERSIONS,
         V10353_LITERATURE_QUERY_COVERAGE_AUTHORITY_VERSIONS,
+        V11_DEFAULT_AUTHORITY_VERSIONS,
     )
     matched_carrier = next((
         carrier for carrier in accepted_carriers
@@ -2039,6 +2080,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
         V10351_ORDINARY_ANALYSIS_COVERAGE_AUTHORITY_VERSIONS,
         V10352_AFFIRMATIVE_FULL_WORKFLOW_AUTHORITY_VERSIONS,
         V10353_LITERATURE_QUERY_COVERAGE_AUTHORITY_VERSIONS,
+        V11_DEFAULT_AUTHORITY_VERSIONS,
     ):
         # P2 historical comparison can borrow the v10.28 inverse only when
         # the new literature-resource pair was NOT loaded. Real modeling-route
@@ -2075,6 +2117,29 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
             previous_header = b"version: 10.27.0\n"
             if not raw.startswith(patch_header) or hashlib.sha256(raw).hexdigest() != actual[0]["sha256"]:
                 return deepcopy(original), []
+            # Only the exact candidate's selector paragraph may be reversed here.
+            if matched_carrier == V11_DEFAULT_AUTHORITY_VERSIONS:
+                # The v11 output-contract carrier is exactly the v10.35.3 body plus its
+                # pinned mechanism selector; reconstruct that predecessor before the
+                # existing v10.27.0 inverse is applied.
+                v10353_header = b"version: 10.35.3\n"
+                raw = v10353_header + raw[len(patch_header):]
+                if hashlib.sha256(raw).hexdigest() != "d1a395266067db570001e23813b90941e409ce73d0911c70aba401abf81a2cbf":
+                    return deepcopy(original), []
+                patch_header = v10353_header
+            if (matched_carrier in (V10353_LITERATURE_QUERY_COVERAGE_AUTHORITY_VERSIONS,
+                                   V11_DEFAULT_AUTHORITY_VERSIONS)
+                    and hashlib.sha256(raw).hexdigest() == "d1a395266067db570001e23813b90941e409ce73d0911c70aba401abf81a2cbf"):
+                selector = (
+                    "  mechanism_spec_selector: With an explicit mechanism scope, --mechanism-spec selects one "
+                    "current figures/source/*.mechanism.yaml. When supplied, --mechanism-question must match "
+                    "that spec's question_id. Without a selected spec, all discovered mechanism specs remain in scope.\n"
+                ).encode("utf-8")
+                if raw.count(selector) != 1:
+                    return deepcopy(original), []
+                raw = raw.replace(selector, b"", 1)
+                if hashlib.sha256(raw).hexdigest() != "3abfd421e866d97c9b56c211405400a24a8e5bd9df45cbb307434915c95ed690":
+                    return deepcopy(original), []
             if matched_carrier in (
                 V10310_RESEARCH_SNAPSHOT_AUTHORITY_VERSIONS,
                 V10320_LITERATURE_P6_AUTHORITY_VERSIONS,
@@ -2086,6 +2151,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
                 V10351_ORDINARY_ANALYSIS_COVERAGE_AUTHORITY_VERSIONS,
                 V10352_AFFIRMATIVE_FULL_WORKFLOW_AUTHORITY_VERSIONS,
                 V10353_LITERATURE_QUERY_COVERAGE_AUTHORITY_VERSIONS,
+        V11_DEFAULT_AUTHORITY_VERSIONS,
             ):
                 # Reconstruct only two exact P4 output-layout additions.
                 # Do not generalize into ignoring the output contract hash.
@@ -2134,6 +2200,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
             V10351_ORDINARY_ANALYSIS_COVERAGE_AUTHORITY_VERSIONS,
             V10352_AFFIRMATIVE_FULL_WORKFLOW_AUTHORITY_VERSIONS,
             V10353_LITERATURE_QUERY_COVERAGE_AUTHORITY_VERSIONS,
+        V11_DEFAULT_AUTHORITY_VERSIONS,
         ):
             # Only this exact resolver pair may project onto the frozen source identities.
             # The projected plan must still match the historical behavior field by field.
@@ -2149,6 +2216,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
                 V10351_ORDINARY_ANALYSIS_COVERAGE_AUTHORITY_VERSIONS,
                 V10352_AFFIRMATIVE_FULL_WORKFLOW_AUTHORITY_VERSIONS,
                 V10353_LITERATURE_QUERY_COVERAGE_AUTHORITY_VERSIONS,
+        V11_DEFAULT_AUTHORITY_VERSIONS,
             ):
                 resolver_hashes = {
                     "scripts/resolve_workflow.py": "706a97aa937e38df4ea7cfe1a2607859209b47be8f8fffcc28bd7af1c6361f42",
@@ -2163,15 +2231,59 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
                 V10351_ORDINARY_ANALYSIS_COVERAGE_AUTHORITY_VERSIONS,
                 V10352_AFFIRMATIVE_FULL_WORKFLOW_AUTHORITY_VERSIONS,
                 V10353_LITERATURE_QUERY_COVERAGE_AUTHORITY_VERSIONS,
+        V11_DEFAULT_AUTHORITY_VERSIONS,
             ):
                 resolver_hashes["core/user_execution_contract.yaml"] = "b61f52a6ad68f0f5234bc4dec8182d52e3bd23f3e75e6c7fe85d59f8014ba6bb"
                 approval = "v10.35.0 reviewed opt-in execution scale receipt contract"
             if matched_carrier in (
                 V10352_AFFIRMATIVE_FULL_WORKFLOW_AUTHORITY_VERSIONS,
                 V10353_LITERATURE_QUERY_COVERAGE_AUTHORITY_VERSIONS,
+        V11_DEFAULT_AUTHORITY_VERSIONS,
             ):
                 resolver_hashes["scripts/resolve_workflow.py"] = "6a57aa603ba6e300a9ce9521f62771d2de60bee76ae82277ce06387645f7dce2"
                 approval = "v10.35.2 reviewed affirmative full-workflow routing patch"
+            if matched_carrier in (V10353_LITERATURE_QUERY_COVERAGE_AUTHORITY_VERSIONS,
+                                   V11_DEFAULT_AUTHORITY_VERSIONS):
+                observed_readers = {
+                    row["path"]: row["sha256"] for row in fingerprint["sources"]
+                    if row["path"] in V11_P3_DEFAULT_READER_HASHES
+                }
+                if observed_readers == V11_P3_DEFAULT_READER_HASHES:
+                    resolver_hashes.update(V11_P3_DEFAULT_READER_HASHES)
+                    approval = "v11 P3 reviewed default-route reader and resolver identities"
+                p4_sources = {row["path"]: row["sha256"] for row in fingerprint["sources"]
+                              if row["path"] in V11_P4_DEFAULT_READER_HASHES}
+                if p4_sources == V11_P4_DEFAULT_READER_HASHES:
+                    resolver_hashes.update(V11_P4_DEFAULT_READER_HASHES)
+                    approval = "v11 P4a default-route comparison on exact candidate sources"
+                    # P4b changed the contract and analysis template selection. The
+                    # recorded default cases keep all plan fields in the comparison.
+                    if (V11_P4B_EXECUTION_CONTRACT in fingerprint["sources"]
+                            and identifier in {case[0] for case in CASES}):
+                        resolver_hashes[V11_P4B_EXECUTION_CONTRACT["path"]] = V11_P4B_EXECUTION_CONTRACT["sha256"]
+                        approval = "v11 P4b default-route comparison on exact execution and reader sources"
+                p5_sources = {row["path"]: row["sha256"] for row in fingerprint["sources"]
+                              if row["path"] in V11_P5_DEFAULT_SOURCE_HASHES}
+                if p5_sources == V11_P5_DEFAULT_SOURCE_HASHES and identifier in {case[0] for case in CASES}:
+                    resolver_hashes.update(V11_P5_DEFAULT_SOURCE_HASHES)
+                    approval = "v11 P5 exact staged reader and applicability contracts for the default route"
+                    if identifier == "facts_identity_drift":
+                        # P4c reports the precise cause on the already-stale Q1
+                        # model. Reverse just that reason for the historical control.
+                        artifacts = projected["assurance"]["artifact_assurance"]
+                        row = artifacts["evidence"][0]
+                        previous = "current framework semantic identity does not match project-state semantic identity"
+                        current = previous + "; Q1: current SIB differs from the validated semantic identity"
+                        if (row["artifact"] != "locked_model_spec" or row["scope"] != "Q1"
+                                or row["status"] != "stale" or row["reason"] != current
+                                or "locked_model_spec" in artifacts["effective_artifacts"]):
+                            return deepcopy(original), []
+                        row["reason"] = previous
+                        changes.append({
+                            "path": "assurance.artifact_assurance.evidence.0.reason",
+                            "baseline": previous, "candidate": current,
+                            "approval": "v11 P4c identifies the stale Q1 structured model identity",
+                        })
             predecessor_hashes = {
                 row["path"]: row["sha256"] for row in fixture["fingerprint"]["candidate"]
                 if row["path"] in resolver_hashes
@@ -2414,7 +2526,7 @@ def main():
         "schema_version": 1, "baseline_ref": args.baseline_ref, "candidate_ref": args.candidate_ref,
         "driver_sha256": hashlib.sha256(HERE.read_bytes()).hexdigest(),
         "cases_sha256": hashlib.sha256(HERE.with_name("reading_plan_cases.py").read_bytes()).hexdigest(),
-        "comparison_scope": "all_legacy_fields_with_declared_authority_hash_p7_prerequisite_p9_carrier_exceptions_and_exact_a3_a7_v970_v10_v1010_a1_a2_b1_b2_b2b1_b2b2_b2b3a_b2b3b_b2b3c_b2_patch_b2b4_b2b5_b2b6_b2c_c1_windows_python_ci_windows_matlab_ci_c2_python_ci_performance_d1_d2_e1_v10183_v10193_v10203_v10204_v10205_v10210_v10220_v10250_exact_cumcm_2026_profile_ai_appendix_carrier_transitions",
+        "comparison_scope": "all_legacy_fields_with_declared_authority_hash_p7_prerequisite_p9_carrier_exceptions_and_exact_a3_a7_v970_v10_v1010_a1_a2_b1_b2_b2b1_b2b2_b2b3a_b2b3b_b2b3c_b2_patch_b2b4_b2b5_b2b6_b2c_c1_windows_python_ci_windows_matlab_ci_c2_python_ci_performance_d1_d2_e1_v10183_v10193_v10203_v10204_v10205_v10210_v10220_v10250_exact_cumcm_2026_profile_ai_appendix_carrier_transitions_v11_default_route_exact_carrier",
         "expected_authority_changes": sorted(ALLOWED_CHANGED_AUTHORITIES),
         "approved_b2b6_authority_versions": B2B6_AUTHORITY_VERSIONS,
         "approved_b2c_authority_versions": B2C_AUTHORITY_VERSIONS,
@@ -2435,6 +2547,7 @@ def main():
         "approved_stage_reading_authority_versions": STAGE_READING_AUTHORITY_VERSIONS,
         "approved_body_reading_authority_versions": BODY_READING_AUTHORITY_VERSIONS,
         "approved_review_split_authority_versions": REVIEW_SPLIT_AUTHORITY_VERSIONS,
+        "approved_v11_default_authority_versions": V11_DEFAULT_AUTHORITY_VERSIONS,
         "mixed_figure_reading_carrier": (
             "v10.23.2 projects only the exact version carrier for the existing P2 "
             "corpus. The new style-plus-design reading union is tested independently; "
@@ -2448,7 +2561,7 @@ def main():
         ),
         "all_legacy_behavior_equal": all(r["legacy_behavior_equal"] for r in rows),
         "all_legacy_behavior_equal_except_approved_changes": all(r["legacy_behavior_equal_except_approved_changes"] for r in rows),
-        "interpretation": "Initial planned ranges, not actual reads/tokens or total task cost. Existing Authority hash, P7 prerequisite and registered release-carrier exceptions remain. legacy_behavior_equal is measured before exact A3/A7/v9.7/v10/v10.1/A1/A2/B1/B2/B2b1/B2b2/B2b3a/B2b3b/B2b3c/B2 patch/B2b4/B2b5/B2b6/B2c/C1/Windows Python CI/Windows MATLAB CI/C2/Python CI performance/D1 carrier exceptions; B2b6, B2c, C1, both earlier CI patches, C2, the performance patch, D1, D2 and E1 require their exact Authority version sets. D1 and D2 keep the case corpus outside default runtime loading and their independent protocols outside default runtime Authority metadata. Each approved version, provenance or canonical solver projection is visible in expected_legacy_changes. No result qualification, classification value or existing list-order normalization is waived. The v10.18.3 writing patch retains its exact Skill carrier; the user-specified v10.19.3 handoff registers its exact carrier and six pinned CUMCM question-handoff declaration leaves. The user-specified v10.20.3 workflow registers only its exact carrier and preserves those historical projections. The v10.20.4 PDF review patch registers its exact carrier and two pinned assembly run-now leaves, preserving the template check and render order. The v10.20.5 stage-reading patch registers only the exact Skill/runtime-assurance carrier; v10.21.0 adds only a source-body adapter and generated guide while reading-plan output and all legacy resolver fields remain checked. All previous approved behavior projections and every unregistered field remain checked. Passing requires no unregistered field differences.",
+        "interpretation": "Initial planned ranges, not actual reads/tokens or total task cost. Existing Authority hash, P7 prerequisite and registered release-carrier exceptions remain. legacy_behavior_equal is measured before exact A3/A7/v9.7/v10/v10.1/A1/A2/B1/B2/B2b1/B2b2/B2b3a/B2b3b/B2b3c/B2 patch/B2b4/B2b5/B2b6/B2c/C1/Windows Python CI/Windows MATLAB CI/C2/Python CI performance/D1 carrier exceptions; B2b6, B2c, C1, both earlier CI patches, C2, the performance patch, D1, D2 and E1 require their exact Authority version sets. D1 and D2 keep the case corpus outside default runtime loading and their independent protocols outside default runtime Authority metadata. Each approved version, provenance or canonical solver projection is visible in expected_legacy_changes. No result qualification, classification value or existing list-order normalization is waived. The v10.18.3 writing patch retains its exact Skill carrier; the user-specified v10.19.3 handoff registers its exact carrier and six pinned CUMCM question-handoff declaration leaves. The user-specified v10.20.3 workflow registers only its exact carrier and preserves those historical projections. The v10.20.4 PDF review patch registers its exact carrier and two pinned assembly run-now leaves, preserving the template check and render order. The v10.20.5 stage-reading patch registers only the exact Skill/runtime-assurance carrier; v10.21.0 adds only a source-body adapter and generated guide while reading-plan output and all legacy resolver fields remain checked. All previous approved behavior projections and every unregistered field remain checked. The v11.0.0 default-route carrier is admitted only by the exact authority tuple and pinned P5 source hashes; explicit startup and figure-composition routes remain outside this projection. Passing requires no unregistered field differences.",
         "cases": rows,
     }
     args.output.mkdir(parents=True, exist_ok=True)

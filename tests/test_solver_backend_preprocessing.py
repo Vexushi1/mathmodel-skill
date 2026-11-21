@@ -108,6 +108,126 @@ class SolverBackendPreprocessingTests(unittest.TestCase):
         self.save_state()
         return hashlib.sha256(self.pre_workbook.read_bytes()).hexdigest()
 
+    def plot_index_workbook(self, index_rows, source_sheets):
+        self.preprocessing_workbook()
+        book = openpyxl.load_workbook(self.pre_workbook)
+        try:
+            for title, rows in {"绘图数据索引": index_rows, **source_sheets}.items():
+                if title in book.sheetnames:
+                    del book[title]
+                sheet = book.create_sheet(title)
+                for row in rows:
+                    sheet.append(row)
+            book.save(self.pre_workbook)
+        finally:
+            book.close()
+
+    def test_plot_index_accepts_matching_observations_including_zero_and_false(self):
+        self.plot_index_workbook([
+            ["图组", "图作用", "源工作表", "横轴字段", "处理后字段", "验证字段", "单位", "论文位置"],
+            ["F1", "变化曲线", "底层数据", "期次", "变化量", "是否超限", "m", "第三节"],
+            ["F2", "前后比较", "处理前后对比"],
+            ["F3", "分类", "分类观测"],
+        ], {
+            "底层数据": [["期次", "变化量", "是否超限"], [1, 0, False]],
+            "处理前后对比": [["对象", "指标", "处理前", "处理后"], ["A", "合格", None, False]],
+            "分类观测": [["类别"], ["闲置"]],
+        })
+        issues = RECEIPT.validate_one(self.root, self.pre_workbook, self.state, True)
+        self.assertEqual(issues, [])
+        self.assertEqual(self.state["preprocessing"]["status"], "accepted")
+        self.assertEqual(self.state["preprocessing"]["workbook_sha256"],
+                         hashlib.sha256(self.pre_workbook.read_bytes()).hexdigest())
+
+    def test_plot_index_rejects_each_unsupported_figure_and_does_not_register_hash(self):
+        headers = ["图组", "图作用", "源工作表", "横轴字段", "处理前字段", "处理后字段", "分组字段", "验证字段"]
+        rows = [headers, ["F1", "有效观测", "底层数据", "对象", "值"]]
+        expected = []
+        for source in RECEIPT.PREPROCESSING_EVIDENCE_SHEETS:
+            if source != "处理前后对比":
+                rows.append(["管理表", "错误引用", source])
+                expected.append((len(rows), source))
+        for selector in headers[3:]:
+            row = ["字段缺失", "核对", "底层数据"] + [None] * 5
+            row[headers.index(selector)] = "缺失列"
+            rows.append(row)
+            expected.append((len(rows), f"{selector}=缺失列"))
+        for source, fields, message in (
+            ("缺表", [], "不存在的工作表"),
+            ("图表页", [], "非数据工作表"),
+            (None, [], "源工作表"),
+            ("只有表头", [], "底层数据行"),
+            ("格式空行", [], "底层数据行"),
+            ("跨行", ["x", "y"], "底层数据行"),
+            ("同名列", ["x"], "唯一字段"),
+            ("处理前后对比", ["对象"], "底层数据行"),
+        ):
+            rows.append(["无效观测", "核对", source, *fields])
+            expected.append((len(rows), message))
+        self.plot_index_workbook(rows, {
+            "只有表头": [["数值"]],
+            "格式空行": [["数值", None], ["   ", 10], ["#DIV/0!"], ["=0"]],
+            "跨行": [["x", "y"], [1, None], [None, 2]],
+            "同名列": [["x", "x"], [1, 2]],
+            "处理前后对比": [["对象", "指标", "处理前", "处理后"], ["A", "偏移量"]],
+        })
+        book = openpyxl.load_workbook(self.pre_workbook)
+        try:
+            chart = openpyxl.chart.BarChart()
+            chart.add_data(openpyxl.chart.Reference(book["底层数据"], min_col=2, min_row=1, max_row=2))
+            book.create_chartsheet("图表页").add_chart(chart)
+            book.save(self.pre_workbook)
+        finally:
+            book.close()
+        issues = RECEIPT.validate_one(self.root, self.pre_workbook, self.state, True)
+        for index, message in expected:
+            with self.subTest(index=index, message=message):
+                self.assertTrue(any(f"第{index}行" in issue and message in issue for issue in issues), issues)
+        self.assertFalse(any("（F1）" in issue for issue in issues))
+        self.assertEqual(self.state["preprocessing"]["status"], "rejected")
+        self.assertEqual(self.state["preprocessing"]["quality_status"], "failed")
+        self.assertNotIn("workbook_sha256", self.state["preprocessing"])
+        self.assertNotIn("workbook", self.state["preprocessing"])
+        self.assertNotIn("active_source_mode", self.state["data"])
+        self.assertEqual(self.state["project"]["current_phase"], "data_preprocessing")
+
+    def test_streamed_index_handles_short_rows_and_excel_errors(self):
+        self.plot_index_workbook([
+            ["图组", "图作用", "源工作表", "验证字段"],
+            ["F1", "完整", "底层数据"],
+            ["F2"],
+            ["F3", "核对", "底层数据", "#N/A"],
+            ["F4", "核对", "只有错误值", "值"],
+            ["F5", "核对", "另一张表", "值"],
+        ], {"只有错误值": [["值"], ["#REF!"]], "另一张表": [["值"], [False]]})
+        # Streaming writers can omit dimension metadata and trailing empty cells.
+        source = openpyxl.load_workbook(self.pre_workbook, read_only=True)
+        streamed = openpyxl.Workbook(write_only=True)
+        try:
+            for sheet in source:
+                out = streamed.create_sheet(sheet.title)
+                for row in sheet.values:
+                    out.append(row)
+        finally:
+            source.close()
+        streamed.save(self.pre_workbook)
+        streamed.close()
+        issues = RECEIPT.validate_one(self.root, self.pre_workbook, self.state, True)
+        for label, fact in (("F2", "源工作表"), ("F3", "错误单元格"), ("F4", "底层数据行")):
+            self.assertTrue(any(label in issue and fact in issue for issue in issues), issues)
+        self.assertFalse(any("（F1）" in issue or "（F5）" in issue for issue in issues), issues)
+        self.assertNotIn("workbook_sha256", self.state["preprocessing"])
+
+    def test_rejected_index_preserves_previously_accepted_digest(self):
+        digest = self.accept_preprocessing()
+        self.plot_index_workbook([["图组", "图作用", "源工作表", "验证字段", "验证字段"],
+                                  ["F1", "核对", "底层数据", "值", "对象"]], {})
+        issues = RECEIPT.validate_one(self.root, self.pre_workbook, self.state, True)
+        self.assertTrue(any("列名重复" in issue for issue in issues), issues)
+        self.assertEqual(self.state["preprocessing"]["status"], "rejected")
+        self.assertEqual(self.state["preprocessing"]["workbook_sha256"], digest)
+        self.assertNotEqual(digest, hashlib.sha256(self.pre_workbook.read_bytes()).hexdigest())
+
     def primary_config(self, digest):
         self.state["execution"] = {
             "solver_backend": "matlab",

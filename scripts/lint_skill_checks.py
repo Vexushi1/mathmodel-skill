@@ -111,6 +111,17 @@ def active_files() -> Iterable[Path]:
             yield from (path for path in base.rglob("*") if path.is_file() and path.suffix.lower() in TEXT_SUFFIXES)
 
 
+def authored_markdown() -> Iterable[Path]:
+    # Each generated volume preserves relative links verbatim. Check those
+    # links at the original authoring path; the generator checks the copies.
+    for path in active_files():
+        if path.suffix.lower() != ".md":
+            continue
+        if path.parent == ROOT / "core/full_reading/volumes" and re.fullmatch(r"[0-9]{3}\.md", path.name):
+            continue
+        yield path
+
+
 def check_required(errors: list[str]) -> None:
     for relative in REQUIRED:
         if not (ROOT / relative).is_file():
@@ -210,7 +221,7 @@ def check_skill_entrypoint_parity(errors: list[str]) -> None:
     if not runtime_resolver:
         errors.append("bootstrap startup_contract.resolver is required")
     required_tokens = (
-        "core/bootstrap.yaml", "core/workflow_router.yaml", "core/hsk_core_policy.md",
+        "core/bootstrap.yaml#startup_contract", "core/workflow_router.yaml", "core/hsk_core_policy.md",
         runtime_resolver, "core/writing_reasoning_contract.yaml", "core/numerical_verification_contract.yaml",
         "模型论文框架.md", "legacy/",
     )
@@ -247,6 +258,25 @@ def check_skill_entrypoint_parity(errors: list[str]) -> None:
         errors.append(f"plugin/bootstrap version mismatch: plugin -> {plugin.get('version')}, bootstrap -> {current}")
     if plugin.get("skills") != "./skills/":
         errors.append("plugin skill discovery path must remain ./skills/")
+
+    profiles = startup.get("profiles") or {}
+    activation = startup.get("activation") or {}
+    events = startup.get("candidate_events") or {}
+    if not isinstance(profiles, dict) or not isinstance(activation, dict) or not isinstance(events, dict):
+        errors.append("bootstrap startup profiles, activation and candidate_events must be mappings")
+        return
+    default_profile = activation.get("default_profile")
+    if not isinstance(default_profile, str) or default_profile not in profiles:
+        errors.append("bootstrap default startup profile must resolve in the same contract")
+    if not events or any(not isinstance(name, str) or name not in profiles for name in events.values()):
+        errors.append("bootstrap candidate startup event must resolve to a declared profile")
+
+    web_entry = read_text(ROOT / "PROJECT_INSTRUCTIONS.md")
+    selector = activation.get("candidate_selector")
+    if not isinstance(selector, str) or not selector.strip() or selector not in web_entry:
+        errors.append("web/App instructions must reference the bootstrap candidate selector")
+    if "PROJECT_INSTRUCTIONS.md#web-app-start" not in MARKDOWN_LINK_RE.findall(read_text(ROOT / "README.md")):
+        errors.append("README must link directly to PROJECT_INSTRUCTIONS.md#web-app-start")
 
 
 def check_repository_references(errors: list[str]) -> None:
@@ -316,7 +346,7 @@ def check_repository_references(errors: list[str]) -> None:
         ROOT / "SKILL.md", ROOT / "README.md", ROOT / "PROJECT_INSTRUCTIONS.md",
         ROOT / "RUNTIME_ROUTER.md", ROOT / "REPOSITORY_INDEX.md", ROOT / "SKILL_CHANGE_GOVERNANCE.md",
     ]
-    markdown_files = set(path for path in active_files() if path.suffix.lower() == ".md") | set(root_docs)
+    markdown_files = set(authored_markdown()) | set(root_docs)
     for path in sorted(markdown_files):
         if not path.is_file():
             continue
@@ -407,8 +437,8 @@ def check_versions(errors: list[str]) -> None:
     if workbook.get("schema_version") != "2.4.0":
         errors.append("workbook schema version must be 2.4.0")
     compatibility = str(workbook.get("skill_compatibility", ""))
-    if compatibility != ">=6.3.2,<11.0.0":
-        errors.append("workbook schema compatibility must cover 6.3.2 through v10")
+    if compatibility != ">=6.3.2,<12.0.0":
+        errors.append("workbook schema compatibility must cover 6.3.2 through v11")
 
 
 def check_bootstrap_and_governance(errors: list[str]) -> None:
@@ -448,8 +478,8 @@ def check_bootstrap_and_governance(errors: list[str]) -> None:
     for token in ("每个新聊天的强制启动顺序", "修改简报", "单一事实源", "一次聊天一个分支", "一个 PR 一个主题", "禁止直接写 main", "生成文件规则", "测试与验收", "完成报告"):
         if token not in governance:
             errors.append(f"governance document lacks section: {token}")
-    if 'applies_to_skill: ">=6.3.0,<11.0.0"' not in governance:
-        errors.append("governance applicability must cover its original lower bound through v10")
+    if 'applies_to_skill: ">=6.3.0,<12.0.0"' not in governance:
+        errors.append("governance applicability must cover its original lower bound through v11")
     for relative, lower in (
         ("core/global_preprocessing_contract.yaml", "7.4.2"),
         ("core/code_quality_contract.yaml", "7.4.2"),
@@ -461,13 +491,13 @@ def check_bootstrap_and_governance(errors: list[str]) -> None:
         if not contract.get("introduced_in_skill_version"):
             errors.append(f"subordinate contract introduction version missing: {relative}")
         compatibility = str(contract.get("skill_compatibility", ""))
-        if compatibility != f">={lower},<11.0.0":
-            errors.append(f"subordinate contract compatibility must retain its lower bound and cover v10: {relative}")
+        if compatibility != f">={lower},<12.0.0":
+            errors.append(f"subordinate contract compatibility must retain its lower bound and cover v11: {relative}")
     execution = load_structured(ROOT / "core/user_execution_contract.yaml") or {}
     if execution.get("version") != "3.3.0" or execution.get("introduced_in_skill_version") != "10.0.0":
-        errors.append("v10 A2 execution contract must declare its independent 3.2.0 version")
-    if str(execution.get("skill_compatibility")) != ">=10.0.0,<11.0.0":
-        errors.append("v10 user execution contract must apply only to the new major line")
+        errors.append("A2 execution contract must declare its independent 3.3.0 version")
+    if str(execution.get("skill_compatibility")) != ">=10.0.0,<12.0.0":
+        errors.append("user execution compatibility must retain its v10 lower bound and cover v11")
 
 
 def check_taxonomy(errors: list[str]) -> None:
@@ -481,8 +511,8 @@ def check_taxonomy(errors: list[str]) -> None:
     if data.get("classification_contract", {}).get("authoritative_locations", {}).get("capabilities") != "subproblem.capabilities":
         errors.append("taxonomy must declare top-level capabilities as authoritative")
     compatibility = str(data.get("skill_compatibility", ""))
-    if compatibility != ">=6.3.1,<11.0.0":
-        errors.append("task taxonomy compatibility must retain its lower bound and cover v10")
+    if compatibility != ">=6.3.1,<12.0.0":
+        errors.append("task taxonomy compatibility must retain its lower bound and cover v11")
 
 
 def check_router(errors: list[str]) -> None:

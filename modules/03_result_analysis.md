@@ -67,6 +67,12 @@ Gate=`required` 后按 `core/user_execution_contract.yaml#solver_backends` 继�
 
 独立深化入口 是独立可复现程序，不复制主求解主链，不通过改写 主求解入口 实现深化分析。新生成脚本必须只定义一个按执行 Authority 可静态读取的 `RUN_CONFIG`，其中 `stage="analysis"` 并锁定当前数据事实源的 `data_sha256`；user/full-fidelity/no-degradation 政策由 `core/user_execution_contract.yaml` 继承，不在脚本中重复自报。工作簿中的 `code_sha256` 必须对应该深化分析脚本，并继续完整记录 solver/version、stop、platform、fallback 与 no-degradation 等实际运行事实。旧 `FULL_FIDELITY_CONFIG/FULL_RUN_CONFIG` 仅作只读兼容。
 
+### 同一方法内的多项检验
+
+普通方法的运行前清单见 `core/user_execution_contract.yaml#ordinary_analysis_experiments`。例如，同一问要分别检验成本对运距和需求的敏感性，交付源码时应为两者各登记一个检验 ID、分析问题和目标主张。每个必需 ID 在返回工作簿中都应能连到自己的设计、实质观测和主张处置。一个 ID 可有多行不同扰动的观测，具体表列见 `core/workbook_schema.yaml#result_analysis_workbook`。
+
+数值零、布尔假和推翻预期的结果都可以是有效观测。某项技术失败时保留失败事实，并指出哪个主张仍缺证据。探索项单独记录。若探索项检验自己的附加主张，汇总表保留实际处置，整问仍按必需实验验收。若它在运行前登记的主张与本问某个必需实验的主张完全一致，完整观测对该主张给出的否定也应触发核心回退。只要必需项有缺口，即使同一方法已有其他合格结果，也要列出该 ID 和缺少的环节。正文或图表只使用已有证据能够支撑的范围。重新提出旧项目的稳健性主张时，应回到对应实验；既有工作簿的历史验收身份只说明当时验收了哪些字节。
+
 ## 三、按需多模型检验与同模型多算法检验
 
 两类新检验沿用本模块的 Analysis Necessity Gate、独立 analysis 入口、项目唯一 backend 和现有处置，不要求每问两个模型。

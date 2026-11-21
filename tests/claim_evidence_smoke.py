@@ -10,12 +10,35 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'scripts'))
 sys.path.insert(0,str(ROOT))
 from claim_evidence import inspect_project
+from run_config_parser import DELIVERY_MESSAGES, parse_embedded_config
+from stage_code import resolve_stage_code
 from tests.claim_fixture import install_record
 
 
 def files(root: Path) -> dict[str,str]:
     return {p.relative_to(root).as_posix():hashlib.sha256(p.read_bytes()).hexdigest()
             for p in root.rglob('*') if p.is_file()}
+
+
+def analysis_selector(root: Path, state: dict) -> None:
+    """Bind the scalar-solution observation, distinct from the change-from-baseline result."""
+    entry = state["subproblems"]["Q1"]
+    stage = resolve_stage_code(root, "Q1", "analysis", entry=entry,
+                               project_backend=state["execution"]["solver_backend"])
+    if stage is None:
+        raise ValueError("Missing delivered synthetic analysis source")
+    raw = stage.path.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != entry["analysis_code_sha256"]:
+        raise ValueError("Synthetic analysis source differs from the delivered digest")
+    _, config = parse_embedded_config(raw.decode("utf-8-sig"), backend=stage.backend, messages=DELIVERY_MESSAGES)
+    # The auxiliary Python fixture and current MATLAB starter phrase this test differently.
+    target = {"python": "解是否为正", "matlab": "系数扰动后解是否始终为正"}[stage.backend]
+    matches = [row["id"] for row in config["ordinary_experiments"] if row["target"] == target
+               and row["method"] in {"参数敏感性", "parameter_sensitivity"}]
+    if len(matches) != 1:
+        raise ValueError(f"Expected one declared scalar-solution experiment for {target}")
+    selector = state["paper_framework"]["claim_evidence"]["sources"][0]["selector"]
+    selector["row_key"]["检验ID"] = matches[0]
 
 
 def run(root: Path) -> dict:
@@ -30,6 +53,8 @@ def run(root: Path) -> dict:
     try:
         for stage in ('primary','analysis'):
             install_record(state,stage)
+            if stage == "analysis":
+                analysis_selector(root, state)
             state_path.write_text(yaml.safe_dump(state,allow_unicode=True,sort_keys=False),encoding='utf-8')
             before=files(root);report=inspect_project(root)
             assert report['status']=='evidence_checked',report

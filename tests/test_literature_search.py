@@ -151,6 +151,7 @@ class LiteratureProviderAdapterTests(unittest.TestCase):
                     "primary_location": {"source": {"display_name": "Synthetic Review"}},
                     "is_retracted": False,
                 },
+                {"id": "https://openalex.org/W88", "title": "Metadata without retraction status"},
                 {
                     "id": "https://openalex.org/W99",
                     "title": "A retracted source", "is_retracted": True,
@@ -159,7 +160,10 @@ class LiteratureProviderAdapterTests(unittest.TestCase):
         out = self.api.search(self.brief(), provider="openalex", allow_network=True,
                               fetch=fetch, clock=lambda: "2026-11-14T00:00:00Z")
         self.assertEqual(out["search"]["status"], "completed")
-        self.assertEqual(len(out["sources"]), 1)
+        self.assertEqual([row["provider_record_id"] for row in out["sources"]],
+                         ["https://openalex.org/W1234", "https://openalex.org/W88"])
+        self.assertNotIn("is_retracted", out["sources"][1])
+        self.assertEqual(out["methods"], [])
         self.assertEqual(out["sources"][0]["doi"], "10.3023/test")
         self.assertTrue(any("retracted" in gap for gap in out["decision"]["unresolved_gaps"]))
         self.assertEqual(self.api.validate_report(out)["status"], "passed")

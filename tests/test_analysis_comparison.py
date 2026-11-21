@@ -570,6 +570,36 @@ class AnalysisComparisonTests(unittest.TestCase):
         record["self_reported_pass"] = True
         self.assertTrue(list(validator.iter_errors(record)))
 
+    def test_extracted_comparison_scope_and_captured_framework_check_the_same_primary_dependencies(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            frame = comparison_framework(self.scope)
+            path = root / "模型论文框架.md"
+            path.write_text(frame, encoding="utf-8")
+            specs = COMPARISON.extract_specs(frame, "Q1")
+            state = {"subproblems": {"Q1": self.entry, "Q2": {}}}
+
+            def issues(given):
+                return APPROVAL.validate_comparison_approval(root, state, self.entry, "Q1", specs=given)
+
+            self.assertEqual(issues(frame), [])
+            self.assertEqual(issues(specs), [])
+            different_scope = deepcopy(specs)
+            different_scope["algorithms"][0]["definition"]["stop_rule"] = "two factorizations"
+            self.assertTrue(any("supplied comparison scope" in issue for issue in issues(different_scope)))
+            self.entry["depends_on"] = [{"question": "Q2", "kind": "model"}]
+            expected = issues(frame)
+            self.assertTrue(any("Q2/model" in issue for issue in expected), expected)
+            self.assertEqual(issues(specs), expected)
+            self.entry["depends_on"] = []
+
+            path.unlink()
+            self.assertEqual(issues(frame), [])
+            self.assertTrue(any("inspection failed" in issue for issue in issues(specs)))
+            path.write_bytes(b"\xff")
+            self.assertEqual(issues(frame), [])
+            self.assertTrue(any("inspection failed" in issue for issue in issues(specs)))
+
     def test_approval_wrapper_checks_actual_primary_sib_and_opt_in_scoped_receipt(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

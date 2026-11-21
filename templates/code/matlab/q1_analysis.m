@@ -1,5 +1,5 @@
 function workbook = q1_analysis()
-RUN_CONFIG = jsondecode('{"stage":"analysis","problem_name":"问题一","solver_backend":"matlab","data_paths":["input.json"],"data_sha256":"__DATA_SHA256__","solver":"analytic_parameter_sweep","random_seed":2026,"tolerance":1e-10,"iteration_or_time_limit":3,"expected_workbook":"问题一求解/问题一结果深化分析.xlsx","run_receipt_protocol_version":"1.1.0","code_dependencies":[],"primary_workbook":"问题一求解/问题一求解结果.xlsx","primary_workbook_sha256":"__ACCEPTED_PRIMARY_SHA256__"}');
+RUN_CONFIG = jsondecode('{"stage":"analysis","problem_name":"问题一","solver_backend":"matlab","data_paths":["input.json"],"data_sha256":"__DATA_SHA256__","solver":"analytic_parameter_sweep","random_seed":2026,"tolerance":1e-10,"iteration_or_time_limit":3,"expected_workbook":"问题一求解/问题一结果深化分析.xlsx","run_receipt_protocol_version":"1.1.0","code_dependencies":[],"primary_workbook":"问题一求解/问题一求解结果.xlsx","primary_workbook_sha256":"__ACCEPTED_PRIMARY_SHA256__","ordinary_experiment_protocol_version":"1.0.0","ordinary_experiments":[{"id":"SENS-Q1-SIGN","method":"parameter_sensitivity","target":"系数扰动后解是否始终为正","claim":"声明的系数范围内解保持正值"},{"id":"SENS-Q1-CHANGE","method":"parameter_sensitivity","target":"系数扰动是否改变已验收解","claim":"至少一个声明场景的解偏离基准超过容差"}]}');
 % Instantiate only after the primary workbook is accepted and analysis is required.
 % This example varies a in a*x=b; it never calls or overwrites the primary solver.
 entrypoint = string(mfilename('fullpath')) + ".m";
@@ -20,6 +20,7 @@ assert(isscalar(row), 'HSK:Primary', 'The accepted primary solution must have on
 baseline = raw{row, valueColumn};
 validateattributes(baseline, {'numeric'}, {'real','finite','scalar'});
 input = read_model_input(root, RUN_CONFIG);
+validateattributes(input.right_hand_side, {'numeric'}, {'real','finite','scalar'});
 coefficients = input.sensitivity_coefficients(:);
 validateattributes(coefficients, {'numeric'}, {'real','finite','vector','nonzero'});
 assert(strcmp(RUN_CONFIG.solver, 'analytic_parameter_sweep') && ...
@@ -29,7 +30,6 @@ rng(RUN_CONFIG.random_seed, 'twister');
 started = tic;
 values = input.right_hand_side ./ coefficients;
 assert(all(isfinite(values)), 'HSK:NumericalQuality', 'Nonfinite sensitivity output.');
-kept = all(values > 0) && baseline > 0;
 scaleEnabled = strcmp(RUN_CONFIG.run_receipt_protocol_version, '1.4.0');
 actualCount = numel(values);
 if scaleEnabled
@@ -38,25 +38,53 @@ if scaleEnabled
 end
 receipt = make_receipt(RUN_CONFIG, identity, toc(started), 'all_scenarios_completed', actualCount);
 receipt.primary_workbook_sha256 = RUN_CONFIG.primary_workbook_sha256;
-rows = [repmat({'a'}, numel(values), 1), num2cell(repmat(input.coefficient,numel(values),1)), ...
-    num2cell(coefficients), num2cell(values)];
-sheets = cell(0, 2);
+receipt.ordinary_experiment_protocol_version = RUN_CONFIG.ordinary_experiment_protocol_version;
+sheets = ordinary_experiment_tables(RUN_CONFIG, input.coefficient, baseline, coefficients, values);
 sheets(end + 1, :) = {'运行配置',receipt_cells(receipt)};
-sheets(end + 1, :) = {'分析设计',{'风险来源','分析问题','方法','指标','通过标准'; ...
-    '系数变化','解是否保持正值','参数敏感性','x','全部声明场景x>0'}};
-sheets(end + 1, :) = {'参数敏感性',[{'参数','基准值','变化值','结果指标'}; rows]};
 if scaleEnabled
     sheets(end + 1, :) = {'场景压力测试',[{'场景','变化条件','结果指标','是否可行'}; scenarios]};
 end
-sheets(end + 1, :) = {'结论稳定性汇总',{'核心结论','分析方法','稳定范围','是否保持'; ...
-    '解为正值','参数敏感性',sprintf('a in [%.17g, %.17g]',min(coefficients),max(coefficients)),kept}};
 current = verify_inputs(root, entrypoint, RUN_CONFIG);
 assert(isequal(identity,current) && strcmpi(file_digest(primary),RUN_CONFIG.primary_workbook_sha256), ...
     'HSK:IdentityChanged', 'Source, input or accepted primary changed during analysis.');
 workbook = project_path(root, RUN_CONFIG.expected_workbook);
 assert(workbook ~= primary, 'HSK:Output', 'Analysis may not overwrite the primary workbook.');
 write_workbook(workbook, sheets);
-assert(kept, 'HSK:AnalysisConclusion', 'The workbook records a conclusion that did not remain valid.');
+end
+
+function sheets = ordinary_experiment_tables(config, baseCoefficient, baseline, coefficients, values)
+plans = config.ordinary_experiments;
+assert(strcmp(config.ordinary_experiment_protocol_version,'1.0.0') && numel(plans) == 2 && ...
+    isequal(sort(string({plans.id})),sort(["SENS-Q1-SIGN","SENS-Q1-CHANGE"])) && ...
+    all(strcmp({plans.method},'parameter_sensitivity')), 'HSK:Experiment', 'Unexpected experiment plan.');
+validateattributes(baseCoefficient, {'numeric'}, {'scalar','real','finite','nonzero'});
+deviations = abs(values - baseline);
+assert(all(isfinite(deviations)), 'HSK:NumericalQuality', 'Nonfinite deviation from the primary solution.');
+count = numel(coefficients);
+common = [repmat({'a'},count,1), num2cell(repmat(baseCoefficient,count,1)), num2cell(coefficients)];
+design = {'风险来源','分析问题','方法','指标','通过标准','检验ID'};
+detail = {'参数','基准值','变化值','结果指标','检验ID','观测状态'};
+summary = {'核心结论','分析方法','稳定范围','是否保持','检验ID','证据工作表','主张处置'};
+domain = sprintf('a in [%.17g, %.17g]',min(coefficients),max(coefficients));
+for k = 1:numel(plans)
+    experiment = plans(k);
+    if strcmp(experiment.id,'SENS-Q1-SIGN')
+        metric = 'x'; standard = '基准及全部场景的解均为正';
+        observations = values;
+        supported = baseline > 0 && all(values > 0);
+    else
+        metric = '|x-x0|'; standard = sprintf('至少一个场景 |x-x0| > %.17g',config.tolerance);
+        observations = deviations;
+        supported = any(deviations > config.tolerance);
+    end
+    disposition = 'reject';
+    if supported, disposition = 'support'; end
+    design(end+1,:) = {'系数变化',experiment.target,'参数敏感性',metric,standard,experiment.id}; %#ok<AGROW>
+    detail = [detail; common, num2cell(observations), repmat({experiment.id,'completed'},count,1)]; %#ok<AGROW>
+    summary(end+1,:) = {experiment.claim,'参数敏感性',domain,supported,experiment.id, ...
+        '参数敏感性',disposition}; %#ok<AGROW>
+end
+sheets = {'分析设计',design; '参数敏感性',detail; '结论稳定性汇总',summary};
 end
 
 function scenarios = scenario_trace(plan, coefficients, values)

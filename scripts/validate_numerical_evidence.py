@@ -13,8 +13,10 @@ import io
 import math
 import re
 import sys
+from fractions import Fraction
 from pathlib import Path
 from typing import Any, Mapping
+from xml.etree.ElementTree import iterparse
 
 import openpyxl
 import yaml
@@ -85,10 +87,43 @@ def _sheet_records(book: openpyxl.Workbook, sheet: str) -> tuple[list[str], list
     return headers, records
 
 
-def _numeric_equal(left: float, right: float, contract: Mapping[str, Any]) -> bool:
+def _check_verification_id_caches(worksheet, column: int) -> None:
+    """Distinguish an explicit empty string cache from an unresolved formula's empty <v>."""
+    ns = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
+    row_number = 0
+    # This is the worksheet part already resolved inside the same read-only XLSX archive.
+    # The public data_only view returns None for both encodings.
+    with worksheet._get_source() as source:
+        for _, row in iterparse(source, events=("end",)):
+            if row.tag != ns + "row":
+                continue
+            row_number = int(row.get("r", row_number + 1))
+            cell_column = 0
+            for cell in row.iterfind(ns + "c"):
+                address = cell.get("r")
+                cell_column = openpyxl.utils.cell.coordinate_to_tuple(address)[1] if address else cell_column + 1
+                if row_number == 1 or cell_column != column or cell.find(ns + "f") is None:
+                    continue
+                cache = cell.find(ns + "v")
+                if cache is None or (cache.text is None and cell.get("t") != "str"):
+                    position = address or f"{openpyxl.utils.get_column_letter(column)}{row_number}"
+                    raise ValueError(f"{worksheet.title}!{position}: Verification ID 公式缺少可核实的缓存值")
+            row.clear()
+
+
+def _verification_id(record: Mapping[str, Any]) -> str:
+    value = record.get("Verification ID")
+    return "" if value is None else str(value).strip()
+
+
+def _numeric_equal(left: float, right: float | Fraction, contract: Mapping[str, Any]) -> bool:
     tolerance = (contract.get("numeric_consistency") or {}).get("comparison_tolerance") or {}
     absolute = float(tolerance.get("absolute", 1.0e-12))
     relative = float(tolerance.get("relative", 1.0e-9))
+    if isinstance(right, Fraction):
+        left = Fraction(str(left))
+        absolute = Fraction(str(absolute))
+        relative = Fraction(str(relative))
     return abs(left - right) <= max(absolute, relative * max(abs(left), abs(right)))
 
 
@@ -97,8 +132,10 @@ def _relation_result(relation: str, actual: Any, threshold: Any) -> tuple[bool |
         parsed = _as_bool(actual)
         return parsed is True, None if parsed is not None else "实际值无法解析为布尔值"
 
-    actual_number = _as_number(actual)
+    actual_number = actual if isinstance(actual, Fraction) else _as_number(actual)
     threshold_number = _as_number(threshold)
+    if isinstance(actual, Fraction) and threshold_number is not None:
+        threshold_number = Fraction(str(threshold_number))
     if actual_number is None or threshold_number is None:
         return None, "实际值/阈值必须为有限数值"
     if relation == "<=":
@@ -118,18 +155,18 @@ def _require_columns(sheet: str, headers: list[str], columns: list[str]) -> list
     return [f"{sheet}缺少字段: {column}" for column in columns if column not in headers]
 
 
-def _row_residual_metric(
+def _residual_observations(
     sheet: str,
     headers: list[str],
     records: list[dict[str, Any]],
     value_column: str,
-) -> tuple[float | None, list[str]]:
+) -> tuple[list[tuple[int, dict[str, Any], float]], list[str]]:
     issues = _require_columns(sheet, headers, [value_column, "容差", "是否满足"])
     if issues:
-        return None, issues
+        return [], issues
     if not records:
-        return None, [f"{sheet}没有实质数据"]
-    values: list[float] = []
+        return [], [f"{sheet}没有实质数据"]
+    observations = []
     for index, record in enumerate(records, start=2):
         value = _as_number(record.get(value_column))
         tolerance = _as_number(record.get("容差"))
@@ -146,8 +183,64 @@ def _row_residual_metric(
         expected = abs(value) <= tolerance
         if actual is None or actual != expected:
             issues.append(f"{sheet}第{index}行是否满足与{value_column}/容差不一致")
-        values.append(abs(value))
-    return (max(values) if values else None), issues
+        observations.append((index, record, abs(value)))
+    return observations, issues
+
+
+def _row_residual_metric(
+    sheet: str, headers: list[str], records: list[dict[str, Any]], value_column: str,
+) -> tuple[float | None, list[str]]:
+    observations, issues = _residual_observations(sheet, headers, records, value_column)
+    return max((value for _, _, value in observations), default=None), issues
+
+
+def _unit_label(raw: Any, context: str) -> str:
+    # Excel may store the dimensionless unit 1 as a numeric cell.
+    if type(raw) in (float, int) and raw == 1:
+        return "1"
+    if raw is None:
+        return ""
+    if isinstance(raw, str) and raw.strip().lower() not in {"not_applicable", "unknown", "未知"}:
+        return raw.strip()
+    raise ValueError(f"{context}: 残差的单位必须为明确的单位标记: {raw!r}")
+
+
+def _residuals_by_id(
+    sheet: str, headers: list[str], records: list[dict[str, Any]], target_units: Mapping[str, str],
+    contract: Mapping[str, Any],
+) -> tuple[dict[str, Fraction], list[str]]:
+    """Take each maximum in its own criterion's unit after checking row identity."""
+    groups = contract["recheck_modes"]["max_abs_residual"].get("unit_powers_of_ten", {})
+    only_id = next(iter(target_units)) if len(target_units) == 1 else ""
+    maxima: dict[str, Fraction] = {}
+    observations, issues = _residual_observations(sheet, headers, records, "残差")
+    for index, record, value in observations:
+        identifier = _verification_id(record) or only_id
+        if identifier not in target_units:
+            issues.append(f"{sheet}第{index}行Verification ID缺失或未在该表登记: {identifier!r}")
+            continue
+        source_unit = _unit_label(record.get("单位"), f"{identifier} {sheet}第{index}行")
+        target_unit = target_units[identifier]
+        power = 0
+        if source_unit != target_unit:
+            common = next((units for units in groups.values() if source_unit in units and target_unit in units), None)
+            if common is None:
+                issues.append(f"{identifier}: {sheet}第{index}行单位无法核对: {source_unit!r} -> {target_unit!r}")
+                continue
+            power = common[source_unit] - common[target_unit]
+        if source_unit:
+            # A rounded text literal cannot supply a verified metric at the threshold.
+            try:
+                numeric_threshold(record["残差"], identifier)
+                numeric_threshold(record["容差"], identifier)
+            except PrimaryQualitySpecificationError as exc:
+                issues.append(f"{sheet}第{index}行: {exc}")
+                continue
+        converted = Fraction(str(value)) * Fraction(10) ** power
+        maxima[identifier] = max(maxima.get(identifier, converted), converted)
+    for identifier in sorted(target_units.keys() - maxima.keys()):
+        issues.append(f"{identifier}: {sheet}缺少可核对的残差观测")
+    return maxima, issues
 
 
 def _marked_relative_metric(
@@ -214,8 +307,6 @@ def _recheck_evidence(
 ) -> tuple[Any, list[str]]:
     if mode == "max_violation":
         return _row_residual_metric(sheet, headers, records, "违反量")
-    if mode == "max_abs_residual":
-        return _row_residual_metric(sheet, headers, records, "残差")
     if mode == "marked_relative_change":
         return _marked_relative_metric(sheet, headers, records)
     if mode == "marked_boolean":
@@ -274,11 +365,10 @@ def validate_primary_numerical_evidence(
         if not quality_headers:
             return False, ["缺少主结果质量门工作表"], {"mode": "invalid", "strict": False}
 
-        marker_present = "Verification ID" in quality_headers and any(
-            str(row.get("Verification ID", "")).strip() for row in quality_rows
-        )
-        strict = (approved_specification is not None
-                  or (marker_present if force_strict is None else bool(force_strict)))
+        if "Verification ID" in quality_headers:
+            _check_verification_id_caches(book["主结果质量门"], quality_headers.index("Verification ID") + 1)
+        marker_present = any(_verification_id(row) for row in quality_rows)
+        strict = approved_specification is not None or bool(force_strict) or marker_present
 
         protocol_map = contract.get("capability_protocols") or {}
         active_capabilities = sorted(
@@ -323,8 +413,26 @@ def validate_primary_numerical_evidence(
         seen_ids: set[str] = set()
         referenced_sheets: set[str] = set()
         computed_by_sheet: dict[str, Any] = {}
+        has_observations: dict[str, bool] = {}
         modes_by_sheet: dict[str, set[str]] = {}
         required_relations_by_sheet: dict[str, str] = {}
+
+        approved_items = (
+            {item["id"]: item for item in approved_specification["items"]}
+            if approved_specification is not None else None
+        )
+        residual_units: dict[str, dict[str, str]] = {}
+        residual_maxima: dict[str, dict[str, Fraction]] = {}
+        residual_sheets = {spec["evidence_sheet"] for spec in protocol_map.values()
+                           if spec.get("recheck_mode") == "max_abs_residual"}
+        for row in quality_rows:
+            sheet = str(row.get("证据工作表", "")).strip()
+            if sheet in residual_sheets:
+                identifier = _verification_id(row)
+                item = (approved_items or {}).get(identifier)
+                unit = item.get("unit") if item is not None else row.get("单位")
+                residual_units.setdefault(sheet, {})[identifier] = _unit_label(unit, f"{identifier} 主结果质量门")
+                modes_by_sheet.setdefault(sheet, set()).add("max_abs_residual")
 
         for capability in active_capabilities:
             spec = protocol_map[capability] or {}
@@ -336,6 +444,7 @@ def validate_primary_numerical_evidence(
         # Recompute bottom-level evidence once per sheet/mode.
         for sheet, modes in modes_by_sheet.items():
             headers, records = _sheet_records(book, sheet)
+            has_observations[sheet] = bool(records)
             if not headers:
                 issues.append(f"启用的primary capability需要工作表但不存在: {sheet}")
                 continue
@@ -350,11 +459,16 @@ def validate_primary_numerical_evidence(
             required_relation = str(mode_contract.get("quality_relation", "")).strip()
             if required_relation:
                 required_relations_by_sheet[sheet] = required_relation
-            computed, evidence_issues = _recheck_evidence(mode, sheet, headers, records)
-            computed_by_sheet[sheet] = computed
+            if mode == "max_abs_residual":
+                residual_maxima[sheet], evidence_issues = _residuals_by_id(
+                    sheet, headers, records, residual_units.get(sheet, {}), contract,
+                )
+            else:
+                computed, evidence_issues = _recheck_evidence(mode, sheet, headers, records)
+                computed_by_sheet[sheet] = computed
+                if required_relation == "bool_true" and computed is False:
+                    issues.append(f"{sheet}用于主判定的布尔证据未通过")
             issues.extend(evidence_issues)
-            if required_relation == "bool_true" and computed is False:
-                issues.append(f"{sheet}用于主判定的布尔证据未通过")
             if mode in {"max_violation", "max_abs_residual"}:
                 failed_rows = [
                     index for index, record in enumerate(records, start=2)
@@ -363,13 +477,9 @@ def validate_primary_numerical_evidence(
                 if failed_rows:
                     issues.append(f"{sheet}存在未满足容差的主数值证据行: {failed_rows}")
 
-        approved_items = (
-            {item["id"]: item for item in approved_specification["items"]}
-            if approved_specification is not None else None
-        )
         checked_ids: list[str] = []
         for row_number, row in enumerate(quality_rows, start=2):
-            verification_id = str(row.get("Verification ID", "")).strip()
+            verification_id = _verification_id(row)
             if not verification_id:
                 issues.append(f"主结果质量门第{row_number}行缺少Verification ID")
                 continue
@@ -392,8 +502,10 @@ def validate_primary_numerical_evidence(
             elif evidence_sheet not in book.sheetnames:
                 issues.append(f"{verification_id}引用不存在的证据工作表: {evidence_sheet}")
             else:
-                _, evidence_records = _sheet_records(book, evidence_sheet)
-                if not evidence_records:
+                if evidence_sheet not in has_observations:
+                    _, evidence_records = _sheet_records(book, evidence_sheet)
+                    has_observations[evidence_sheet] = bool(evidence_records)
+                if not has_observations[evidence_sheet]:
                     issues.append(f"{verification_id}引用的证据工作表无实质数据: {evidence_sheet}")
                 referenced_sheets.add(evidence_sheet)
 
@@ -424,8 +536,9 @@ def validate_primary_numerical_evidence(
             if expected_pass is not True:
                 issues.append(f"{verification_id}未达到主质量判据")
 
-            if evidence_sheet in computed_by_sheet and computed_by_sheet[evidence_sheet] is not None:
-                computed = computed_by_sheet[evidence_sheet]
+            computed = (residual_maxima[evidence_sheet].get(verification_id) if evidence_sheet in residual_maxima
+                        else computed_by_sheet.get(evidence_sheet))
+            if computed is not None:
                 computed_pass, computed_issue = _relation_result(
                     evaluation_relation, computed, evaluation_threshold,
                 )
@@ -439,7 +552,7 @@ def validate_primary_numerical_evidence(
                         issues.append(f"{verification_id}实际值与{evidence_sheet}重算布尔结果不一致")
                 else:
                     actual_number = _as_number(row.get("实际值"))
-                    if actual_number is None or not _numeric_equal(actual_number, float(computed), contract):
+                    if actual_number is None or not _numeric_equal(actual_number, computed, contract):
                         issues.append(f"{verification_id}实际值与{evidence_sheet}重算指标不一致")
 
         if approved_items is not None:

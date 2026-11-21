@@ -199,7 +199,126 @@ def matched_inference_keywords(request: str, router: dict[str, Any]) -> dict[str
             if limit:
                 review = [limit[0]]
         return {"review": review} if review else {}
+    # A chart name and an already accepted input can mention other route keywords
+    # without requesting a new validation. Keep independently requested actions.
+    policy = router.get("figure_delivery_policy", {})
+    if policy and figure_request_outputs(request, policy):
+        for route, pattern in (("validation", "result_figure"), ("returned_workbook_validation", "workbook_reference")):
+            if route in matches:
+                outside = re.sub(policy[pattern], "", request, flags=re.IGNORECASE)
+                remaining = [word for word in matches[route] if word.casefold() in outside.casefold()]
+                if remaining:
+                    matches[route] = remaining
+                else:
+                    del matches[route]
     return matches
+
+
+def figure_uses_numerical_evidence(clause, policy):
+    """Inspect what an encoding represents; the drawing's physical dimensions are presentation."""
+    clause = re.sub(policy["negated_mapping"], "", clause, flags=re.IGNORECASE)
+    if re.search(policy["numerical_evidence"], clause, re.IGNORECASE):
+        return True
+    for pattern in policy["visual_mapping"]:
+        mapping = re.search(pattern, clause, re.IGNORECASE)
+        if mapping:
+            target = mapping["target"].strip(" 。.,")
+            if not any(re.fullmatch(policy[key], target, re.IGNORECASE)
+                       for key in ("categorical_target", "symbolic_target")):
+                return True
+    content = re.sub(policy["layout_value"], "", clause, flags=re.IGNORECASE)
+    if re.search(policy["scalar_assignment"], content, re.IGNORECASE):
+        return True
+    return bool(re.search(policy["annotation"], content, re.IGNORECASE)
+                and re.search(policy["observation_source"], content, re.IGNORECASE))
+
+
+def figure_request_outputs(request, policy):
+    """Bind recognized physical figures to their own evidence level and stated question."""
+    if not request or not policy:
+        return None
+    text = request
+    for name in ("negated_output", "negated_encoding"):
+        text = re.sub(policy[name], "", text, flags=re.IGNORECASE)
+    if re.search(policy["semantic_change"], text, re.IGNORECASE):
+        return None
+    mechanism = re.search(policy["mechanism_figure"], text, re.IGNORECASE)
+    result = re.search(policy["result_figure"], text, re.IGNORECASE)
+    if not mechanism:
+        return None
+    clauses = re.split(r"[。；;，,!?！？]|(?<![0-9])\.(?![0-9])", text)
+    encoded = [clause for clause in clauses if figure_uses_numerical_evidence(clause, policy)]
+    if not (result or encoded):
+        return None
+
+    questions = list(re.finditer(policy["question"], text, re.IGNORECASE))
+
+    def question_at(match):
+        from stage_code import question_number
+
+        # Attach a local prefix such as "为问题一画" or "Q2 的". A single
+        # question anywhere scopes the pair. Ambiguous lists need adjudication.
+        prefix = [q for q in questions if q.end() <= match.start() and re.fullmatch(
+            r"\s*(?:的|[的]?\s*(?:设计|绘制|画|制作|导出|生成|做))?\s*(?:一[张幅个])?\s*(?:可编辑)?",
+            text[q.end():match.start()],
+        )]
+        q = prefix[-1] if prefix else (questions[0] if len(questions) == 1 else None)
+        if q is None:
+            return "unresolved" if questions else None
+        raw = re.sub(r"\s+|问题|第|问", "", q[0].upper())
+        number = raw.removeprefix("Q") if raw.removeprefix("Q").isdigit() else question_number("问题" + raw)
+        return "Q" + str(number) if number else "unresolved"
+
+    mechanism_q = question_at(mechanism)
+    result_q = question_at(result) if result else None
+    separate = False
+    if result and not re.search(policy["same_output"], text, re.IGNORECASE):
+        first, last = sorted((mechanism, result), key=lambda match: match.start())
+        connector = re.sub(policy["question"], "", text[first.end():last.start()], flags=re.IGNORECASE)
+        separate = bool(re.search(policy["separate_outputs"], text, re.IGNORECASE)
+                        or re.fullmatch(policy["between_outputs"], connector, re.IGNORECASE))
+    if not separate:
+        target = "unresolved" if result and result_q != mechanism_q else mechanism_q
+        return "single_numeric", [("combined", "figures", target)]
+
+    # A result caption can have its own encoding. All unassigned numerical
+    # encodings conservatively qualify the mechanism as numerical as well.
+    mechanism_numeric = any(
+        re.search(policy["mechanism_figure"], clause, re.IGNORECASE)
+        or not re.search(policy["result_figure"], clause, re.IGNORECASE)
+        for clause in encoded
+    )
+    return "separate", [("mechanism", "figures" if mechanism_numeric else "mechanism", mechanism_q),
+                        ("result", "figures", result_q)]
+
+
+def figure_delivery_plan(composition, router, manifest, preprocessing_decision):
+    """Use the owning router and gate manifest for each requested physical output."""
+    layout, outputs = composition
+    deliveries = []
+    for kind, scope, question in outputs:
+        requirements = list(router["figure_delivery_policy"]["requirements"][scope])
+        if scope == "figures" and preprocessing_decision == "project_level":
+            requirements.append("accepted_preprocessing_workbook")
+        gates = gate_plan(router["execution_contract"]["formal_delivery_gates"], manifest, scope)
+        if scope == "mechanism":
+            owner = question if question and re.fullmatch(r"Q[1-9][0-9]*", question) else "<registered_question>"
+            for gate in gates:
+                if gate["name"] == "project_sync":
+                    gate["command"] += f' --mechanism-spec "<spec_source>" --mechanism-question "{owner}"'
+        deliveries.append({
+            "figure_kind": kind,
+            "question": question,
+            "delivery_scope": scope,
+            "required_verified_artifacts": requirements,
+            "missing_verified_artifacts": list(requirements),
+            "evidence_status": "not_verified",
+            "gate_condition": ("after_nonnumerical_drawio_backend_and_current_spec_are_selected"
+                               if scope == "mechanism" else "after_current_figure_contract_evidence_is_verified"),
+            "pre_delivery_gates": gates,
+        })
+    return {"layout": layout, "deliveries": deliveries, "gate_execution": "not_assessed_by_router",
+            "completion": "each_requested_output_requires_its_own_applicable_evidence_and_checks"}
 
 
 def infer_intents(request: str, router: dict[str, Any]) -> list[str]:
@@ -596,6 +715,7 @@ def resolve_workflow(
     preprocessing_decision: str | None = None,
     solver_backend: str | None = None,
     project_result_prerequisites: tuple[str, ...] = (),
+    figure_request: str | None = None,
     router_path: Path = ROUTER_PATH,
     manifest_path: Path = MANIFEST_PATH,
     taxonomy_path: Path = TAXONOMY_PATH,
@@ -630,6 +750,15 @@ def resolve_workflow(
         raise ValueError("explicit intent conflicts with review-only request; resolve review without write actions")
     if not resolved_intents:
         raise ValueError("no workflow intent resolved; pass an intent or --request")
+    figure_text = figure_request or request or ""
+    figure_outputs = None
+    if set(resolved_intents) <= {"figures", "editable_mechanism_diagram"}:
+        figure_outputs = figure_request_outputs(figure_text, router.get("figure_delivery_policy", {}))
+    if figure_outputs and "figures" not in resolved_intents:
+        resolved_intents.append("figures")
+    if (figure_outputs and figure_outputs[0] == "separate" and "editable_mechanism_diagram" not in resolved_intents
+            and re.search(router["figure_delivery_policy"]["editable_backend"], figure_text, re.IGNORECASE)):
+        resolved_intents.append("editable_mechanism_diagram")
     unknown_intents = [name for name in resolved_intents if name not in router.get("routing", {})]
     if unknown_intents:
         valid = ", ".join(sorted(router.get("routing", {})))
@@ -779,6 +908,14 @@ def resolve_workflow(
         if delivery_scope != "design":
             explicit_gates.extend(router.get("execution_contract", {}).get("formal_delivery_gates", []))
     gates = gate_plan(explicit_gates, manifest, delivery_scope)
+    composition = figure_delivery_plan(figure_outputs, router, manifest, preprocessing_decision) if figure_outputs else None
+    if (composition and composition["deliveries"][0]["delivery_scope"] == "mechanism"
+            and "editable_mechanism_diagram" in resolved_intents):
+        # Shared semantic governance runs once; recheck each requested physical output in its own scope.
+        mechanism_sync = next(gate for gate in composition["deliveries"][0]["pre_delivery_gates"]
+                              if gate["name"] == "project_sync")
+        numeric_sync_index = next(index for index, gate in enumerate(gates) if gate["name"] == "project_sync")
+        gates.insert(numeric_sync_index, mechanism_sync)
 
     missing, produced_after_modules = prerequisite_report(
         module_paths, available_set, manifest, preprocessing_decision,
@@ -832,6 +969,8 @@ def resolve_workflow(
         "pause_state": pause_state,
         "task_code_execution_allowed": False,
     }
+    if composition:
+        plan["figure_composition"] = composition
     if resource_fallbacks:
         plan["resource_fallbacks"] = resource_fallbacks
     if solver_backend is None:

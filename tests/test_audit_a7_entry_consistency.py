@@ -177,6 +177,17 @@ class TestA7EntryConsistency(unittest.TestCase):
         for name in ("packs/artifact/algorithm_flow.md", "templates/writing/caption_explanation.md"):
             self.assertIn("modules/05_writing/paper_writing_protocol.md", (ROOT / name).read_text(encoding="utf-8"))
 
+    def test_entry_lint_rejects_an_unresolvable_startup_event(self):
+        bootstrap_path = ROOT / "core/bootstrap.yaml"
+        bootstrap = lint.load_structured(bootstrap_path)
+        bootstrap["startup_contract"]["candidate_events"]["formal_single_question"] = "removed_profile"
+        original = lint.load_structured
+        with patch.object(lint, "load_structured", side_effect=lambda path:
+                          bootstrap if path == bootstrap_path else original(path)):
+            errors = []
+            lint.check_skill_entrypoint_parity(errors)
+        self.assertIn("bootstrap candidate startup event must resolve to a declared profile", errors)
+
     def test_standalone_support_package_matches_canonical_workbook_validation(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -194,6 +205,8 @@ def tables(kind):
     section = canonical[kind + "_workbook"]
     result = {name: [{column: (True if column == "是否通过" else "fixture") for column in spec["required_columns"]}]
               for name, spec in section["common_required_sheets"].items()}
+    if kind == "solution":
+        result["核心指标"] = [{"指标": "残差", "数值": 0}]
     if kind == "result_analysis":
         result["参数敏感性"] = [{"参数": "p", "基准值": 1, "变化值": 2, "结果指标": 3}]
     return result
@@ -205,6 +218,9 @@ for kind in ("solution", "result_analysis"):
     cases.append((kind, missing, {}, False))
     bad = copy.deepcopy(good); bad["运行配置"] = [{"项目": "fixture"}]
     cases.append((kind, bad, {}, False))
+text_metric = tables("solution")
+text_metric["核心指标"][0]["数值"] = "fixture"
+cases.append(("solution", text_metric, {}, False))
 analysis = tables("result_analysis")
 cases.append(("robustness", analysis, {}, True))
 extra = copy.deepcopy(analysis); extra["unknown"] = [{"x": 1}]

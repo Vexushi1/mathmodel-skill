@@ -45,12 +45,23 @@ class PhaseHMechanicalSplitTests(unittest.TestCase):
         for name in ['question_key', 'chinese_question_name', 'question_number', 'preprocessing_decision', 'data_source_files', 'active_data_hash', '_classification', '_question_dir', '_question_names', '_stage_code_paths', '_python_files', '_analysis_path', '_figure_files', '_validate_workbook', '_has_sheets', '_matlab_executable_text', '_parse_matlab', '_snapshot_question']:
             self.assertIs(getattr(SYNC, name), getattr(SYNC.PROJECT_SNAPSHOT, name))
 
-    def test_synchronize_signature_is_unchanged(self):
-        parameters = list(inspect.signature(SYNC.synchronize).parameters)
+    def test_synchronize_preserves_legacy_parameters_and_optional_mechanism_selectors(self):
+        parameters = inspect.signature(SYNC.synchronize).parameters
+        selectors = ("mechanism_spec", "mechanism_question")
         self.assertEqual(
-            parameters,
+            [name for name in parameters if name not in selectors],
             ["project_root", "write", "strict", "delivery_scope", "schema_path", "output_contract_path"],
         )
+        root = parameters["project_root"]
+        self.assertEqual(root.kind, inspect.Parameter.POSITIONAL_OR_KEYWORD)
+        self.assertIs(root.default, inspect.Parameter.empty)
+        defaults = {"write": False, "strict": False, "delivery_scope": None,
+                    "schema_path": SYNC.DEFAULT_SCHEMA_PATH, "output_contract_path": SYNC.DEFAULT_OUTPUT_CONTRACT_PATH,
+                    "mechanism_spec": None, "mechanism_question": None}
+        for name, default in defaults.items():
+            with self.subTest(name=name):
+                self.assertEqual(parameters[name].kind, inspect.Parameter.KEYWORD_ONLY)
+                self.assertEqual(parameters[name].default, default)
 
     def test_empty_project_sync_report_matches_pre_split_golden(self):
         expected = yaml.safe_load((ROOT / "tests/fixtures/v900_phase_h_empty_sync_golden.yaml").read_text(encoding="utf-8"))

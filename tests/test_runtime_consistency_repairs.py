@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import base64
 import hashlib
 import itertools
 from pathlib import Path
@@ -71,7 +72,7 @@ class HistoricalProjectionTests(unittest.TestCase):
                 elif mutation == "scope":
                     plan["delivery_scope"] = "submission"
                 elif mutation == "version":
-                    plan["version"] = "10.35.4"  # unregistered; 10.35.3 is current
+                    plan["version"] = "11.0.1"  # unregistered; 11.0.0 is current
                 else:
                     altered["authority_versions"]["skill"] = "10.27.0"
                 with self.subTest(case=after["id"], mutation=mutation):
@@ -84,6 +85,29 @@ class HistoricalProjectionTests(unittest.TestCase):
                                     "resolve_runtime_hash", "resolve_workflow_hash"}:
                         self.assertEqual(changes_after_mutation, [])
             self.assertEqual(after, saved)
+
+    def test_p3_default_tuple_rejects_mixed_reader_generations_and_opt_in(self):
+        after = plan_evidence.worker(ROOT, 0)
+        current = plan_evidence.legacy_projection(after["plan"])
+        versions = after["authority_versions"]
+        published = {
+            "scripts/resolve_runtime.py": "a894882de3bd0f0037575adbe13d457ac636d5d87924c2857a3cb7c883442f7c",
+            "scripts/reading_plan.py": "eaf7b917dee8726cfc0fa88aa4e2e9018f670201f86d7dd51c8b43ba60e20d53",
+            "scripts/read_stage.py": "3ba04f8d8798ea08155df64546cc1074489241c4fdfd81d8522df15ae9d0b86d",
+        }
+        for count in range(1, len(published) + 1):
+            for paths in itertools.combinations(published, count):
+                with self.subTest(replaced=paths):
+                    changed = deepcopy(current)
+                    for row in changed["assurance"]["authority_fingerprint"]["sources"]:
+                        if row["path"] in paths:
+                            row["sha256"] = published[row["path"]]
+                    self.assertEqual(plan_evidence.runtime_consistency_predecessor(
+                        after["id"], changed, versions), (changed, []))
+        selected = deepcopy(current)
+        selected["startup_reading"] = {"selector": "v11_full_read", "status": "selection_only"}
+        self.assertEqual(plan_evidence.runtime_consistency_predecessor(
+            after["id"], selected, versions), (selected, []))
 
     def test_v10290_model_intake_is_not_legacy_approved_by_version_only(self):
         after = plan_evidence.worker(ROOT, 0)
@@ -99,18 +123,136 @@ class HistoricalProjectionTests(unittest.TestCase):
         self.assertEqual(changes, [])
         self.assertEqual(projected, changed)
 
+    def test_p4_default_projection_rejects_p3_mixes_and_per_figure_plans(self):
+        record = plan_evidence.worker(ROOT, 0)
+        current = plan_evidence.legacy_projection(record["plan"])
+        previous = {
+            **plan_evidence.V11_P3_DEFAULT_READER_HASHES,
+            "scripts/resolve_workflow.py": "6a57aa603ba6e300a9ce9521f62771d2de60bee76ae82277ce06387645f7dce2",
+        }
+        changed_paths = [path for path, digest in previous.items()
+                         if digest != plan_evidence.V11_P4_DEFAULT_READER_HASHES[path]]
+        self.assertTrue(changed_paths)
+        for size in range(1, len(changed_paths) + 1):
+            for replaced in itertools.combinations(changed_paths, size):
+                with self.subTest(replaced=replaced):
+                    mixed = deepcopy(current)
+                    for row in mixed["assurance"]["authority_fingerprint"]["sources"]:
+                        if row["path"] in replaced:
+                            row["sha256"] = previous[row["path"]]
+                    self.assertEqual(plan_evidence.runtime_consistency_predecessor(
+                        record["id"], mixed, record["authority_versions"]), (mixed, []))
+        scoped = deepcopy(current)
+        scoped["figure_composition"] = {"deliveries": [{"delivery_scope": "mechanism"}, {"delivery_scope": "figures"}]}
+        self.assertEqual(plan_evidence.runtime_consistency_predecessor(
+            record["id"], scoped, record["authority_versions"]), (scoped, []))
+
+    def test_candidate_projection_checks_execution_source_and_preserves_template_changes(self):
+        record = plan_evidence.worker(ROOT, 0)
+        current = plan_evidence.legacy_projection(record["plan"])
+
+        def project(plan):
+            return plan_evidence.runtime_consistency_predecessor(
+                record["id"], plan, record["authority_versions"])
+
+        predecessor, changes = project(current)
+        contract_path = plan_evidence.V11_P4B_EXECUTION_CONTRACT["path"]
+        contract = {"path": contract_path,
+                    "sha256": plan_evidence.V11_P5_DEFAULT_SOURCE_HASHES[contract_path]}
+        self.assertIn((f"assurance.authority_fingerprint.sources.{contract['path']}", contract["sha256"]),
+                      [(change["path"], change.get("candidate")) for change in changes])
+        previous = deepcopy(current)
+        entry = next(row for row in previous["assurance"]["authority_fingerprint"]["sources"]
+                     if row["path"] == contract["path"])
+        entry["sha256"] = "b61f52a6ad68f0f5234bc4dec8182d52e3bd23f3e75e6c7fe85d59f8014ba6bb"
+        self.assertEqual(project(previous), (previous, []))
+
+        read_bytes = Path.read_bytes
+        def read_changed_contract(path):
+            data = read_bytes(path)
+            return data + b"\n" if path == ROOT / contract["path"] else data
+        with mock.patch.object(Path, "read_bytes", read_changed_contract):
+            self.assertEqual(project(current), (current, []))
+
+        template = "templates/code/starter/q1_analysis.py"
+        changed = deepcopy(current)
+        changed["load_order"].append(template)
+        predecessor["load_order"].append(template)
+        self.assertEqual(project(changed)[0], predecessor)
+
+    def test_p5_projection_requires_the_exact_reader_and_both_applicability_sources(self):
+        record = plan_evidence.worker(ROOT, 0)
+        current = plan_evidence.legacy_projection(record["plan"])
+        old = {
+            "scripts/reading_plan.py": plan_evidence.V11_P4_DEFAULT_READER_HASHES["scripts/reading_plan.py"],
+            "core/user_execution_contract.yaml": plan_evidence.V11_P4B_EXECUTION_CONTRACT["sha256"],
+            "core/code_quality_contract.yaml": "8152402e1fa0fb0018dae7d7ba3a951ec254a60a48761bc818c44ea27de60191",
+        }
+
+        def project(plan):
+            return plan_evidence.runtime_consistency_predecessor(
+                record["id"], plan, record["authority_versions"])
+
+        _, changes = project(current)
+        for path, previous_hash in old.items():
+            with self.subTest(source=path):
+                self.assertIn((f"assurance.authority_fingerprint.sources.{path}",
+                               plan_evidence.V11_P5_DEFAULT_SOURCE_HASHES[path]),
+                              [(change["path"], change.get("candidate")) for change in changes])
+                mixed = deepcopy(current)
+                row = next(row for row in mixed["assurance"]["authority_fingerprint"]["sources"]
+                           if row["path"] == path)
+                row["sha256"] = previous_hash
+                self.assertEqual(project(mixed), (mixed, []))
+                read_bytes = Path.read_bytes
+                with mock.patch.object(Path, "read_bytes",
+                                       lambda item: read_bytes(item) + (b" " if item == ROOT / path else b"")):
+                    self.assertEqual(project(current), (current, []))
+
+    def test_p4c_identity_drift_only_projects_the_reason_on_the_stale_q1_model(self):
+        index = next(i for i, case in enumerate(plan_evidence.CASES) if case[0] == "facts_identity_drift")
+        record = plan_evidence.worker(ROOT, index)
+        current = plan_evidence.legacy_projection(record["plan"])
+
+        def project(plan):
+            return plan_evidence.runtime_consistency_predecessor(
+                record["id"], plan, record["authority_versions"])
+
+        previous = "current framework semantic identity does not match project-state semantic identity"
+        observed = previous + "; Q1: current SIB differs from the validated semantic identity"
+        predecessor, changes = project(current)
+        artifacts = current["assurance"]["artifact_assurance"]
+        self.assertEqual(artifacts["evidence"][0]["reason"], observed)
+        expected = deepcopy(artifacts)
+        expected["evidence"][0]["reason"] = previous
+        self.assertEqual(predecessor["assurance"]["artifact_assurance"], expected)
+        self.assertIn(("assurance.artifact_assurance.evidence.0.reason", previous, observed),
+                      [(item["path"], item.get("baseline"), item.get("candidate")) for item in changes])
+
+        for key, value in (("reason", previous), ("reason", observed + " and an unrelated change"),
+                           ("artifact", "accepted_solution_workbook"), ("scope", "Q2"), ("status", "verified")):
+            with self.subTest(key=key, value=value):
+                changed = deepcopy(current)
+                changed["assurance"]["artifact_assurance"]["evidence"][0][key] = value
+                self.assertEqual(project(changed), (changed, []))
+        changed = deepcopy(current)
+        changed["assurance"]["artifact_assurance"]["effective_artifacts"].append("locked_model_spec")
+        self.assertEqual(project(changed), (changed, []))
+
     def test_frozen_v10270_inverse_still_accepts_only_exact_carrier(self):
         after = plan_evidence.worker(ROOT, 0)
-        self.assertEqual(after["authority_versions"]["skill"], "10.35.3")
-        self.assertEqual(after["plan"]["version"], "10.35.3")
+        self.assertEqual(after["authority_versions"], plan_evidence.V11_DEFAULT_AUTHORITY_VERSIONS)
+        self.assertEqual(after["authority_versions"]["skill"], "11.0.0")
+        self.assertEqual(after["plan"]["version"], "11.0.0")
         old_carrier = deepcopy(after)
         old_carrier["authority_versions"]["skill"] = "10.27.0"
         old_carrier["plan"]["version"] = "10.27.0"
         # Simulate the exact v10.27.0 source identities.
         sources = old_carrier["plan"]["assurance"]["authority_fingerprint"]["sources"]
         pinned = plan_evidence.RUNTIME_CONSISTENCY_PROJECTION["fingerprint"]["candidate"]
-        for path in ("core/output_contract.yaml", "core/user_execution_contract.yaml",
-                     "scripts/resolve_runtime.py", "scripts/resolve_workflow.py"):
+        for path in ("core/output_contract.yaml", "core/user_execution_contract.yaml", "core/code_quality_contract.yaml",
+                     "scripts/resolve_runtime.py", "scripts/resolve_workflow.py",
+                     "scripts/reading_plan.py", "scripts/read_stage.py"):
             actual_row = [row for row in sources if row["path"] == path]
             pinned_row = [row for row in pinned if row["path"] == path]
             self.assertEqual((len(actual_row), len(pinned_row)), (1, 1), path)
@@ -370,7 +512,7 @@ class MechanismScopeTests(unittest.TestCase):
         state["preprocessing"] = {"decision": "not_needed", "status": "not_applicable"}
         text = framework_text().replace("### Q1\n", framework(model).split("# 模型论文框架\n\n", 1)[1])
         (root / "模型论文框架.md").write_text(text, encoding="utf-8")
-        state["paper_framework"]["sha256"] = hashlib.sha256(text.encode()).hexdigest()
+        state["paper_framework"]["sha256"] = sync_project.sha256_text(text)
         spec = base_spec()
         spec["semantic_anchors"]["code"] = []
         image = b'<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><rect width="10" height="10"/></svg>'
@@ -432,3 +574,98 @@ class MechanismScopeTests(unittest.TestCase):
                 self.assertEqual(sync_project.synchronize(root, delivery_scope="mechanism")["status"], "failed")
             output = yaml.safe_load((ROOT / "core/output_contract.yaml").read_bytes())
             self.assertIn("solution_workbook", sync_project.stage_requirements("figures", output))
+
+    def test_replaced_export_at_approved_path_is_not_the_reviewed_surface(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp).resolve()
+            artifact = self.make_project(root)["artifact"]
+            exported = artifact["final_exports"][0]
+            (root / exported).write_text('<svg xmlns="http://www.w3.org/2000/svg">'
+                                         '<text>预测流量 357.2 千辆</text></svg>', encoding="utf-8")
+            before = file_bytes(root)
+            for selected in (None, artifact["spec_source"]):
+                report = sync_project.synchronize(root, delivery_scope="mechanism", mechanism_spec=selected)
+                self.assertEqual(report["status"], "failed")
+                self.assertEqual(report["export_evidence_required"], [exported])
+                self.assertEqual(report["observed_sources"][artifact["preview"]], artifact["preview_sha256"])
+            self.assertEqual(file_bytes(root), before)
+
+    def test_alternate_format_uses_existing_question_figure_bundle(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp).resolve()
+            spec = self.make_project(root)
+            artifact = spec["artifact"]
+            alternate = "figures/q1_occlusion.png"
+            png = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42"
+                                   "mP8/x8AAwMCAO+jUyoAAAAASUVORK5CYII=")
+            (root / alternate).write_bytes(png)
+            artifact["final_exports"].append(alternate)
+            (root / artifact["spec_source"]).write_text(yaml.safe_dump(spec, allow_unicode=True), encoding="utf-8")
+            state_path = root / "state/project_state.yaml"
+            state = yaml.safe_load(state_path.read_bytes())
+            state["artifacts"]["approved_figures"].append(alternate)
+            question = state["subproblems"]["Q1"]
+            framing = root / "模型论文框架.md"
+            original = framing.read_text(encoding="utf-8")
+            text = original.replace("## 图表证据链", f"| Figure ID |\n|---|\n| {spec['figure_id']} |\n\n"
+                                    f"## 图表证据链\n\n| 图号 | 导出文件 |\n|---|---|\n"
+                                    f"| {spec['figure_id']} | {alternate} |")
+            framing.write_text(text, encoding="utf-8", newline="\r\n")
+            state["paper_framework"]["sha256"] = sync_project.sha256_text(text)
+            state_path.write_text(yaml.safe_dump(state, allow_unicode=True), encoding="utf-8")
+            options = {"delivery_scope": "mechanism", "mechanism_spec": artifact["spec_source"]}
+            unbound = sync_project.synchronize(root, **options)
+            self.assertEqual(unbound["export_evidence_required"], [alternate])
+            bundle = sync_project.combined_hash([root / alternate], root)
+            for field in ("artifact_hashes", "validated_artifact_hashes"):
+                question.setdefault(field, {})["figure_bundle"] = bundle
+            state_path.write_text(yaml.safe_dump(state, allow_unicode=True), encoding="utf-8")
+            before = file_bytes(root)
+            bound = sync_project.synchronize(root, **options)
+            self.assertEqual(bound["status"], "passed", bound["issues"])
+            raw_framework_hash = hashlib.sha256(framing.read_bytes()).hexdigest()
+            self.assertNotEqual(raw_framework_hash, state["paper_framework"]["sha256"])
+            self.assertEqual(bound["observed_sources"][framing.name], raw_framework_hash)
+            self.assertEqual(file_bytes(root), before)
+            (root / alternate).write_bytes(png + b"updated export metadata")
+            changed = sync_project.synchronize(root, **options)
+            self.assertEqual(changed["status"], "failed")
+            self.assertEqual(changed["export_evidence_required"], [alternate])
+
+    def test_expected_question_and_selected_spec_must_match(self):
+        import semantic_identity
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp).resolve()
+            first = self.make_project(root)
+            state_path = root / "state/project_state.yaml"
+            state = yaml.safe_load(state_path.read_bytes())
+            model = dict(identity(), question="Q2", preprocessing_decision="not_needed",
+                         research_object="独立的运输成本问题")
+            section = framework(model).split("# 模型论文框架\n\n", 1)[1].replace("Q1", "Q2").replace("第一问", "第二问")
+            framing = root / "模型论文框架.md"
+            text = framing.read_text(encoding="utf-8").replace("## 图表证据链", section + "\n## 图表证据链")
+            framing.write_text(text, encoding="utf-8", newline="\r\n")
+            state["paper_framework"]["sha256"] = sync_project.sha256_text(text)
+            inspected = semantic_identity.inspect_question_semantics(semantic_identity.question_sections(text)["Q2"], "Q2")
+            q2 = deepcopy(state["subproblems"]["Q1"])
+            q2.update(framework_section="### Q2：第二问", semantic_text_hash=inspected["semantic_text_hash"])
+            for key in ("semantic_identity_hash", "validated_semantic_identity_hash", "approved_semantic_identity_hash"):
+                q2[key] = semantic_identity.semantic_identity_hash(model)
+            state["subproblems"]["Q2"] = q2
+            state_path.write_text(yaml.safe_dump(state, allow_unicode=True), encoding="utf-8")
+            self.assertIn("locked_model_spec", sync_project.RUNTIME_ASSURANCE.hydrate_project_context(
+                root, "Q2")["verified_artifacts"])
+            selected = first["artifact"]["spec_source"]
+            before = file_bytes(root)
+            for expected, status in (("Q1", "passed"), ("Q2", "failed")):
+                report = sync_project.synchronize(root, delivery_scope="mechanism", mechanism_spec=selected,
+                                                  mechanism_question=expected)
+                self.assertEqual(report["status"], status, report["issues"])
+                self.assertEqual(report["mechanism_question"], expected)
+                if expected == "Q2":
+                    self.assertTrue(any("Q1" in issue and "Q2" in issue for issue in report["issues"]))
+            for path, expected in ((None, "Q1"), (selected, "Q01")):
+                with self.assertRaises(ValueError):
+                    sync_project.synchronize(root, delivery_scope="mechanism", mechanism_spec=path, mechanism_question=expected)
+            self.assertEqual(file_bytes(root), before)

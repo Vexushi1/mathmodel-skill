@@ -22,6 +22,7 @@ python scripts/resolve_runtime.py problem_analysis --objective explanation
 ## 运行时入口与治理
 
 - `resolve_runtime.py`：默认 assured runtime 入口。在兼容旧 plan 字段及 `objective / structures / capabilities` 分类轴的基础上，可选读取 `--project-root` / `--question` 恢复 current project state，先检查全题项目后端策略，再按本次问题及实际恢复阶段验证 artifact hash，输出 intent provenance、ambiguity、declarative contract closure、authority fingerprint 与 `runtime_plan/assurance`；`auto` 或无状态兼容默认不写入项目选择。
+  已有项目传入 `--project-root`，定位小问时另传 `--question`。例如，从完整资源根只读解析当前问题的审题动作可用 `python scripts/resolve_runtime.py problem_analysis --project-root <项目根> --question Q1`。
 - `reading_plan.py`：由默认 resolver 调用，使用同一次 hydration 的原始状态快照生成带文件哈希与行范围的初始读取、条件资料和工具接口清单；读取选择服从 `core/workflow_router.yaml#reading_policy`，不改旧计划、不执行校验门、不写项目。
 - `read_stage.py`：只读消费现有 resolver 读取计划或写作阶段来源，返回指定文件的实际正文块、源身份和缺口；不裁决条件、不执行 gate、不写项目，使用边界见下节。
 - `resolve_workflow.py`：保留的无状态兼容 resolver；仍可直接解析显式 intent/classification/artifact-name 输入，但不负责 project-state hydration 或 artifact hash assurance。
@@ -32,9 +33,31 @@ python scripts/resolve_runtime.py problem_analysis --objective explanation
 - `project_transaction.py`：复用项目锁、候选验证、generation 和可恢复日志；`commit_project_state` 可选接收 `expected_file_hashes`，绑定 state、所有伴随写入目标和已声明只读来源的原始字节（值为 null 表示必须不存在）。传入时要求规范项目相对路径；存在未清理事务日志先阻断，须明确恢复后重新捕获快照。省略参数的历史调用保持原恢复行为。准备日志后仍按已有 roll-forward 恢复；保护限于声明读集合及协作式锁，不代表数值验收或文件系统级全局原子快照。
 - `project_transaction.py` 的 `prepare_history_archive` / `verify_history_archive`：显式读集合的流式原始字节归档与只读复核，布局委托 `core/output_contract.yaml#backend_migration_history`，不识别数学资格或批准。准备失败保留并报告本次目录，不递归删除历史。`commit_project_state(preserved_archives=...)` 要求同时使用字节读集合，并以 journal v2 持久保存归档引用，在提交及恢复边界复核；无归档事务仍用 v1。恢复后再次读旧原始路径不是归档复核的前提；旧实现不支持 v2，存在 v2 日志时不得先降级。`project_solver_backend.py migrate` 同事务登记归档与报告引用至当前 `execution.backend_migration_history`。
 
+## 候选正式开场的全文读取
+
+先按固定提交的 `core/bootstrap.yaml#startup_contract` 判定请求。正式开场及需要重新全读的恢复可以在业务计划产生之前取正文。助手在有执行能力时运行下列命令。将 `<SHA>` 换成项目固定的完整提交，将路径换成该提交返回的卷路径。
+
+```text
+python scripts/read_stage.py formal manifest --source-commit <SHA> --offset 0 --limit 24
+python scripts/read_stage.py formal read --source-commit <SHA> --volume core/full_reading/volumes/001.md
+python scripts/read_stage.py formal verify --source-commit <SHA> --received-dir <本次响应目录>
+```
+
+按页读完目录。已知来源时，给 manifest 命令传入 `--source <原文件路径>` 可定位对应卷和原文范围。卷内保留原文的相对链接，沿卷首或分段标题回到原文件即可使用这些链接。接收端将每次实际收到的 read 响应按 UTF-8 JSON 保存在本次专用目录。verify 将这些正文与固定 Git 提交中的独立清单对照。退出码 0 表示所交正文完整，1 表示仍有缺口，2 表示命令或来源无效。缺卷或损坏时按编号重新取回并替换损坏的响应，再核验整次接收。跨会话、只余摘要或整套规则范围已丢失时，使用新的接收目录重新全读。当前可见正文、工具能核实的接收字节、业务阶段的实际验收分别记录。
+
+从 GitHub 取清单和卷时优先请求固定提交的完整文件。清单较大时可按行读取目录，随后核对固定 Git blob 的完整内容。连接器对显式行范围会省略每段的末尾换行。即使响应携带正确的整卷 blob ID，直接拼接也可能损坏正文。保留每次请求的行范围和返回原文。缺段先补对应范围；段界或实际字节无法确定时只重取受影响的完整卷。若只能看到部分行或缺少独立校验能力，报告实际可见范围。已有项目恢复另取当前框架、状态和工作簿。
+
+接收端可用下面的接口重组按行取得的单卷。`ranges.json` 是本次请求的数组，每项如 `{"start_line":1,"end_line":20,"response":{…}}`，response 原样保存 GitHub 返回的 content、encoding、sha 和 display_url。对 fork 传入实际的 `--repository owner/name`。成功响应标记 `reconstructed_github_line_ranges`，可与整卷响应一起交给 verify。缺失或损坏的行范围保留待取状态。
+
+```text
+python scripts/read_stage.py formal assemble --source-commit <SHA> --volume core/full_reading/volumes/001.md --ranges ranges.json
+```
+
+需要业务路由时，`scripts/resolve_runtime.py` 可同时接收 `--candidate-startup-event formal_single_question --source-commit <SHA>`。事件名取自启动合同。输出的 `startup_reading` 说明当前选择，实际获取仍使用上面的接口。字段解释、配色等局部动作按阶段适用范围取读。
+
 ## 阶段正文读取
 
-读取与恢复统一服从 `core/runtime_assurance_contract.yaml#reading_plan.consumer_protocol`。仅在助手具备执行工具、同版本完整 Skill 根和真实 resolver YAML 时使用下列接口；这不是用户本地 checker。`--source-commit` 使用该 Skill checkout 的完整 40 位 commit，`--path` 来自当前选定的来源：
+先按固定提交的 `core/bootstrap.yaml` 区分开场范围。以下工具只处理当前阶段的 `reading_plan`，其条目与输出不证明正式开场已取得全部规范。当前动作的读取服从 `core/runtime_assurance_contract.yaml#reading_plan.consumer_protocol`。仅在助手具备执行工具、同版本完整 Skill 根和真实 resolver YAML 时使用下列接口；这不是用户本地 checker。`--source-commit` 使用该 Skill checkout 的完整 40 位 commit，`--path` 来自当前选定的来源：
 
 ```text
 python scripts/read_stage.py --root <同版本Skill根> --plan <当前resolver.yaml> --source-commit <40位commit> --surface read_now --path core/hsk_core_policy.md --chunk-index 0
@@ -48,7 +71,7 @@ python scripts/read_stage.py --root <同版本Skill根> --plan <当前resolver.y
 
 纯非数值 draw.io 机理图的 `project_sync --delivery-scope mechanism` 只读复核当前已批准模型、Spec/source、真实预览和已登记导出，不发现/要求数值求解目录，也不改写项目状态。预览或人工批准未完成、模型身份过期、`result_evidence` 声明数值依赖时不能通过；数值图和混合请求保留原 figures/后续 scope。该机器结果不证明图形数学语义或人工视觉审查已由机器执行。
 
-只有 GitHub 读取工具时，用同一固定 commit 的 `core/stage_reading_guide.md` 定位原 Authority，保留前言／父级适用语并分段补齐；导航中的 raw 候选来源不替代当前批准、执行等待点或实际项目事实。可复制的 GPT 全局指令仅维护于 [计划 §13](../docs/stage_reading_execution_refactor_plan.md#132-可复制正文)。
+只有 GitHub 读取工具时，用同一固定 commit 的 `core/stage_reading_guide.md` 定位原 Authority，保留前言／父级适用语并分段补齐；导航中的 raw 候选来源不替代当前批准、执行等待点或实际项目事实。正式开场的全文范围由启动合同定义。网页和 App 的[项目指令](../PROJECT_INSTRUCTIONS.md#web-app-start)供各端复用。
 
 ## P3 文献研究检索 Provider（只读外部查询，手动报告输出）
 

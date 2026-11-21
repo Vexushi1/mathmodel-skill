@@ -2,13 +2,14 @@
 
 ## 启动
 
-1. `core/bootstrap.yaml`：最小启动契约；
-2. `scripts/resolve_runtime.py`：默认 assured runtime；按一个或多个意图生成计划，并可从 current project state 恢复上下文、验证 artifact 与补齐 contract dependency；`scripts/resolve_workflow.py` 仅保留无状态兼容；
-3. `core/hsk_core_policy.md`：全局硬规则；
-4. `core/task_taxonomy.yaml`：objective、structures、capabilities；
-5. `core/module_manifest.yaml`：模块与 utility gate 产物闭环；
-6. 仅加载命中的模块、Pack 和模板；
-7. 正式交付前执行解析结果中的 `pre_delivery_gates`。
+网页和 App 使用[数学建模项目指令](PROJECT_INSTRUCTIONS.md#web-app-start)。从仓库或插件进入时，读取所选提交的 `SKILL.md`、`core/bootstrap.yaml` 及其委托的 `core/hsk_core_policy.md`。
+
+| 需要确认什么 | 到哪里查 |
+|---|---|
+| 正式建模、局部工作与恢复的开场范围 | `core/bootstrap.yaml` 的 `startup_contract` |
+| 下一步允许执行的动作、模块与有序交付门 | `core/workflow_router.yaml`；工具和项目材料齐备时由 `scripts/resolve_runtime.py` 给出当前计划，`scripts/resolve_workflow.py` 只保留无状态兼容入口 |
+| 题型，模块和工具的输入输出 | `core/task_taxonomy.yaml`、`core/module_manifest.yaml` |
+| 当前阶段的原文和条件来源 | `core/runtime_assurance_contract.yaml` 的 `reading_plan` 及固定提交的 `core/stage_reading_guide.md` |
 
 ## 活动入口
 

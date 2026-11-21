@@ -135,7 +135,12 @@ properties:
         venue: {type: string, minLength: 1, maxLength: 256}
         provider_record_id: {type: string, minLength: 1, maxLength: 256}
         retrieved_at: {type: string, minLength: 10, maxLength: 64}
-        is_retracted: {type: boolean}
+        is_retracted:
+          type: boolean
+          description: >-
+            Absence means unknown. An explicitly retracted source may be documented,
+            discussed or rejected. A linked method with a substantive disposition
+            (basis, adaptation, comparator or validation) makes the report inconsistent.
   methods:
     type: array
     maxItems: 30

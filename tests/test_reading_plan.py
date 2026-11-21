@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import hashlib
+import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 from copy import deepcopy
 from pathlib import Path
 
@@ -12,14 +14,211 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import read_stage
 import reading_plan as READING
 from resolve_runtime import resolve_runtime
+from validate_model_paper_framework import sha256_text
 from reading_plan_cases import CASES, build_project
 
 
 def tree_hashes(root):
     return {str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest()
             for p in root.rglob("*") if p.is_file()}
+
+
+class FrameworkReadScopeTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.commit = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+        ).strip()
+
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.project = Path(temporary.name).resolve()
+        build_project(ROOT, self.project, "current")
+        self.framework = self.project / "模型论文框架.md"
+        self.state_path = self.project / "state/project_state.yaml"
+        self.state = yaml.safe_load(self.state_path.read_bytes())
+        text = self.framework.read_text(encoding="utf-8")
+        self.assertEqual(text.count("## 图表证据链"), 1)
+        text = text.replace(
+            "## 图表证据链", "F1 已登记；引用位置为空；尚未导出。\n\n"
+            "### Q2：上游依赖\nQ2独有依赖正文。\n\n"
+            "### Q3：独立问题\nQ3独有正文。\n#### 当前写作选择\nQ3专用写作内容。\n\n"
+            "## 当前写作选择\n全局论文载体说明。\n\n"
+            "## 图表证据链\nT1 已登记；正文引用待回填。")
+        self.framework.write_text(text, encoding="utf-8")
+        questions = self.state["subproblems"]
+        questions["Q2"] = {"depends_on": []}
+        questions["Q3"] = {"depends_on": []}
+        questions["Q1"]["depends_on"] = [{"question": "Q2", "kind": "model", "note": "synthetic scope"}]
+        self.state["paper_framework"]["sha256"] = sha256_text(self.framework.read_text(encoding="utf-8"))
+        self.state_path.write_text(yaml.safe_dump(self.state, allow_unicode=True), encoding="utf-8")
+
+    def resolve(self, intent, request, *, question="Q1", **options):
+        return resolve_runtime(intent, request=request, competition="CUMCM",
+                               project_root=self.project, question=question, **options)
+
+    def consume(self, plan):
+        first = read_stage.extract(plan, ROOT, self.commit, "read_now", "模型论文框架.md",
+                                   project_root=self.project, origin="project", chunk_lines=2048)
+        self.assertEqual(first["source_identity"]["sha256"], hashlib.sha256(self.framework.read_bytes()).hexdigest())
+        self.assertEqual(first["gate_status"], "not_executed_by_reader")
+        chunks = [first]
+        for index in range(1, first["chunk_count"]):
+            chunks.append(read_stage.extract(plan, ROOT, self.commit, "read_now", "模型论文框架.md",
+                                             project_root=self.project, origin="project",
+                                             chunk_lines=2048, chunk_index=index))
+        return "".join(part["returned_chunk"]["text"] for part in chunks)
+
+    def test_full_review_writing_and_cross_question_synthesis_return_original_framework(self):
+        before = tree_hashes(self.project)
+        for intent, request, event, question in (
+            ("review", "请对论文全文进行终审。", "final_review", None),
+            ("latex", "请撰写整篇论文。", "full_paper_writing", "Q1"),
+            ("review", "请综合各问的结论。", "cross_question_synthesis", None),
+        ):
+            with self.subTest(event=event):
+                plan = self.resolve(intent, request, question=question)
+                self.assertEqual(plan["reading_plan"]["framework_read"],
+                                 {"scope": "full", "event": event, "status": "planned"})
+                self.assertEqual(self.consume(plan).encode("utf-8"), self.framework.read_bytes())
+        self.assertEqual(tree_hashes(self.project), before)
+
+    def test_local_review_and_writing_return_scoped_and_shared_records(self):
+        for intent, request in (
+            ("review", "只评阅问题一的模型，不做全文终审。"),
+            ("latex", "只修改问题一的文字说明。"),
+            ("review", "只解释「请对论文全文进行终审」这个字段。"),
+        ):
+            with self.subTest(request=request):
+                plan = self.resolve(intent, request)
+                self.assertEqual(plan["reading_plan"]["framework_read"]["scope"], "question_and_dependencies")
+                selected = self.consume(plan)
+                for included in ("F1 已登记", "T1 已登记", "Q2独有依赖正文", "全局论文载体说明"):
+                    self.assertIn(included, selected)
+                self.assertNotIn("Q3独有正文", selected)
+                self.assertNotIn("Q3专用写作内容", selected)
+
+    def test_split_figures_read_each_question_and_its_dependencies(self):
+        questions = self.state["subproblems"]
+        questions["Q1"]["depends_on"] = []
+        questions["Q2"]["depends_on"] = ["Q4"]
+        questions["Q4"] = {"depends_on": []}
+        text = self.framework.read_text(encoding="utf-8").replace(
+            "## 图表证据链", "### Q4：数据来源\n依赖问的数据定义。\n\n## 图表证据链")
+        self.framework.write_text(text, encoding="utf-8")
+        self.state["paper_framework"]["sha256"] = sha256_text(self.framework.read_text(encoding="utf-8"))
+        self.state_path.write_text(yaml.safe_dump(self.state, allow_unicode=True), encoding="utf-8")
+        request = "分别画 Q1 的机理图和 Q2 的误差图。"
+        for context in ("Q1", None):
+            with self.subTest(context=context):
+                plan = self.resolve(None, request, question=context)
+                selected = self.consume(plan)
+                self.assertEqual(plan["reading_plan"]["framework_read"]["status"], "planned")
+                self.assertIn("F1 已登记", selected)
+                self.assertIn("Q2独有依赖正文", selected)
+                self.assertIn("依赖问的数据定义", selected)
+                self.assertNotIn("Q3独有正文", selected)
+
+        questions["Q2"]["artifacts_stale"] = True
+        self.state_path.write_text(yaml.safe_dump(self.state, allow_unicode=True), encoding="utf-8")
+        plan = self.resolve(None, request)
+        self.assertIn("Q2独有依赖正文", self.consume(plan))
+        numeric = plan["figure_composition"]["deliveries"][1]
+        self.assertIn("accepted_solution_workbook", numeric["missing_verified_artifacts"])
+
+        # An unregistered second target cannot hide the first target's source
+        # or expand the framework read to unrelated questions.
+        plan = self.resolve(None, request.replace("Q2", "Q9"))
+        self.assertEqual(plan["reading_plan"]["framework_read"]["status"], "evidence_required")
+        self.assertTrue(any("Q9" in reason for reason in plan["reading_plan"]["reasons"]))
+        selected = self.consume(plan)
+        self.assertIn("F1 已登记", selected)
+        self.assertNotIn("Q2独有依赖正文", selected)
+        self.assertNotIn("Q3独有正文", selected)
+
+    def test_legacy_dependency_names_navigate_without_verifying_upstream(self):
+        self.state["subproblems"]["Q1"]["depends_on"] = ["Q2"]
+        self.state_path.write_text(yaml.safe_dump(self.state, allow_unicode=True), encoding="utf-8")
+        plan = self.resolve("review", "只评阅问题一。")
+        selected = self.consume(plan)
+        self.assertIn("Q2独有依赖正文", selected)
+        self.assertNotIn("Q3独有正文", selected)
+        self.assertNotIn("framework_read", plan["assurance"])
+
+    def test_missing_shared_headings_do_not_expand_to_all_questions(self):
+        self.framework.write_text("# 项目\n### Q1：一\n局部正文\n### Q2：二\n其他问正文\n", encoding="utf-8")
+        self.state["paper_framework"]["sha256"] = sha256_text(self.framework.read_text(encoding="utf-8"))
+        self.state_path.write_text(yaml.safe_dump(self.state, allow_unicode=True), encoding="utf-8")
+        plan = self.resolve("review", "只核查术语。", question=None)
+        reading = plan["reading_plan"]
+        self.assertEqual(reading["framework_read"]["scope"], "shared_sections")
+        self.assertEqual(reading["framework_read"]["status"], "evidence_required")
+        self.assertTrue(any("no shared framework section" in reason for reason in reading["reasons"]))
+        self.assertFalse(any(row["origin"] == "project" for row in reading["read_now"]))
+        self.assertTrue(any(row["origin"] == "skill" for row in reading["read_now"]))
+
+    def test_crlf_formal_and_scoped_reads_keep_exact_bytes_and_detect_drift(self):
+        # Use one currently qualified question, including its style and result
+        # evidence. The extra framework sections still distinguish a local read.
+        self.state["subproblems"]["Q1"]["depends_on"] = []
+        text = self.framework.read_text(encoding="utf-8")
+        raw = text.replace("\n", "\r\n").encode("utf-8")
+        self.framework.write_bytes(raw)
+        canonical = sha256_text(text)
+        self.assertNotEqual(canonical, hashlib.sha256(raw).hexdigest())
+        self.state["paper_framework"]["sha256"] = canonical.upper()
+        self.state_path.write_text(yaml.safe_dump(self.state, allow_unicode=True), encoding="utf-8")
+        for intent, request, startup, profile in (
+            ("review", "请对论文全文进行终审。", "promote_to_formal", None),
+            ("review", "请对论文全文进行终审。", "formal_context_lost", None),
+            ("framework_sync", "仅同步已验收结果摘要，不修改模型。", None, "framework_result_sync"),
+            ("figures", "只改现有图的配色与线宽，保持数据和坐标口径不变。", None, "figure_style"),
+        ):
+            with self.subTest(intent=intent, startup=startup):
+                options = {"candidate_startup_event": startup, "source_commit": self.commit} if startup else {}
+                plan = self.resolve(intent, request, **options)
+                reading = plan["reading_plan"]
+                self.assertEqual(reading["framework_read"]["status"], "planned")
+                selected = self.consume(plan).encode("utf-8")
+                if profile:
+                    self.assertEqual(reading["profile"], profile)
+                    self.assertIn(b"\r\n", selected)
+                    self.assertIn("F1 已登记".encode(), selected)
+                    self.assertNotIn("Q3独有正文".encode(), selected)
+                else:
+                    self.assertEqual(reading["framework_read"]["scope"], "full")
+                    self.assertEqual(selected, raw)
+
+        # Newline-only changes preserve the state's logical text identity,
+        # but a previous plan cannot silently return different bytes.
+        self.framework.write_bytes(text.encode("utf-8"))
+        with self.assertRaisesRegex(ValueError, "differs from reading plan"):
+            self.consume(plan)
+        refreshed = self.resolve("review", "请对论文全文进行终审。")
+        self.assertEqual(self.consume(refreshed).encode("utf-8"), text.encode("utf-8"))
+        for changed in (b"\xef\xbb\xbf" + raw, raw + "变更".encode("utf-8")):
+            self.framework.write_bytes(changed)
+            fresh = self.resolve("review", "请对论文全文进行终审。")
+            self.assertEqual(fresh["reading_plan"]["framework_read"]["status"], "evidence_required")
+
+    def test_recovery_needs_current_framework_and_rejects_changed_source(self):
+        for startup, event in (("cross_chat_formal_resume", "cross_chat_handoff"),
+                               ("formal_context_lost", "long_context_recovery")):
+            plan = self.resolve("review", "继续。", question=None, candidate_startup_event=startup,
+                                source_commit=self.commit)
+            self.assertEqual(plan["reading_plan"]["framework_read"]["event"], event)
+            self.assertEqual(self.consume(plan).encode("utf-8"), self.framework.read_bytes())
+        self.framework.write_bytes(self.framework.read_bytes() + b"changed")
+        with self.assertRaisesRegex(ValueError, "differs from reading plan"):
+            self.consume(plan)
+        refreshed = self.resolve("review", "请对论文全文进行终审。", question=None)
+        self.assertEqual(refreshed["reading_plan"]["framework_read"]["status"], "evidence_required")
+        self.assertFalse(any(row["origin"] == "project" and row["path"] == "模型论文框架.md"
+                             for row in refreshed["reading_plan"]["read_now"]))
 
 
 class SelectorTests(unittest.TestCase):
@@ -174,6 +373,69 @@ class ChunkCoverageTests(unittest.TestCase):
         self.assertTrue(result["complete"])
         self.assertEqual(result["missing_ranges"], [])
         self.assertEqual(result["issues"], [])
+
+    def test_two_argument_reads_exact_historical_git_object_and_retry_range(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            def git(*args):
+                return subprocess.check_output(["git", "-C", str(root), *args]).decode().strip()
+            git("init", "-q")
+            git("config", "user.name", "test")
+            git("config", "user.email", "test@example.invalid")
+            git("config", "core.autocrlf", "false")
+            git("config", "commit.gpgsign", "false")
+            path = "条件.md"
+            original = "假设\r\n界限 123\r\n第三行\r\n最后适用条件".encode()
+            (root / path).write_bytes(original)
+            git("add", "--", path)
+            git("commit", "-qm", "old source")
+            pin = git("rev-parse", "HEAD")
+            blob = git("rev-parse", f"{pin}:{path}")
+            (root / path).write_bytes(original.replace(b"123", b"456"))
+            git("commit", "-qam", "new source")
+            new_pin = git("rev-parse", "HEAD")
+            (root / path).write_bytes(b"uncommitted replacement")
+            digest = hashlib.sha256(original).hexdigest()
+            lines = original.decode().splitlines(keepends=True)
+            first = self.chunk(1, 2, "".join(lines[:2]), sha=digest, blob=blob, commit=pin, path=path)
+            last = self.chunk(4, 4, lines[-1], sha=digest, blob=blob, commit=pin, path=path)
+            ranges = [[1, 2], [4, 4]]
+            with patch.object(READING, "_SOURCE_ROOT", root):
+                result = READING.validate_chunk_coverage(ranges, [first, last])
+                self.assertTrue(result["complete"], result)
+                self.assertEqual(result["byte_verification"], "verified")
+                for reported_hash in (None, digest.upper()):
+                    checked = READING.validate_chunk_coverage([[1, 2]], [dict(first, source_sha256=reported_hash)])
+                    self.assertTrue(checked["complete"], checked)
+                    self.assertEqual(checked["byte_verification"], "verified")
+                for text in (lines[-1][:-1], lines[-1][:-1] + "假"):
+                    result = READING.validate_chunk_coverage(ranges, [first, dict(last, text=text)])
+                    self.assertFalse(result["complete"], result)
+                    self.assertEqual(result["missing_ranges"], [[4, 4]])
+                    self.assertEqual(result["byte_verification"], "failed")
+                for change in ({"path": "不存在.md"}, {"path": "../条件.md"}, {"source_blob_sha": "b" * 40},
+                               {"source_sha256": "0" * 64}, {"source_commit": new_pin},
+                               {"source_commit": blob}):
+                    with self.subTest(change=change):
+                        result = READING.validate_chunk_coverage([[1, 2]], [dict(first, **change)])
+                        self.assertFalse(result["complete"], result)
+                        self.assertEqual(result["byte_verification"], "failed")
+                        self.assertEqual(result["missing_ranges"], [[1, 2]])
+                unknown = READING.validate_chunk_coverage([[1, 2]], [dict(first, source_commit="0" * 40)])
+                self.assertTrue(unknown["complete"], unknown)
+                self.assertEqual(unknown["byte_verification"], "unavailable")
+
+    def test_original_bytes_distinguish_equal_line_counts_and_report_exact_retry(self):
+        raw = "first\r\n最末条件 ≥ 3".encode("utf-8")
+        digest = hashlib.sha256(raw).hexdigest()
+        first = self.chunk(1, 1, "first\r\n", sha=digest)
+        for last, missing in (("最末条件 ≥ 3", []), ("最末条件 ≥ 4", [[2, 2]]),
+                              ("最末条件", [[2, 2]]), ("最末条件 ≥ 3\n", [[2, 2]])):
+            with self.subTest(last=last):
+                result = READING.validate_chunk_coverage(
+                    [[1, 2]], [first, self.chunk(2, 2, last, sha=digest)], expected_source=raw)
+                self.assertEqual(result["missing_ranges"], missing)
+                self.assertEqual(result["complete"], not missing)
 
     def test_missing_chunk_reports_exact_missing_range(self):
         result = READING.validate_chunk_coverage(

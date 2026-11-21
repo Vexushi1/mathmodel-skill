@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import hashlib
 from pathlib import Path
 import sys
 import unittest
@@ -2146,6 +2147,74 @@ class AuditClosureProjectionTests(unittest.TestCase):
         self.assertEqual(accepted["unexpected_legacy_changes"], [])
         self.assertEqual(accepted["candidate_authority_versions"],
                          EVIDENCE.B2C_AUTHORITY_VERSIONS)
+
+
+
+class V11DefaultCarrierProjectionTests(unittest.TestCase):
+    @staticmethod
+    def candidate():
+        root = EVIDENCE.HERE.parent.parent
+        sources = deepcopy(EVIDENCE.RUNTIME_CONSISTENCY_PROJECTION["fingerprint"]["candidate"])
+        for row in sources:
+            path = row["path"]
+            if path in EVIDENCE.V11_P5_DEFAULT_SOURCE_HASHES:
+                row["sha256"] = EVIDENCE.V11_P5_DEFAULT_SOURCE_HASHES[path]
+            elif path == "core/output_contract.yaml":
+                row["sha256"] = hashlib.sha256((root / path).read_bytes()).hexdigest()
+        return {
+            "version": "11.0.0",
+            "assurance": {"authority_fingerprint": {"sources": sources}},
+        }
+
+    def test_v11_default_carrier_uses_exact_authority_and_source_identity(self):
+        candidate = self.candidate()
+        candidate["pre_delivery_gates"] = [{"name": "unregistered_gate"}]
+        saved = deepcopy(candidate)
+        projected, changes = EVIDENCE.runtime_consistency_predecessor(
+            "facts_current", candidate, deepcopy(EVIDENCE.V11_DEFAULT_AUTHORITY_VERSIONS)
+        )
+        self.assertEqual(projected["version"], EVIDENCE.V10263_RELEASE_AUTHORITY_VERSIONS["skill"])
+        self.assertEqual(projected["pre_delivery_gates"], saved["pre_delivery_gates"])
+        self.assertTrue(any(item["path"] == "version" for item in changes))
+        self.assertTrue(any(
+            item["path"] == "assurance.authority_fingerprint.sources"
+            for item in changes
+        ))
+        self.assertEqual(candidate, saved)
+
+    def test_v11_default_carrier_rejects_unknown_authority_or_changed_source(self):
+        candidate = self.candidate()
+        wrong_authority = deepcopy(EVIDENCE.V11_DEFAULT_AUTHORITY_VERSIONS)
+        wrong_authority["runtime_assurance"] = "2.5.1"
+        self.assertEqual(
+            EVIDENCE.runtime_consistency_predecessor("facts_current", candidate, wrong_authority),
+            (candidate, []),
+        )
+
+        changed = self.candidate()
+        row = next(
+            item for item in changed["assurance"]["authority_fingerprint"]["sources"]
+            if item["path"] == "scripts/reading_plan.py"
+        )
+        row["sha256"] = "0" * 64
+        self.assertEqual(
+            EVIDENCE.runtime_consistency_predecessor(
+                "facts_current", changed, EVIDENCE.V11_DEFAULT_AUTHORITY_VERSIONS
+            ),
+            (changed, []),
+        )
+
+    def test_v11_opt_in_startup_and_composed_figure_routes_are_not_projected(self):
+        for field in ("startup_reading", "figure_composition"):
+            with self.subTest(field=field):
+                candidate = self.candidate()
+                candidate[field] = {}
+                self.assertEqual(
+                    EVIDENCE.runtime_consistency_predecessor(
+                        "facts_current", candidate, EVIDENCE.V11_DEFAULT_AUTHORITY_VERSIONS
+                    ),
+                    (candidate, []),
+                )
 
 
 if __name__ == "__main__":

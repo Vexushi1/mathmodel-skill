@@ -25,6 +25,7 @@ from reading_plan_evidence import (
     PDF_REVIEW_AUTHORITY_VERSIONS,
     PDF_REVIEW_WRITING_DELTAS,
     REVIEW_SPLIT_AUTHORITY_VERSIONS,
+    V11_DEFAULT_AUTHORITY_VERSIONS,
     REVIEW_SPLIT_WRITING_DELTAS,
     C_REVIEW_STAGE_PINNED_READS,
     STAGE_READING_AUTHORITY_VERSIONS,
@@ -110,6 +111,9 @@ RUNTIME_AFFIRMATIVE_FULL_WORKFLOW_RELEASE_VERSIONS = {
 RUNTIME_LITERATURE_QUERY_COVERAGE_RELEASE_VERSIONS = {
     **RUNTIME_AFFIRMATIVE_FULL_WORKFLOW_RELEASE_VERSIONS, "skill": "10.35.3",
 }
+# v11.0.0 is the exact current carrier; reuse the P2 authority tuple rather than
+# synthesizing a parallel set of authority versions in this legacy golden test.
+RUNTIME_V11_RELEASE_VERSIONS = V11_DEFAULT_AUTHORITY_VERSIONS
 # Phase C: pin the exact review reads separately from the historical
 # Review Split migration and unchanged Phase G golden. Unregistered additions,
 # removals, order changes, or selector substitutions must fail projection.
@@ -150,6 +154,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
             RUNTIME_ORDINARY_ANALYSIS_COVERAGE_RELEASE_VERSIONS["skill"],
             RUNTIME_AFFIRMATIVE_FULL_WORKFLOW_RELEASE_VERSIONS["skill"],
             RUNTIME_LITERATURE_QUERY_COVERAGE_RELEASE_VERSIONS["skill"],
+            RUNTIME_V11_RELEASE_VERSIONS["skill"],
         }:
             plan = copy.deepcopy(plan)
             plan["version"] = RUNTIME_LITERATURE_SNAPSHOT_RELEASE_VERSIONS["skill"]
@@ -282,6 +287,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
                 CUMCM_B_WRITING_RELEASE_VERSIONS["skill"],
                 CUMCM_C_HANDOFF_RELEASE_VERSIONS["skill"],
                 CUMCM_D_CLEANUP_RELEASE_VERSIONS["skill"],
+                RUNTIME_V11_RELEASE_VERSIONS["skill"],
             ))
             if plan["version"] in (
                 REVIEW_SPLIT_AUTHORITY_VERSIONS["skill"],
@@ -373,7 +379,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
 
     def test_runtime_repair_reuses_exact_writing_projection_without_mutation(self):
         plan = self.runtime.resolve_runtime("latex", competition="CUMCM")
-        self.assertEqual(plan["version"], RUNTIME_LITERATURE_QUERY_COVERAGE_RELEASE_VERSIONS["skill"])
+        self.assertEqual(plan["version"], RUNTIME_V11_RELEASE_VERSIONS["skill"])
         historical = copy.deepcopy(plan)
         historical["version"] = CUMCM_D_CLEANUP_RELEASE_VERSIONS["skill"]
         saved = copy.deepcopy((plan, historical, self.golden))
@@ -385,9 +391,36 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
             with self.assertRaises(AssertionError):
                 self.assertEqual(self._projection(altered), self.golden["routes"]["latex"])
 
+    def test_v11_projection_reverses_only_the_exact_model_intake_pair(self):
+        plan = self.runtime.resolve_runtime(
+            "full_workflow", competition="CUMCM", primary="mechanism",
+        )
+        self.assertEqual(plan["version"], RUNTIME_V11_RELEASE_VERSIONS["skill"])
+        source = "core/literature_research_contract.yaml"
+        pack = "packs/artifact/literature_research.md"
+        self.assertEqual(plan["load_order"].count(source), 1)
+        self.assertEqual(plan["load_order"].count(pack), 1)
+        self.assertEqual(plan["contracts"].count(source), 1)
+
+        projected = self._projection(plan)
+        self.assertNotIn(source, projected["load_order"])
+        self.assertNotIn(pack, projected["load_order"])
+        self.assertNotIn(source, projected["contracts"])
+        self.assertEqual(projected, self.golden["routes"]["full_workflow"])
+
+        partial = copy.deepcopy(plan)
+        partial["load_order"].remove(pack)
+        with self.assertRaisesRegex(AssertionError, "incomplete or duplicate"):
+            self._projection(partial)
+
+        escaped = copy.deepcopy(plan)
+        escaped["intents"] = ["latex"]
+        with self.assertRaisesRegex(AssertionError, "outside modeling scope"):
+            self._projection(escaped)
+
     def test_review_split_projection_binds_canonical_scopes_without_waiving_stage_fields(self):
         plan = self.runtime.resolve_runtime("latex", competition="CUMCM")
-        self.assertEqual(plan["version"], RUNTIME_LITERATURE_QUERY_COVERAGE_RELEASE_VERSIONS["skill"])
+        self.assertEqual(plan["version"], RUNTIME_V11_RELEASE_VERSIONS["skill"])
         saved = copy.deepcopy((plan, self.golden, REVIEW_SPLIT_WRITING_DELTAS))
         for index, stage_id, previous_reads, current_reads in REVIEW_SPLIT_WRITING_DELTAS:
             historical = self.golden["routes"]["latex"]["writing_runtime"]["authoring_sequence"][index]
@@ -489,7 +522,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
                 ) else current)
                 with self.assertRaises(AssertionError):
                     self._projection(declared)
-        for version in (None, "10.19.4", "10.20.6", "10.21.1", "10.22.1", "10.23.0", "10.24.1", "10.26.4", "11.0.0"):
+        for version in (None, "10.19.4", "10.20.6", "10.21.1", "10.22.1", "10.23.0", "10.24.1", "10.26.4", "11.0.1"):
             with self.subTest(version=version):
                 altered = copy.deepcopy(plan)
                 altered["version"] = version
