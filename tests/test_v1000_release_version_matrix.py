@@ -14,7 +14,7 @@ def load(relative):
     return json.loads(text) if path.suffix == ".json" else yaml.safe_load(text)
 
 
-class V1000ReleaseVersionMatrixTests(unittest.TestCase):
+class V1100ReleaseVersionMatrixTests(unittest.TestCase):
     def test_current_skill_carriers_and_single_backend_cli(self):
         bootstrap = load("core/bootstrap.yaml")
         self.assertEqual(str(bootstrap["skill_version"]), "11.0.0")
@@ -41,12 +41,12 @@ class V1000ReleaseVersionMatrixTests(unittest.TestCase):
         )
         root_skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
         self.assertEqual(root_skill, (ROOT / "skills/mathmodel-skill/SKILL.md").read_text(encoding="utf-8"))
-        self.assertIn("version: 10.35.3", root_skill)
+        self.assertIn("version: 11.0.0", root_skill)
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         self.assertTrue(readme.startswith("# mathmodel-skill v11.0.0"))
         self.assertEqual(readme.splitlines()[0], "# mathmodel-skill v11.0.0")
-        self.assertTrue(changelog.startswith("# Changelog\n\n## 10.35.3\n"))
+        self.assertTrue(changelog.startswith("# Changelog\n\n## 11.0.0\n"))
         self.assertTrue((ROOT / "core/hsk_core_policy.md").read_text(encoding="utf-8").startswith("# HSK Core Policy v11.0.0"))
 
     def test_independent_protocol_versions_are_not_skill_versions(self):
