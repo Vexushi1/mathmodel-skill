@@ -22,7 +22,7 @@ import run_config_parser
 import stage_code
 import state_transitions
 from execution_protocol import COMPARISON_FIELDS, comparison_config_issues, comparison_receipt_issues
-from stage_inputs import declared_input_files
+from stage_inputs import declared_input_files, observe_inputs
 
 ROOT = Path(__file__).resolve().parent.parent
 SHEETS = {"多模型检验", "同模型多算法检验"}
@@ -378,6 +378,10 @@ def inspect_gate(root: Path, state: Mapping[str, Any], question: str, *, boundar
                     raise ValueError("comparison source dependency identity differs from delivered configuration")
             for path in declared_input_files(root, actual_config):
                 BOUNDED._read(root, path.relative_to(root).as_posix(), 512 * 1024 * 1024, observed["project"])
+            input_observation = observe_inputs(root, actual_config, captured_state)
+            if input_observation["issues"]:
+                raise ValueError("comparison " + stage + " input identity differs: "
+                                 + "; ".join(input_observation["issues"]))
         if delivered is None:
             # Prerequisite/design checks need the current plan but not a delivered analysis file.
             plan_result = COMPARISON.inspect_plan(entry, question=question, specs=framework.decode("utf-8"))
