@@ -68,8 +68,9 @@ def _required_config_field_missing(config: Mapping[str, Any], field: str) -> boo
 
 
 DATA_READER_NAMES = {
-    "open", "ExcelFile", "read_csv", "read_excel", "read_table", "read_fwf",
-    "read_json", "read_parquet", "read_feather", "read_pickle", "read_hdf",
+    "open", "read_text", "read_bytes", "ExcelFile", "load_workbook",
+    "read_csv", "read_excel", "read_table", "read_fwf", "read_json",
+    "read_parquet", "read_feather", "read_pickle", "read_hdf", "loadmat",
     "load", "loadtxt", "genfromtxt",
 }
 DATA_READER_PATH_KEYWORDS = {"path", "filepath", "filename", "fname", "io", "filepath_or_buffer"}
@@ -288,6 +289,8 @@ def literal_data_reader_paths(text: str) -> list[str]:
         if not isinstance(node, ast.Call) or _call_leaf_name(node.func) not in DATA_READER_NAMES:
             continue
         candidate: ast.AST | None = node.args[0] if node.args else None
+        if candidate is None and _call_leaf_name(node.func) in {"read_text", "read_bytes"}:
+            candidate = node.func.value if isinstance(node.func, ast.Attribute) else None
         if candidate is None:
             candidate = next(
                 (item.value for item in node.keywords if item.arg in DATA_READER_PATH_KEYWORDS),
