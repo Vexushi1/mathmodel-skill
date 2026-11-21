@@ -509,33 +509,33 @@
     },
     {
       "path": "core/full_reading/volumes/101.md",
-      "bytes": 9108,
-      "sha256": "77c0a3a31069c8f47170e1ec2aff15f1cf6dd3f2db812abadc0eb9505245f816"
+      "bytes": 11686,
+      "sha256": "bc66bc104de127b1c9783e35e5a4a67a7aa3e0e3112ed88f7906bf653b6599fc"
     },
     {
       "path": "core/full_reading/volumes/102.md",
-      "bytes": 12248,
-      "sha256": "c0e47469d4ca97c50c8f9bc020577718de3f5c56463c94d63ebe59b8ad0d6093"
+      "bytes": 12094,
+      "sha256": "2c966d137e52b507a863f0cfc24613daa06f5f36e657437ea80ad9595e3b70f4"
     },
     {
       "path": "core/full_reading/volumes/103.md",
-      "bytes": 12240,
-      "sha256": "a36c58b33b9544d3c67e303e71e802e41b719a95519f043f2ce23b6d4f618b5d"
+      "bytes": 11940,
+      "sha256": "a8a454704f8a2f2412770d37fc44bd7c55a4d32d527b60bf4c75689b9e7deac5"
     },
     {
       "path": "core/full_reading/volumes/104.md",
-      "bytes": 12288,
-      "sha256": "f84b946145c464d3a0231ed88fa71c54e2232a8c5b05b904816762720a8fa5f5"
+      "bytes": 12279,
+      "sha256": "907bb4c1035bdad796e8b8d6c5a80ca5675a0593ec2aa40c67ac2ffee8a38a8c"
     },
     {
       "path": "core/full_reading/volumes/105.md",
-      "bytes": 12127,
-      "sha256": "ec3109e690fd46b836df304c1c12120d32d902a6844fb3e64830251d03f7a17c"
+      "bytes": 12270,
+      "sha256": "2fd03c513ab24e8f57f29a6f8b354db8c9fa12527a3021a676d8b1a1e5b960cf"
     },
     {
       "path": "core/full_reading/volumes/106.md",
-      "bytes": 12066,
-      "sha256": "1e0f60adeee000e4e979e4f5190578862241c6e6e1341ae03318ac952aec9bf7"
+      "bytes": 10692,
+      "sha256": "664c3773249838dcf513cd2a5c98862708abe1df17b89056ec601fb7c968eab3"
     },
     {
       "path": "core/full_reading/volumes/107.md",
@@ -2915,19 +2915,29 @@
       "path": "templates/code/starter/README.md",
       "role": "conditional_template",
       "aliases": [],
-      "bytes": 12127,
-      "sha256": "6f1a3f000c93c71145fa00406b1382362c1c70ee50b247e96c87e8b53fe24c87",
-      "git_blob_sha1": "603adb5a7f97b2c333e4843aa830f9a583406e70",
+      "bytes": 12736,
+      "sha256": "3ba91effb30d7d9c2dddaac64ff301162e2df0f0ef3485191360feae587d70da",
+      "git_blob_sha1": "36aa1ab6f85d338121ecf14c3ceceaa5e31c344c",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/102.md",
+          "volume": "core/full_reading/volumes/101.md",
           "start": 0,
-          "end": 12127,
+          "end": 2457,
           "line_start": 1,
-          "line_end": 64,
-          "volume_start": 121,
-          "volume_end": 12248,
-          "sha256": "6f1a3f000c93c71145fa00406b1382362c1c70ee50b247e96c87e8b53fe24c87"
+          "line_end": 12,
+          "volume_start": 9229,
+          "volume_end": 11686,
+          "sha256": "5436c5eefa031c07ec6c0aa67ed0f20c2fdd79a2621f83855302def22b839b0e"
+        },
+        {
+          "volume": "core/full_reading/volumes/102.md",
+          "start": 2457,
+          "end": 12736,
+          "line_start": 13,
+          "line_end": 66,
+          "volume_start": 125,
+          "volume_end": 10404,
+          "sha256": "4549021b0ea15653317fbd42307bb03a3c0464a37dece85bed7df39c7544ea5a"
         }
       ]
     },
@@ -2940,24 +2950,24 @@
       "git_blob_sha1": "8b87b79d55e23f1b581c1ceca9e4d609fd11ba26",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/103.md",
+          "volume": "core/full_reading/volumes/102.md",
           "start": 0,
-          "end": 12113,
+          "end": 1563,
           "line_start": 1,
-          "line_end": 118,
-          "volume_start": 127,
-          "volume_end": 12240,
-          "sha256": "cf5844d6dde8b66b55cd84aaf712553a83552286368d110a72d679c5b7ce42a4"
+          "line_end": 16,
+          "volume_start": 10531,
+          "volume_end": 12094,
+          "sha256": "cc80af7dd174a73939983db47194ea69af5a7ce06ccaa24faa810dc0c47a2978"
         },
         {
-          "volume": "core/full_reading/volumes/104.md",
-          "start": 12113,
+          "volume": "core/full_reading/volumes/103.md",
+          "start": 1563,
           "end": 13190,
-          "line_start": 119,
+          "line_start": 17,
           "line_end": 125,
-          "volume_start": 133,
-          "volume_end": 1210,
-          "sha256": "24bd9583dadfb92a04ad0276c407b8beaf883e0bf54dc3c176a323bd5f9683fa"
+          "volume_start": 131,
+          "volume_end": 11758,
+          "sha256": "8b05e706adc0c6bda4e7d9a4b696b7ba874d4d53bc2aec0e30edc2cfa1bebd68"
         }
       ]
     },
@@ -2970,34 +2980,44 @@
       "git_blob_sha1": "fa9db83323c4dcbe430e8afdca82df806e3db9de",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/104.md",
+          "volume": "core/full_reading/volumes/103.md",
           "start": 0,
-          "end": 10927,
+          "end": 31,
           "line_start": 1,
-          "line_end": 220,
-          "volume_start": 1361,
-          "volume_end": 12288,
-          "sha256": "6e17a7a55f2243182a7387666a61d9b41e9dc21d82ed20dea3d1a6bb6d651de0"
+          "line_end": 2,
+          "volume_start": 11909,
+          "volume_end": 11940,
+          "sha256": "adb705476217e99a9a6242f942223843e43649c4c72c34356a1f69d811f71e7d"
+        },
+        {
+          "volume": "core/full_reading/volumes/104.md",
+          "start": 31,
+          "end": 12158,
+          "line_start": 3,
+          "line_end": 242,
+          "volume_start": 152,
+          "volume_end": 12279,
+          "sha256": "65c95a2d4a61f4b214502b38729e1ba9ea128987db8aaee855fa76c95c779370"
         },
         {
           "volume": "core/full_reading/volumes/105.md",
-          "start": 10927,
-          "end": 22897,
-          "line_start": 221,
-          "line_end": 403,
+          "start": 12158,
+          "end": 24271,
+          "line_start": 243,
+          "line_end": 417,
           "volume_start": 157,
-          "volume_end": 12127,
-          "sha256": "c287f3327b1f02fbbe65647b34c4d06d873bddbeca187981568c75aa2bb87786"
+          "volume_end": 12270,
+          "sha256": "4f4e792f5ab9b26de5ffb528f471a80f989ad9701d922977da3c1e4360592327"
         },
         {
           "volume": "core/full_reading/volumes/106.md",
-          "start": 22897,
+          "start": 24271,
           "end": 34806,
-          "line_start": 404,
+          "line_start": 418,
           "line_end": 541,
           "volume_start": 157,
-          "volume_end": 12066,
-          "sha256": "9769786f8b89155a148a3a02b00818889fb607600980c528e1db133d070b79ed"
+          "volume_end": 10692,
+          "sha256": "981bfea2fe4b535f65c9dc29ead21dfb310275c6c63a0d89d7f48e4da4d47375"
         }
       ]
     },
