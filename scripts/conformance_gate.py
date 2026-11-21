@@ -190,9 +190,8 @@ def inspect_gate(root: Path, state: Mapping[str, Any], question: str, stage: str
             config, config_issues = _workbook_config(workbook_path)
             result['issues'].extend(config_issues)
             if config:
-                from execution_protocol import declared_input_paths
-                from stage_inputs import input_files
-                for input_path in input_files(root, declared_input_paths(config)):
+                from stage_inputs import declared_input_files
+                for input_path in declared_input_files(root, config):
                     audit._read(root, input_path.relative_to(root).as_posix(), 512 * 1024 * 1024, observed['project'])
             # This hash identifies the authority snapshot used for the accepted run.
             # A changed authority is reported, not re-signed during read-only consumption.
@@ -265,8 +264,7 @@ def observe_execution_sources(root: Path, state: Mapping[str, Any], question: st
     """
     import model_code_conformance as audit
     import run_config_parser
-    from stage_inputs import input_files, observe_inputs
-    from execution_protocol import declared_input_paths
+    from stage_inputs import declared_input_files, observe_inputs
     from artifact_fingerprint import sha256_file
     from stage_code import _relative_path
     raw = audit._read(root, binding['entrypoint'], 2 * 1024 * 1024, observed['project'])
@@ -274,7 +272,7 @@ def observe_execution_sources(root: Path, state: Mapping[str, Any], question: st
         raw.decode('utf-8-sig'), messages=run_config_parser.DELIVERY_MESSAGES,
         backend=binding['solver_backend'])
     # Capture before qualification, recheck afterward and again at commit.
-    for path in input_files(root, declared_input_paths(config)):
+    for path in declared_input_files(root, config):
         merge_read_sets(observed, {'project': {path.relative_to(root).as_posix(): sha256_file(path)}})
     issues = observe_inputs(root, config, state)['issues']
     if issues:
