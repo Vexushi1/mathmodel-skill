@@ -1,461 +1,899 @@
-# v11.0.0 发布后主流程改造计划：项目记录接管、执行环境解耦与逐问调度
+# v11.0.0 后主流程架构重构计划：项目级管理、逐问求解与全题交付
 
-> **文档性质：** 仓库结构盘点与后续改造计划，不是 Runtime Authority，不直接改变 Skill 行为。
+> **文档性质：** 仓库维护计划与架构提案，不是 Runtime Authority，不直接改变 Skill 运行行为，也不代表实现或测试已经通过。
 >
-> **状态：** 待用户审查；未获明确批准前，不启动三批业务代码实施。
+> **日期：** 2026-11-22。
 >
-> **编制日期：** 2026-11-21。
+> **固定代码基线：** Skill v11.0.0，main@87ed5bbd173c02472a9e85cb09bdc4188d37a8bf。
 >
-> **固定基线：** Skill v11.0.0，main / Release 对应提交为 `87ed5bbd173c02472a9e85cb09bdc4188d37a8bf`。
+> **计划 PR：** [PR #355](https://github.com/Vexushi1/mathmodel-skill/pull/355)，保持 Draft。
 >
-> **本次交付边界：** 新增本计划文档，并在 core/rule_corpus_sources.yaml 中将其登记为 maintenance_and_history；不修改业务规则、Schema、脚本、模板、测试或真实建模项目。
+> **本次交付边界：** 只细化架构计划；不修改运行时代码、Schema、模板或正式业务规则，不合并 PR，不发布 Skill。
+>
+> **证据边界：** 本轮按 GitHub 固定提交读取源码、合同、测试与相关计划。没有运行 Resolver、仓库 checker、单元测试、MATLAB、用户赛题代码或本地生成器；不得将只读审查描述为运行验证。
 
 ---
 
 ## 0. 修改简报
 
-| 项目 | 本计划 |
+| 项目 | 计划 |
 |---|---|
-| 修改主题 | v11.0.0 发布后的主流程改造：助手接管项目记录、移出用户环境核验、默认逐问推进 |
-| 当前版本 / 固定提交 | v11.0.0 / `87ed5bbd173c02472a9e85cb09bdc4188d37a8bf` |
-| 目标版本 | 暂不预设；三个实现 PR 的真实差异、兼容性和协议变化确定后再按治理规范裁决 |
-| 本计划 PR 变更等级 | docs；只增加计划文档，不改变运行行为 |
-| 后续实现等级 | 分别按实际 Schema、CLI、模板、状态与兼容影响评估 patch / minor / major，不提前承诺版本号 |
-| 直接目标 | 以当前仓库真实分层为基础，把三个方向拆成可独立实施、可验收、可回滚的单主题 PR |
-| 明确不做 | 不重建 v11 全文读取架构；不改项目级唯一 Python/MATLAB 后端政策；不取消 Model Challenge、Human Model Approval、用户 full-fidelity 执行、数值验收、03B 必要性判断或正式交付门；不把 Issue #352 的 embedded_parameters 混入本计划 |
-| 权威事实源 | 当前 main 的 AGENTS.md、SKILL_CHANGE_GOVERNANCE.md、core/bootstrap.yaml，以及各方向对应的 Router、Output、State、Runtime、Approval、Execution、Workbook Authority 和实际消费者 |
-| 本次预计修改文件 | 新增本文件，并仅为它补充 core/rule_corpus_sources.yaml 的非规范性历史/维护分类；MANIFEST.sha256、SKILL_FILE_INDEX.md 等受管文件由 GitHub refresh-generated 处理，不手工编辑 |
-| 禁止触碰 | main 上的活动业务规则、Schema、脚本、模板、测试、版本载体、真实用户项目文件及历史已验收工作簿 |
-| 兼容要求 | 现有 v11.0.0 项目、历史 State、历史工作簿、RUN_RECEIPT、后端选择和 stale 规则保持可读；任何新写入规则不得追溯性要求旧项目重跑 |
-| 本次验收 | 核对本计划内容、GitHub 生成结果和最终 PR head；不宣称三项运行时改造已实现或通过测试 |
-| 回滚方式 | 本计划是独立 docs-only PR，可单独关闭或 revert；后续三个代码 PR 各自回滚，不以回滚代码伪造旧项目批准或数值资格 |
+| 修改主题 | v11.0.0 发布后的主流程架构重构 |
+| 当前版本 / 基线 | v11.0.0 / main@87ed5bbd173c02472a9e85cb09bdc4188d37a8bf |
+| 本 PR 变更等级 | docs-only，不升级 Skill 版本 |
+| 后续实现版本 | 暂不预设；每个实现 PR 按真实接口、Schema 和兼容影响裁决 |
+| 直接目标 | 明确项目级管理、逐问求解、全题终审三个运行层次；自动识别当前小问；检查只覆盖当前问和真实必要依赖；消除无关小问阻断；保留全局约束、下游 stale 传播和全题最终验收 |
+| 用户收益 | 不反复提供已存在的项目状态；不为普通求解先证明本机平台/版本；不因 Q2 缺少无关产物而阻断 Q1；一次只交付当前小问的求解任务 |
+| 明确不做 | 不重写数学建模方法论；不删除 Problem Contract、Model Challenge、Human Model Approval、SIB、数值验收、PQS、03B、Figure Evidence、论文写作、LaTeX/PDF 和最终交付门禁；不一次性生成全部小问求解代码；不增加第二套项目状态系统；不增加持久化 current_question 字段；不要求用户运行本地 checker |
+| 权威事实源 | 当前 main 的 bootstrap、全局政策、Router、Module Manifest、Runtime Assurance、Project State Schema、State Transition、Output、Model Approval、User Execution、Workbook、Numerical Verification，以及实际消费者源码 |
+| 本 PR 预计改动 | 更新本文件；保留 core/rule_corpus_sources.yaml 中 maintenance_and_history 登记；生成索引由 GitHub refresh-generated 管理 |
+| 本 PR 禁止触碰 | 运行时脚本、业务合同、State Schema、工作簿 Schema、数值模板、MATLAB 模板和用户项目 |
+| 兼容要求 | 现有项目状态、旧项目只读兼容、CLI、工作簿与回执版本、项目唯一后端、事务和 read-set 语义继续有效 |
+| 验收方式 | 本 PR 验收计划文档、来源登记和 GitHub 生成工作流；后续每个代码 PR 单独做专项测试，最终冻结 head 后执行适用的完整 GitHub Actions |
+| 回滚方式 | 本 PR 可独立 revert，不改变 main 运行行为，不迁移任何真实项目 |
 
-本计划遵循仓库治理：先盘点结构和现有能力，再确定改动归属；一个 PR 只处理一个核心主题。计划文档获用户审查通过，只代表允许进入后续实施简报，不代表三个代码 PR 自动获批、合并或发布。
+### 0.1 本次工作的最终定义
+
+这不是给旧流程增加三个补丁，而是重新明确 Skill 的运行组织方式：
+
+**一个项目负责全局事实；一次问题级操作只推进一个小问；跨问关系决定等待条件；最终交付回到全项目范围。**
+
+“逐问求解”不是强制 Q1、Q2、Q3 严格串行，也不是允许一次性生成全部小问代码。它表示：
+
+1. 每次问题级求解动作只处理一个目标小问。
+2. 目标小问只等待真实必要的上游依赖。
+3. 前序小问被依赖的结果尚未满足时，其他独立小问仍可成为下一项任务。
+4. 每个小问的模型审批、主求解、用户执行、工作簿验收和必要深化分析各自闭环。
+5. 全题论文、综合结论、终审与提交仍检查所有必需小问。
 
 ---
 
-## 1. 当前仓库结构盘点
+## 1. 架构决策摘要
 
-### 1.1 顶层结构
+### 1.1 三个运行层次
 
-当前 main 的根目录由入口与治理文件、规则 Authority、业务模块、运行脚本、模板、测试、历史计划、赛事资源和 GitHub 工作流组成。以下数量是 GitHub 当前目录直接子项数量，不等同于源文件数或测试用例数。
+**第一层：项目级管理（Project Runtime）**
 
-| 目录 / 文件组 | 当前规模 | 实际职责 | 与本次三个方向的关系 |
-|---|---:|---|---|
-| 根入口与治理 | 多个活动入口文件 | SKILL 启动、网页/App 项目指令、Agent 规则、仓库治理、索引与导航 | 三批实现都要保持入口只引用 Authority，不复制业务规则 |
-| core/ | 28 项 | Bootstrap、Router、Module Manifest、State Schema、Output、Runtime、Approval、Execution、Workbook、Numerical Verification 等唯一规则来源 | 三个方向的主要规则修改层 |
-| modules/ | 10 项 | 01 审题、02 模型设计、03P 预处理、03A 主求解、03B 深化分析、04 绘图、05 写作、06 终审 | 业务流程的规则说明；本次以复用现有模块为主 |
-| scripts/ | 81 项 | Resolver、State/Artifact assurance、事务、快照、同步、代码交付、回执验收、后端选择、绘图后端和论文审计 | 三批主要实现层 |
-| templates/ | 9 个直接子项 | Python/MATLAB 代码、工作簿 IO、模型框架、图表、LaTeX、DOCX/Review 等模板 | 第二批需要核对回执生成；第一批复用模型框架模板 |
-| tests/ | 297 项 | 单元、集成、平台/后端、读取、数值回执、State、同步、绘图和发布回归；包含 fixture 与 smoke 脚本 | 三批都必须在现有测试体系中增加针对性反例 |
-| docs/ | 96 项 | 历史审计、迁移记录、重构计划、实施台账和验收矩阵 | 本次新增唯一总计划；历史计划作为上下文，不作为当前运行 Authority |
-| packs/ | 3 个直接子项 | artifact、competition、task 专项资源 | 不是本次新建第二套业务流程的地方 |
-| config/ | 3 项 | 竞赛配置、文字审计模式和评审权重 | 仅在确有竞赛差异时使用，不因本次改造扩张 |
-| assets/ | 2 项 | Figure 资产与图形资源 | 本次不改 |
-| knowledge/ | 1 个直接子项 | Case Memory | 本次不改 |
-| state/ | 1 项 | 仓库内项目状态示例 | 示例只作结构参考，不是新项目可直接复制的真实 State |
-| legacy/ | 15 项 | 历史版本、旧工具与兼容材料 | 不进入默认执行链，不作为新初始化或调度依赖 |
-| .github/workflows/ | 3 项 | CI、Optimization baseline、refresh-generated | 仓库文档和代码 PR 的远端生成与验收入口 |
+- 赛题与附件整体审计。
+- 全部小问 Problem Contract 和依赖关系登记。
+- 项目级数据事实、preprocessing_decision 和共享预处理。
+- 全项目唯一数值求解后端。
+- 项目 State、框架、generation、事务与恢复。
+- 项目级一致性和全局约束。
 
-### 1.2 活动规则与运行代码的分层
+**第二层：逐问建模求解（Question Runtime）**
 
-| 层次 | 关键文件 | 当前职责 | 本次边界 |
-|---|---|---|---|
-| 启动与固定来源 | SKILL.md、PROJECT_INSTRUCTIONS.md、AGENTS.md、core/bootstrap.yaml | 固定来源、启动范围、全局硬边界、网页/App 操作入口 | 只更新稳定导航和动作说明，不复制完整业务规则 |
-| 路由与模块依赖 | core/workflow_router.yaml、core/module_manifest.yaml | 意图、模块顺序、runtime segment、gate 声明、模块输入输出 | 第三批在现有 Router 上补默认选问，不新建第二套路由 |
-| 产物与阶段资格 | core/output_contract.yaml、core/workbook_schema.yaml | 框架、State、工作簿、脚本、Figure 和正式交付范围 | 第一批明确项目记录创建时点；第三批明确单问与全题 scope |
-| 项目状态与恢复 | core/project_state.schema.yaml、core/state_transition_contract.yaml、scripts/runtime_assurance.py | revision、structured identity、批准、依赖、stale、generation、只读 State snapshot | 第一批复用现有 State 和 snapshot 语义，不另建并行状态机 |
-| 运行时解析与读取 | scripts/resolve_runtime.py、scripts/resolve_workflow.py、scripts/reading_plan.py、scripts/read_stage.py | 当前动作解析、兼容规划、阶段读取计划和原文读取 | 默认入口继续使用 resolve_runtime；resolve_workflow 保持 legacy/stateless 兼容边界 |
-| 项目写入与同步 | scripts/project_transaction.py、scripts/sync_project.py、scripts/project_snapshot.py | generation/read-set 事务、Artifact 发现、快照、Schema/Hash 与 stale 传播 | 第一批新增初始化编排；第三批增加通用 question scope |
-| 数值代码与验收 | scripts/stage_code.py、scripts/stage_inputs.py、scripts/validate_code_delivery.py、scripts/validate_user_execution.py | 后端、源码 bundle、输入身份、代码交付、RUN_RECEIPT 和返回工作簿验收 | 第二批调整环境元数据必填性，保留数值证据资格 |
-| 模型批准与后端 | core/model_approval_contract.yaml、core/user_execution_contract.yaml、scripts/validate_model_approval.py、scripts/project_solver_backend.py | 双重 Model Challenge、明确人工批准、项目级唯一后端和迁移 | 第二批只解耦环境信息；不重做后端选择 |
-| Figure 与论文 | modules/04_figure_evidence.md、scripts/plot_backend.py、modules/05_writing、modules/06_review | 已验收数据绘图、论文写作、审查与终稿交付 | 第三批让单问 Figure 独立检查；不降低视觉/论文终审要求 |
-| 模板与实例 | templates/model、templates/code/starter、templates/code/matlab、templates/code/hsk_pipeline | 规范框架生成、Python/MATLAB 入口、工作簿写入与验证 | 第一批复用框架生成器；第二批同步检查回执生产端 |
-| 测试与维护 | tests/、.github/workflows/、scripts/generate_indexes.py | 行为回归、原生 MATLAB/LaTeX 和生成文件维护 | 仅新增对应反例，不手工维护生成索引 |
+- 识别一个当前小问。
+- 当前问模型设计、语义闭环、模型双审和人工批准。
+- 当前问主求解代码交付、用户本地运行、工作簿与回执验收。
+- 当前问 Analysis Necessity Gate 与必要的 03B。
+- 当前问 Figure Evidence 和对应论文内容。
 
-### 1.3 当前实际主流程
+**第三层：全项目论文与最终交付（Submission Runtime）**
 
-当前正式活动链可概括为：
+- 汇总所有必需小问的有效结果。
+- 跨问综合、论文整体结构、摘要和结论。
+- 全文图表引用、LaTeX 审计、编译和 PDF 检查。
+- 最终审查、复现包或官方提交包验证。
 
-**固定 Skill 来源与启动合同 → Router / Module Manifest → resolve_runtime → 项目 State 与 Artifact assurance → 读取当前阶段原文 → 对应业务 Module → resolver 返回的有序 gate → 代码交付 / 用户本地执行 / 返回工作簿验收 → 项目事务与同步 → Figure Evidence → 写作与终审。**
+### 1.2 三层之间的边界
 
-其中，读取计划、resolver 输出、文件存在和哈希一致都不自动等于模型正确、用户批准、数值 accepted 或图表视觉通过。正式交付仍只执行 resolver 当前返回的有序 pre_delivery_gates。
-
-### 1.4 项目事实的当前所有权
-
-| 事实 | 当前权威事实源 | 不可替代边界 |
+| 工作 | 层次 | 说明 |
 |---|---|---|
-| 当前模型语义、公式、变量、跨问依赖、论文结构与图表映射 | 项目根 模型论文框架.md | 作为项目工作记忆，不替代机器批准和数值真值 |
-| revision、structured identity、Model Challenge/Human Approval 状态、artifact identity、stale、依赖和机器阶段状态 | state/project_state.yaml | 聊天摘要和框架文字不能自行授予批准或恢复 stale 资格 |
-| 具体数值、质量门和实际运行事实 | 当前 accepted 主/深化工作簿及其 RUN_RECEIPT | 不能从代码、State 摘要或模型框架反推具体数值 |
-| 跨项目方法、审批、执行、图表、写作和交付规则 | 固定提交的活动 Authority | 项目框架不能复制成另一份全局规则 |
-| 仓库版本、源文件索引和 Manifest | Git commit、生成器及 GitHub refresh-generated | 不手工修改生成哈希或索引 |
+| 全题逐字审题、附件盘点、Problem Contract 列表 | 项目级 | 一次建立完整题目视图，不等于同时求解所有小问 |
+| 项目级共享数据审计 | 项目级 | 根据真实数据与模型输入决定是否统一预处理 |
+| 项目唯一求解后端 | 项目级 | 全部小问继承，不允许每问自行切换 |
+| Qn 模型设计和批准 | 问题级 | 只审核当前问及其必要模型依赖 |
+| Qn 主求解和结果验收 | 问题级 | 一次只处理当前问 |
+| Qn 的 03B | 问题级 | 主工作簿 accepted 后按必要性决定 |
+| Qn 图表 | 问题级 | 不因其他小问图表缺失而阻断 |
+| 项目级预处理 | 项目级 | 仅 project_level 时执行一次，不能按每问重复 |
+| 论文单问章节 | 论文层次中的问题级内容 | 按现有 writing runtime 和证据条件推进 |
+| 摘要、跨问综合结论、终审、提交 | 全项目 | 必须检查所有必需小问 |
+
+### 1.3 必须坚持的四条原则
+
+1. **局部任务局部核验。** Q1 的代码交付不要求 Q2 的工作簿或图表已经存在。
+2. **全局约束全局观察。** 单问模式不能隐藏 State 损坏、项目后端冲突、共享预处理变化或事务问题。
+3. **变化沿真实依赖传播。** Q1 变化可以使依赖它的 Q2 stale，但不能无差别使独立 Q3 stale。
+4. **最终交付全题验收。** 单问完成绝不等于全题完成。
 
 ---
 
-## 2. 已有能力与本次改造的边界
+## 2. 当前 v11.0.0 结构审计
 
-### 2.1 第一方向：已有事务和框架生成，但缺少统一初始化编排
+### 2.1 现有架构与权威归属
 
-已核实：
+| 层次 | 当前文件 | 当前职责 | 本次处理原则 |
+|---|---|---|---|
+| 启动 | core/bootstrap.yaml | 固定版本、权威源指针、启动事件和硬不变量 | 保持轻量，不复制业务流程 |
+| 全局政策 | core/hsk_core_policy.md | 全局硬约束、阶段适用与工作边界 | 保留最小必要流程原则，让实现与之对齐 |
+| 路由 | core/workflow_router.yaml | 意图、模块顺序、阶段边界、运行段和有序门禁 | 增加明确的逐问选择语义，不另造业务路由 |
+| 模块与门禁 | core/module_manifest.yaml | 模块输入输出、utility gate、依赖合同 | 每个门禁保持唯一权威来源 |
+| Runtime | core/runtime_assurance_contract.yaml | 项目上下文、意图来源、产物资格、依赖闭包、读取计划 | 明确项目范围与问题范围，不把诊断当执行授权 |
+| 项目状态 | core/project_state.schema.yaml | 项目身份、每问状态、语义身份、执行状态和产物绑定 | 优先复用现有字段，不增加重复的当前问状态 |
+| 状态转换 | core/state_transition_contract.yaml | typed stale、生命周期回退和跨问传播 | 保留全图传播，不因单问检查而裁剪 |
+| 交付 | core/output_contract.yaml | 项目布局、每问产物、delivery scope 和正式交付要求 | 让 delivery_scope 与 question_scope 正交 |
+| 模型批准 | core/model_approval_contract.yaml | Model Challenge、Human Approval、SIB 绑定 | 保留原审批门槛 |
+| 数值执行 | core/user_execution_contract.yaml | 项目唯一后端、RUN_CONFIG、RUN_RECEIPT、full-fidelity | 仅调整环境元数据必填性，不放宽执行真实性 |
+| 数值质量 | core/numerical_verification_contract.yaml | PQS 与主结果底层证据复核 | 不修改数值质量标准 |
+| 执行入口 | scripts/resolve_runtime.py | 生成当前运行计划、项目保证、依赖诊断和门禁命令 | 补默认选问和问题范围传递 |
+| 项目读取 | scripts/runtime_assurance.py | State 快照、问题范围、模型锁定和产物证据 | 保留整份 State 的一致性观察，细化语义范围 |
+| 语义治理 | scripts/validate_semantic_governance.py | SIB、revision、依赖一致性和语义 stale | 当前无通用 --question，需要问题范围 |
+| 项目同步 | scripts/sync_project.py | 发现产物、哈希、stale、正式交付检查和事务写入 | 当前按全部问题快照，需要问题范围 |
+| 问题快照 | scripts/project_snapshot.py | 发现问题目录并读取每问产物 | 当前被同步器全量调用，需要目标/依赖快照 |
+| 事务 | scripts/project_transaction.py | generation、read-set、并发保护、事务恢复和多文件提交 | 复用，不另建写入系统 |
+| 框架生成 | scripts/instantiate_model_paper_framework.py | 从规范模板生成 compact/full 框架 | 复用其纯文本投影能力，由初始化编排器统一提交 |
+| 执行验收 | scripts/validate_user_execution.py | 单工作簿回执、代码/数据身份和数值证据验收 | 保留单工作簿入口，移除新回执对非核心环境元数据的硬依赖 |
 
-1. AGENTS.md 和 core/output_contract.yaml 已规定 proposed_model_spec 形成后建立或更新项目根 模型论文框架.md。
-2. scripts/instantiate_model_paper_framework.py 已能从 canonical 模板生成 compact/full 框架文本；它不负责生成 project_state.yaml。
-3. core/project_state.schema.yaml 已定义 State 根结构和小问字段，subproblems 至少需要一个真实小问记录。
-4. scripts/runtime_assurance.py 的 ProjectStateSnapshot 是只读快照；State 缺失会被表示为 unavailable，不会自动创建。
-5. scripts/project_transaction.py 已支持 State 与伴随文件的可恢复事务、generation、expected_file_hashes、staged validators；tests/test_project_transaction_read_set.py 已覆盖“目标 State 原本不存在时，通过显式 absence read-set 初始化”。
-6. 现有项目状态更新写入者包括 sync_project、semantic governance、code delivery、user execution、project backend、plot backend 和 case references 等；这些属于已有更新/选择动作，不等于一个统一的新项目初始化入口。
+### 2.2 已经存在、必须复用的能力
 
-**判断：** 不能重造事务系统，也不能把初始化写进只读 resolver。缺少的是在 proposed_model_spec 之后，依据真实题目与已形成模型记录，协调框架和 State 的首次创建、部分缺失修复及安全恢复。
+| 现有能力 | 当前事实 | 结论 |
+|---|---|---|
+| 显式指定小问 | resolve_runtime 接受 question/--question | 不重新设计显式选问接口 |
+| 问题级模型批准 | validate_model_approval.py 支持问题范围 | 复用现有批准验证器 |
+| 单工作簿验收 | validate_user_execution.py 支持 --workbook | 返回 Qn 工作簿时不必验收全部小问 |
+| 全项目结果闭合 | Runtime Assurance 已定义 validated_results；全流程最终交付检查所有注册小问 | 复用全题终审边界 |
+| typed stale 传播 | State Transition Authority 支持 model/result/parameter/data 与 legacy untyped | 不重写依赖失效引擎 |
+| State 快照一致性 | ProjectStateSnapshot 绑定原始 State 字节与 generation | 继续整份 State 快照和并发保护 |
+| 原子多文件事务 | project_transaction.commit_project_state 支持 State 与伴随文件、read-set 和预期不存在路径 | 用于首次项目初始化 |
+| 框架生成 | instantiate_model_paper_framework.instantiate() 返回经现有验证的文本 | 初始化器调用函数，不直接使用分开写文件的 CLI |
 
-### 2.2 第二方向：项目后端和真实执行边界已存在，环境元数据被过度设为验收必填
+### 2.3 已确认的运行缺口
 
-已核实：
+| 缺口 | 当前实现事实 | 用户可见影响 | 计划修复方向 |
+|---|---|---|---|
+| 缺少默认选问 | resolve_runtime 支持显式 Qn，但没有完整默认选择器 | 不指定题号时可能按全项目范围读取或产生多问分类歧义 | 增加只读问题选择器 |
+| 无题号时聚合分类 | runtime_assurance._scope_questions 在无 question 时返回全部小问；_classification_for_scope 要求共享一套分类 | 不同题型小问可能被合并成歧义 | 问题级任务先选定 Qn，再读取该问分类 |
+| 语义治理全量循环 | validate_semantic_governance.py 遍历全部 subproblems，CLI 当前没有 --question | 当前问可能被无关小问语义问题阻断 | 增加问题范围与必要依赖范围 |
+| 同步器全量快照 | sync_project.synchronize() 没有通用 question 参数；通过 _question_names() 遍历所有小问 | Q1 的 code/results/figures 检查可能被 Q2 缺失产物阻断 | 增加 question scope，保留全局观察 |
+| 同步器全量状态门 | _formal_state_issues() 遍历全部 subproblems；_scope_artifact_issues() 检查全部 snapshots | 单问 delivery scope 仍可能被其他问的质量状态或 stale 阻断 | 只对目标问和必要上游做局部交付检查；最终 scope 仍全题 |
+| 依赖诊断不是执行授权 | _dependency_diagnostics() 只读观察 incoming result/legacy edges；合同明确它不改变 gate eligibility | 发现上游缺结果不等于实际代码交付门已阻断 | 把 typed dependency eligibility 接入既有 code_delivery 准入，不新增并行门禁 |
+| 依赖诊断范围不完整 | 诊断主要处理 result 与 legacy untyped；model/data/parameter 语义分别在其他 Authority | 默认调度不能仅凭结果依赖表决定可执行性 | 复用各类型的现有语义，不把所有依赖都当成结果等待 |
+| 项目初始化没有统一编排器 | 框架生成器只生成框架文本；State 事务能力存在，但没有入口将二者配套创建 | 项目记录创建与恢复缺少统一安全入口 | 新增轻量初始化编排器 |
+| 新回执环境字段过严 | configuration_map() 将 solver_version、platform 列入通用必填项；新 RUN_CONFIG 已把 solver_version 作为可选兼容字段 | 新回执可能仅因缺少平台或版本信息被拒绝 | 区分执行真实性字段和可选环境元数据 |
 
-1. core/user_execution_contract.yaml 已规定一赛题一个项目级 Python/MATLAB 后端，主求解和 required 的分析入口继承同一后端。
-2. Model Approval Brief 已承载具体求解器、依赖和未验证环境条件；没有必要新增一个环境审批 Gate。
-3. Model Challenge 的检查项包含 selected_backend_capabilities_and_environment；后端选择依据包含可用环境和必要数值能力，但合同同时允许明确记录未验证条件。
-4. canonical RUN_CONFIG 的必需字段不包含 solver_version 或 platform；solver_version 在历史兼容字段中另有定义。
-5. scripts/validate_user_execution.py 的 configuration_map() 却把 solver_version 与 platform 放入通用工作簿必填集合，形成合同与消费者不一致。
-6. Python/MATLAB 模板会把 solver_version、platform 等写入运行后 RUN_RECEIPT；这些值是实际执行事实，不是运行前的模型审批或代码交付授权。
-7. MATLAB 数值模板除 usejava('jvm') / license('test','MATLAB') 检查外，还在路径规范化和 SHA-256 计算中实际使用 Java；仅删除前两条 assert 并不会消除 JVM 依赖。
+### 2.4 必须保留的全局观察
 
-**判断：** 应移出“用户必须提前证明本机环境”的阻断作用，但不能删除求解器数学能力审查、项目唯一后端、真实运行错误诊断、源码/数据身份和 full-fidelity 数值验收。
+单问范围不是“只读取一个文件夹”。以下检查仍然是项目级：
 
-### 2.3 第三方向：已有显式小问作用域和 03B Gate，但默认选问与同步器仍偏全题
+- 整份 state/project_state.yaml 必须可解析、符合 Schema，generation 合法。
+- pending transaction journal 必须按原事务恢复规则处理；Resolver 不得隐式恢复或写入。
+- 项目根唯一求解后端必须一致；不能因 Qn scope 忽略其他问的 backend 声明冲突。
+- 项目级共享预处理的决策、输入来源和 accepted 工作簿必须保持当前。
+- dependency graph 结构必须可解析；目标依赖闭包中的冲突、循环和不明确来源不能被忽略。
+- 当前 State 的 generation/read-set/concurrency 保护必须覆盖所有写入。
+- 发生变化的小问沿完整 typed dependency graph 向下游传播 stale；不得只传播到当前被检查的小问。
 
-已核实：
+---
 
-1. scripts/resolve_runtime.py 已接受可选 question 参数和 CLI --question；runtime assurance 能按小问核对语义与工作簿证据。
-2. core/workflow_router.yaml 已分开 primary_execution、analysis_execution 和 full_workflow_resume。
-3. modules/03_result_analysis.md 已有 Analysis Necessity Gate；required 才生成独立 03B 入口，not_required 必须记录理由。不得重复建立第二个 03B Gate。
-4. scripts/sync_project.py 的 synchronize() 目前只有 mechanism_question 这种专项参数，没有通用 question 参数。
-5. scripts/project_snapshot.py 的 _question_names() 会合并 State 中登记的小问、问题目录和历史结果目录；sync_project 随后遍历这些小问建立快照。
-6. sync_project 的 _formal_state_issues() 遍历全部 subproblems；_scope_artifact_issues() 对传入的全部快照检查脚本、工作簿和图表。
-7. 因此，即使目标是 Q1 的 Figure，其他小问的缺失产物仍可能进入同一次正式同步检查。
-8. runtime_assurance_contract 已规定 --question 的单问证据范围，以及 full_workflow 最终交付前必须检查全部已登记小问。
+## 3. 目标运行范围模型
 
-**判断：** 第三批重点是“默认选哪一问”和“单问同步实际检查哪些快照”，不是重新设计模型审批、03B 或全题终审。
+### 3.1 五个范围，不能混成一个 --question
 
-### 2.4 已有历史计划和独立议题
+| 范围 | 定义 | 典型内容 | 是否持久化 |
+|---|---|---|---|
+| Project Invariant Scope | 每次相关动作都必须观察的项目级约束 | State/schema/generation、唯一后端、共享预处理、依赖图结构、事务状态 | 现有 State/合同 |
+| Target Question Scope | 当前动作直接处理的小问 | Qn 模型、代码、工作簿、分析、图表 | 现有 subproblem 状态和产物 |
+| Upstream Prerequisite Closure | 当前问和当前阶段真正需要的上游问 | typed model/result/parameter/data 依赖 | 由现有 depends_on 推导 |
+| Downstream Invalidation Closure | 某个源发生变化后，所有可能受影响的下游问 | typed stale 传播 | 由 State Transition Authority 推导 |
+| Finalization Scope | 正式论文、终审与提交必须覆盖的全部注册小问 | 全部必需结果、分析、图表、章节和提交证据 | 现有项目状态与产物 |
 
-| 当前仓库已有资料 | 本计划的处理 |
+**关键区别：** Target Question Scope 决定本次检查谁；Upstream Prerequisite Closure 决定本次依赖谁；Downstream Invalidation Closure 决定变化后使谁 stale；Finalization Scope 决定最终交付检查谁。
+
+### 3.2 与现有 delivery_scope 的关系
+
+当前 delivery_scope 表示 design/code/results/figures/docx/latex/submission 等交付阶段；它不等于小问范围。
+
+目标接口是两个正交维度：
+
+- delivery scope：本次检查哪一类交付。
+- question scope：本次问题级交付属于哪个 Qn。
+
+行为约定：
+
+1. design/code/results/figures 支持单问范围。
+2. 这些单问范围仍观察项目级不变量和必要上游依赖。
+3. project-level preprocessing 是项目级动作，不伪装成每问重复执行。
+4. docx/latex/submission 的最终资格仍覆盖所有必需小问。
+5. 对论文单章的编辑可以有局部内容范围，但不得把最终交付门缩成单问。
+6. mechanism scope 保留现有独立规则；选中某个 mechanism spec 时仍校验其 question ID。
+
+### 3.3 单问同步的三段式数据流
+
+每次 question-scoped sync 必须分开：
+
+1. **全局观察：** 读取同一份 State snapshot，核对项目级不变量、generation、backend、共享预处理、dependency graph 结构和事务状态。
+2. **局部快照：** 只读取目标问和当前阶段所需 upstream closure 的产物、源码、工作簿及身份。
+3. **完整失效传播：** 若局部快照发现源变化，State Transition Authority 对完整 State 依赖图计算 downstream stale，不得因本次只检查 Q1 而裁掉 Q2。
+
+对于无关小问：
+
+- 不因其缺少代码、工作簿或图表而阻断当前问。
+- 不把它的语义状态提升为 approved 或 accepted。
+- 不删除它已有 stale。
+- 不覆盖它未观察的产物哈希。
+- 其变化在后续对应 scope 或全项目终审时仍可被发现。
+
+---
+
+## 4. 逐问选择与执行规则
+
+### 4.1 默认选问优先级
+
+选择器是 Resolver 的只读推导，不新增持久化 current_question。
+
+1. **用户明确指定 Qn。** 优先处理该问；若该问依赖未满足，报告具体阻断，不自动跳去其他问。
+2. **用户返回工作簿。** 通过标准路径、文件名和 RUN_RECEIPT 识别 question/stage；直接验收该工作簿，不再猜题号。
+3. **用户明确要求继续/恢复。** 优先恢复唯一明确的等待点，例如当前问等待用户批准、用户本地执行或返回工作簿。
+4. **项目级前置任务。** 若 project_level preprocessing 尚未 accepted，且它是当前可推进小问的共同必要条件，则先推进该项目级任务。
+5. **选择第一道依赖满足的小问。** 按 Problem Contract 中的题目顺序，从尚未完成的注册小问中选择第一道当前阶段可推进的问。
+6. **跳过被阻断但不相关的小问。** 若 Q2 因 Q1 结果尚未满足而等待，但 Q3 独立且可推进，则选择 Q3。
+7. **没有可推进小问。** 报告具体上游缺口、循环或歧义；不随机选择。
+8. **所有必需小问的 validated_results 已满足。** 转入项目级写作综合和最终交付，不再虚构一个当前求解问。
+
+若 Problem Contract 未提供可核验顺序，按 Q 的自然数字顺序作确定性回退；不按字符串排序导致 Q10 排在 Q2 前面。
+
+### 4.2 显式问号的阻断语义
+
+- 用户明确说“继续 Q2”，即使 Q2 被阻断，也必须报告 Q2 的阻断原因。
+- 不得静默改为 Q3，否则用户无法知道自己指定的 Q2 尚未满足条件。
+- 用户明确改为 Q3 时，可以切换焦点；原 Q2 的等待状态必须保留，不能被覆盖或清除。
+- 用户说“继续”但存在多个同等合理的等待点时，按 Problem Contract 顺序给出确定性选择；若状态冲突导致无法唯一判断，则只询问一个最关键的澄清问题。
+
+### 4.3 一次只交付一个问题级求解任务
+
+- 一次 code_delivery 只生成一个目标问的主求解入口及其必要辅助文件。
+- 不因用户说“完成整道题”就一次生成 Q1-Qn 全部求解代码。
+- 多问请求可以形成内部待办顺序，但当前只交付第一道可推进小问。
+- 用户完成本问实际运行并返回工作簿后，再根据状态和依赖决定下一问。
+- 若用户显式切换到另一独立问，原问的 awaiting_user_execution/approval 状态保留。
+- 项目级预处理和最终论文交付不受“一次只做一个小问”限制，因为它们本来就是项目级动作。
+
+### 4.4 Resolver 输出要求
+
+Resolver 计划可增加只读选择诊断，但不得写回 State：
+
+- selected_question
+- selection_reason
+- candidate_questions
+- blocked_questions
+- prerequisite_closure
+- dependency_diagnostics
+- scope_kind（question/project/finalization）
+- 是否需要用户动作以及具体等待原因
+
+这些是本次运行计划的解释，不是新的持久项目事实，不得当作批准、数值验收或 gate PASS。
+
+---
+
+## 5. typed dependency 的执行资格
+
+### 5.1 依赖类型与当前问的必要条件
+
+| kind | 语义 | 下游执行前应核对什么 | 不应误判成什么 |
+|---|---|---|---|
+| model | 下游模型语义依赖上游模型 | 上游当前 SIB、semantic revision、Model Challenge 和 Human Approval 仍有效 | 不自动要求上游数值工作簿已完成 |
+| result | 下游计算消费上游结果 | 上游 accepted primary、result quality passed；若上游 Analysis Necessity Gate=required，还须分析 accepted、必要处置完成；最终资格按 validated_results 语义判定 | 不仅凭文件存在或未验收工作簿放行 |
+| parameter | 下游消费上游参数 | 参数值必须能追溯到当前 approved model/framework 或当前 accepted workbook；若来源是上游结果，按结果来源检查 | 不从聊天摘要、文件名或旧表格猜测参数 |
+| data | 下游消费上游数据来源 | 原始数据身份当前；若 project_level，则统一预处理工作簿 accepted 且数据身份当前 | 不要求上游问先完成全部分析和图表 |
+| legacy_untyped | 历史依赖没有明确类型 | 保留保守 stale 传播；若当前问资格依赖其具体含义，报告需要澄清 | 不自动解释为 result，也不当作无依赖 |
+
+### 5.2 参数依赖的保守边界
+
+当前 dependency_entry 只有 question、kind 和 note，没有通用参数 selector。计划第一阶段不凭自由文本猜测参数路径。
+
+- 若当前框架或 SIB 已明确参数值及来源，按现有证据检查。
+- 若参数来自上游 accepted workbook，沿结果来源检查。
+- 若无法确定实际参数来源，阻断当前依赖该参数的小问并报告缺项。
+- 不阻断不依赖该参数的其他小问。
+- 若真实项目证明需要机器可核验的参数 selector，另行提出最小 Schema 变更、迁移和兼容测试；不得预先增加没有消费者的字段。
+
+### 5.3 循环依赖与联合求解
+
+- 目标问的上游 closure 存在真实循环时，不按普通 DAG 顺序自动排队。
+- 报告循环涉及的 Q、各边类型和缺失证据。
+- 退回 Problem Contract / Model Design，明确联合求解、初值、迭代更新、停止条件或其他实际数学结构。
+- 不因 Q1-Q2 循环而阻断不在该循环闭包内的独立 Q3。
+- State Transition Authority 继续检测并有限终止循环；本次不改变其纯状态转换职责。
+
+### 5.4 Q1 / Q2 / Q3 标准场景
+
+| 小问 | 依赖 | 当前条件 | 允许行为 |
+|---|---|---|---|
+| Q1 | 无 | 模型批准、项目级预处理（如适用）已满足 | 可独立求解 |
+| Q2 | Q1 / result | Q1 的 validated_results 尚未满足 | Q2 等待，不生成正式依赖 Q1 结果的求解代码 |
+| Q3 | 无 | 自身模型批准和数据条件满足 | 可在 Q2 等待期间独立推进 |
+| Q2 | Q1 / model | Q1 模型身份已验证、批准有效，但 Q1 数值结果未完成 | Q2 可进入模型设计/求解准备；不人为等待 Q1 数值结果 |
+| Q2 | Q1 / data | Q1 共享数据来源或 project_level 预处理发生变化 | 按数据身份与共享预处理当前性判断，不自动要求 Q1 的 03B 或 Figure Evidence |
+
+Q1 的 Figure Evidence、论文段落或无关展示文件不应成为 Q2 的隐式前置条件。只有明确 typed dependency 或现有业务合同要求时才等待。
+
+---
+
+## 6. 项目级与逐问级工作流
+
+### 6.1 新项目启动
+
+| 步骤 | 范围 | 助手动作 | 停止/等待条件 |
+|---|---|---|---|
+| 1. 导入题目 | 项目级 | 读取题目、附件、评分与输出要求 | 材料缺失且会改变审题时报告缺口 |
+| 2. 逐字审题 | 项目级 | 拆解背景、条件、约束、子问题、依赖和输出 | 不因无专属模板或无环境元数据而阻断 |
+| 3. 数据审计 | 项目级 | 盘点字段、单位、粒度、主键、缺失、异常、时间/空间错位 | 只形成数据事实，不自动清洗 |
+| 4. Problem Contract 注册 | 项目级 | 为全部 Q 建立问题目标、依赖类型和顺序 | 未确定的依赖保持未决，不猜测 |
+| 5. 逐问模型设计 | 问题级 | 从第一道待设计问开始，形成 proposed_model_spec | 不同时输出全部小问求解代码 |
+| 6. 首次项目记录创建 | 项目级 | 第一份 proposed_model_spec 成立后，原子创建 State 与框架 | 已有项目文件不得覆盖 |
+| 7. 项目后端与预处理决策 | 项目级 | 根据全题可预见数值需求确定唯一后端；确定三态 preprocessing_decision | 不要求提前证明本机 platform/version；project_level 共享预处理按现有批准规则 |
+| 8. 进入逐问循环 | 问题级 | 每次选择一个可推进小问 | 用户批准、用户运行和工作簿返回处正常暂停 |
+
+### 6.2 单问生命周期
+
+| 阶段 | 必须完成的事 | 不提前做的事 |
+|---|---|---|
+| Problem Contract | 目标、条件、输出、变量需求和依赖 | 不直接生成最终代码 |
+| Model Design | 经典稳健路线、高级改进路线、公式闭环、假设与复杂度审查 | 不把算法名堆叠当创新 |
+| Model Challenge | 正向审查与 Devil's Advocate 独立挑战 | 不用代码运行成功替代数学审查 |
+| Human Model Approval | 用户明确批准当前语义身份 | 不把沉默当批准 |
+| Preprocessing | 只执行当前决策要求的项目级或局部处理 | not_needed/question_local 不创建全局预处理目录 |
+| Primary Code Delivery | 交付当前问主求解代码并做静态工程检查 | 不生成其他问的求解代码 |
+| User Execution | 用户本地 full-fidelity 运行 | 助手不运行赛题专属数值入口 |
+| Primary Acceptance | 核对工作簿、RUN_RECEIPT、代码/数据身份、PQS 和适用数值证据 | 不要求其他问工作簿同时返回 |
+| Analysis Necessity | 对当前问判定 required/not_required | 不预先生成空 03B |
+| Analysis Execution | required 时独立生成并验收当前问 03B | 不改写已冻结主求解入口 |
+| Figure Evidence | 按当前问已验收数据和 Figure Authority 处理 | 不要求所有小问图表同时存在 |
+| Question Result Closure | 形成当前问有效结果摘要与待办 | 不等于全题论文或提交完成 |
+
+### 6.3 何时可以推进下一问
+
+- 当前问的用户等待动作尚未返回时，默认恢复该等待点。
+- 当前问 primary 未 accepted 时，不把它的结果作为下游 result dependency。
+- 当前问 Analysis Necessity Gate=required 且分析未完成时，其 validated_results 尚未满足。
+- 当前问 Gate=not_required 且有非空理由时，不生成 03B；这不是“稳健性已经通过”。
+- 下游问只等待其 typed dependency 所需证据，不等待无关图表、写作或最终 PDF。
+- 如果当前问结果被拒绝、语义变化或输入变化，按 State Transition Authority 使相关下游 stale。
+- 当前问完成后，Resolver 再选第一道依赖满足的小问；不一次性生成剩余所有代码。
+
+### 6.4 全项目收尾
+
+只有全部必需小问满足现有 validated_results 语义，且相关 Figure Evidence、论文片段和提交证据 current 时，才允许进入相应全项目正式交付。
+
+- Q1 solved 不等于 Q2/Q3 solved。
+- 所有小问主工作簿 accepted 不一定等于所有 required 03B 已完成。
+- 所有数值结果 validated 不等于图表已经人工审查。
+- 图表通过不等于论文已完成。
+- LaTeX 编译通过不等于 PDF 已逐页查看。
+- ZIP 存在不等于提交包 validated。
+
+---
+
+## 7. 核验机制：按阶段、范围和身份触发
+
+### 7.1 检查职责唯一归属
+
+| 核验事实 | 唯一主要 Authority / 消费者 | 不应重复承担的职责 |
+|---|---|---|
+| Problem Contract 与语义闭环 | Problem Audit、Semantic Governance | Router 不裁决数学正确性 |
+| SIB/revision/typed dependency 语义变化 | validate_semantic_governance.py 与 State Transition Authority | Sync 不另写一套语义 stale 规则 |
+| Model Challenge / Human Approval | Model Approval Contract 与 validate_model_approval.py | 代码检查器不授予批准 |
+| 代码静态质量与交付身份 | Code Quality / Code Delivery | 用户回执不替代静态代码检查 |
+| 实际执行事实 | RUN_RECEIPT 与 validate_user_execution.py | RUN_CONFIG 不自报实际运行结果 |
+| 主结果底层数值复核 | Numerical Verification Authority | 不把工作簿自报 Boolean 当独立复核 |
+| 产物发现、哈希和 stale | sync_project.py + State Transition Authority | 不把同步器变成模型审批器 |
+| 图表证据与视觉质量 | Figure Evidence Authority + 用户视觉检查 | 文件存在或图像哈希不等于视觉通过 |
+| LaTeX/PDF | 现有 LaTeX audit/compile/PDF 页面检查 | 日志或文本提取不代替全页查看 |
+| 全题最终交付 | Resolver 返回的正式门禁 + final review/submission contracts | 不以某个小问 PASS 推断全题 PASS |
+
+### 7.2 触发矩阵
+
+| 检查 | 触发时机 | 范围 | 复用原则 |
+|---|---|---|---|
+| State/schema/generation | 每次项目恢复或写入前 | 整份 State | 复用同一快照，不缓存 PASS |
+| 项目 backend consistency | 进入数值设计/交付或后端迁移时 | 项目级 | 项目根唯一后端，不能每问重新选择 |
+| preprocessing decision/currentness | 数据审计后、project_level 执行和下游数值交付时 | 项目级或实际数据依赖范围 | 共享预处理只验收一次；变化时重新处理 |
+| Semantic Governance | 语义首次闭环、变化、代码交付和结果消费的必要边界 | 当前问及必要依赖；全题收尾为全项目 | 语义未变时只确认当前身份绑定，不重复人工双审 |
+| Model Approval | 主模型形成后、数值代码交付前 | 当前问及必要 model dependency；project_level preprocessing 按共享消费者范围 | 纯措辞或实现变化不重新批准；语义变化必须重新挑战/批准 |
+| Code Quality / Code Delivery | 首次交付或源码/bundle 变化 | 当前问 | 同一源码身份可复核绑定，不重复无变化的完整审查 |
+| RUN_RECEIPT / Numerical Evidence | 用户返回对应工作簿后 | 当前问、当前阶段 | 一次绑定实际源码、数据和工作簿；不要求无关工作簿 |
+| Analysis Necessity | 当前问 primary accepted 后 | 当前问 | Gate 决定是否激活 03B |
+| Figure Evidence | 当前问正式图表请求/交付时 | 当前问及图实际依赖 | 不因其他问的图缺失而阻断 |
+| Writing/LaTeX | 当前章节和对应来源满足时 | 当前章节；正式终稿按全项目 | 按 writing runtime 的阶段顺序和当前来源执行 |
+| Final Review / Submission | 用户请求正式终审或提交时 | 全项目 | 必须检查所有必需问与最终证据 |
+
+### 7.3 不重复检查的严格含义
+
+“不重复检查”不是保存一个 PASS 布尔值后永远相信它。
+
+允许复用的是：
+
+- 当前已验收工作簿的原始字节与哈希。
+- 已交付代码和 helper bundle 的原始字节身份。
+- 已绑定的输入数据身份。
+- 当前 SIB、semantic revision 和批准绑定。
+- 现有事务与 State generation 证据。
+
+每次使用时仍核对这些来源是否 current。不得只凭聊天记忆、文件名、Resolver assurance=pass 或旧回执声称当前资格；不得在源码/数据变化后沿用旧 accepted 身份。
+
+### 7.4 写入与代次
+
+project_transaction.commit_project_state() 每次提交都会推进 generation。因此后续实施应检查写模式 Validator 是否在状态完全未变时仍无必要提交。
+
+- Semantic Governance：若候选 State 与当前 State 完全一致，优先返回只读结果，不提交无变化事务；若确有 semantic baseline/stale 变化，仍使用原事务和 read-set。
+- Sync：先确认报告、框架同步头和 State 是否有实际变化；只有确有 State/框架变化时才提交相应事务。若只更新报告，必须用现有安全写入机制，不得绕过 read-set。
+- 以上是需专项测试的实现优化，不得以减少 generation 为理由跳过 stale、并发或 source recheck。
+
+---
+
+## 8. 项目记录创建与恢复
+
+### 8.1 初始化时机
+
+当前 Output Contract 规定模型论文框架在 proposed_model_spec 后创建。本次保持这一业务边界：
+
+1. Problem Audit 可先在当前对话中完成，不强制提前生成空 State。
+2. Problem Contract 和全题依赖关系形成后，进入第一个小问模型设计。
+3. 第一个 proposed_model_spec 已形成时，助手自动调用项目初始化编排器。
+4. 初始化器一次性创建 State 与框架，并登记全部已知小问。
+5. 后续问进入模型设计时更新各自已有条目，不重新初始化整个项目。
+
+### 8.2 初始化器职责
+
+拟新增 scripts/initialize_project.py，它是编排器，不是第二套 State Authority。
+
+必须复用：
+
+- scripts/instantiate_model_paper_framework.py::instantiate()：生成规范模板文本。
+- core/output_contract.yaml：框架模式、目录与项目记录时机。
+- core/project_state.schema.yaml：State 结构。
+- scripts/validate_project_state.py 与 scripts/validate_model_paper_framework.py：现有验证。
+- scripts/project_transaction.py：State 与框架的原子多文件提交。
+
+禁止另建数据库/第二份项目状态；从聊天摘要填入批准、accepted 工作簿或数值；初始化时自动选择/批准模型；生成空 03B；覆盖已存在 State/框架。
+
+### 8.3 全部小问注册
+
+首次创建正式项目记录时，把 Problem Audit 中已确认的全部 Qn 登记到现有 subproblems map，而不是只登记第一个求解问。
+
+pending 小问只记录：
+
+- Qn 的 Problem Contract/分类与 capabilities。
+- 已确认的 typed depends_on。
+- status=audited 或等价的当前合法待设计状态。
+- framework_section 锚点。
+- result quality / analysis 的初始 pending 状态。
+- 尚未选模型时 selected_model 为空，不伪造模型名。
+- 不创建 semantic identity、validated hash、approved hash 或 accepted execution。
+
+**前置测试：** 当前 Schema 的 selected_model 是 string 且没有 minLength，但仍必须通过 State Validator、Framework Validator 和 Semantic Governance 的真实测试，确认 pending stub 不会被当作已设计模型。如果任何消费者不接受空 selected_model，不得用“待定模型”伪装成真实模型；应在 PR-A 中给出最小兼容设计，必要时另行评估 Schema 变更。
+
+模型论文框架需为每个注册小问提供真实章节锚点和 Problem Contract 槽位。规范模板仍是唯一模板来源；初始化器只做确定性扩展，不复制另一份论文规则。
+
+### 8.4 初始化原子性
+
+1. 捕获项目目录与预期不存在的 State/框架路径。
+2. 捕获 Problem Contract、依赖图和 proposed_model_spec 来源身份。
+3. 生成 State candidate 与框架 candidate。
+4. 使用 commit_project_state() 的 expected_file_hashes、writes_before_state/writes_after_state 和 staged validators。
+5. 同一事务提交 State 与框架，State generation 按现有事务规则推进。
+6. 写后重新读取并校验两份文件及 generation。
+7. 任何步骤失败时不留下“State 已有但框架没有”的半初始化项目。
+
+### 8.5 恢复决策矩阵
+
+| 现有情况 | 允许行为 | 禁止行为 |
+|---|---|---|
+| State 与框架均存在且一致 | 只读恢复当前上下文 | 重建或覆盖 |
+| 两者均不存在，且确认是无历史产物的新项目 | 满足 proposed_model_spec 后初始化 | 早于现有 contract 创建空 State |
+| 存在未完成事务 journal | 调用既有事务恢复流程，重新捕获快照后继续 | Resolver 自动恢复或初始化器覆盖 journal |
+| State 缺失、框架存在 | 先找可信原始备份/版本历史；无备份时停止并报告恢复风险 | 从框架自动合成历史批准和 accepted 结果 |
+| 框架缺失、State 存在 | 从可信原始备份恢复；无备份时停止模型语义依赖任务 | 从 semantic hash 反向生成模型公式和假设 |
+| 两者都缺失但项目目录已有代码/工作簿 | 进入显式 recovery_required，检查可信来源并等待用户决定 | 当作全新项目重新初始化并覆盖历史 |
+| State 与框架 SIB/hash/revision 不一致 | 报告冲突、保留原始字节、按现有语义治理处理 | 自动选择其中一个并清除 stale |
+| 历史工作簿存在但 State 丢失 | 仅作为历史文件观察，不自动认定 accepted | 从文件存在或聊天摘要恢复 accepted |
+
+若将来增加显式 degraded rebuild，必须要求用户确认；重建后的模型批准和数值接受默认回到待核验状态，历史工作簿只读保留。不得伪造原审批。
+
+---
+
+## 9. 环境元数据与执行真实性
+
+### 9.1 先纠正问题定位
+
+当前问题不是通用的“运行前本机身份检查”：
+
+- 新 RUN_CONFIG 已将 solver_version 作为可选兼容字段。
+- 当前 Model Approval Brief 已允许记录尚未验证的环境条件。
+- 真正阻断点在 returned-workbook 的 configuration_map()：它把 solver_version 与 platform 列入通用必填项。
+- MATLAB 模板中的 JVM 与 License 断言属于实际运行依赖，不是可删除的身份装饰。
+
+因此，PR-E 的范围是：**新版本回执不再要求用户证明本机平台/版本元数据；保留真实执行来源、实际停止和 full-fidelity 证据。**
+
+### 9.2 字段分层
+
+| 字段/证据 | 新版本要求 | 说明 |
+|---|---|---|
+| semantic_identity_hash / validated_semantic_identity_hash / approved_semantic_identity_hash | 必须 | 数学模型身份和批准绑定 |
+| semantic_revision / Model Challenge / Human Approval | 必须 | 不允许跳过或伪造 |
+| code_sha256 | 必须 | 当前实际入口源码 |
+| code_bundle_sha256 | 适用版本必须 | 入口与项目 helper 的源码闭包 |
+| data_sha256 | 必须 | 实际输入数据身份 |
+| solver_backend | 必须与项目唯一选择一致 | 不是机器身份，不允许静默切换 |
+| solver | 必须 | 实际算法/求解器事实 |
+| tolerance / iteration_or_time_limit / random_seed | 必须 | 计划与实际运行事实绑定 |
+| actual_stop_reason | 必须 | 真实停止原因 |
+| fallback_used | 必须为 false | 禁止静默回退 |
+| execution_owner | 必须为 user | 助手不得代跑题目专属数值代码 |
+| execution_profile | 必须为 full_fidelity | 不得缩减计算 |
+| 六个 no-degradation 标志 | 必须保持 false | 不降低数值要求 |
+| solver_version | 新版本可选 | 实际可得则记录，不作为通用阻断 |
+| platform | 新版本可选 | 实际可得则记录，不作为通用阻断 |
+| matlab_release | 可选 | 实际可得则记录；不新增必填要求 |
+
+### 9.3 版本与兼容
+
+- 显式声明当前受支持 RUN_RECEIPT 版本的新 writer：solver_version/platform/matlab_release 缺失不应单独导致验收失败。
+- 若字段存在，按可选元数据进行格式检查；不应把缺失当作执行失败。
+- 无版本握手的旧历史回执仍按现有 legacy read-only 兼容规则读取，不静默把新 writer 降级为 legacy。
+- 旧 FULL_FIDELITY_CONFIG/FULL_RUN_CONFIG 的原字段规则不因本次修改而放宽。
+- 不删除 MATLAB 模板在可得时记录 version/computer/release 的代码；只是这些字段不再决定新回执的核心资格。
+- 不要求用户提供硬件序列号、CPU ID、操作系统指纹、许可证序列号、环境快照哈希或额外本机证明文件。
+
+### 9.4 真实运行依赖仍保留
+
+- MATLAB JVM、MATLAB License、所需 Toolbox 或 Python 包是实际运行条件。
+- Model Approval Brief 可记录需要的依赖和未验证条件。
+- 不在求解前要求用户提交一套机器环境证明。
+- 用户运行时依赖缺失，按真实运行错误处理；不静默换后端、换求解器或降精度。
+- 改变项目唯一 backend，必须走现有显式 backend migration/confirmation。
+
+---
+
+## 10. 具体文件与接口映射
+
+| 实施主题 | 预计文件 | 具体责任 | 明确不做 |
+|---|---|---|---|
+| 项目初始化 | 新增 scripts/initialize_project.py | 创建全部问题登记、框架与 State 的统一编排 | 不新增 State Authority |
+| 框架生成 | scripts/instantiate_model_paper_framework.py、templates/model/model_paper_framework.md | 复用规范模板并生成多问 skeleton | 不复制论文写作规则 |
+| 问题选择 | scripts/resolve_runtime.py，必要时新增纯函数 scripts/question_scheduler.py | 显式问号、等待点、依赖就绪、题目顺序和下一项选择 | 不持久化 current_question |
+| 选择与依赖合同 | core/workflow_router.yaml、core/runtime_assurance_contract.yaml | 规定一问一动作、typed dependency eligibility 和范围 | 不新增并行门禁 |
+| 语义治理 | scripts/validate_semantic_governance.py | 增加问题范围；保留全项目默认模式和 downstream propagation | 不只检查目标目录而丢弃全图 |
+| Model Approval | scripts/validate_model_approval.py、Resolver gate command | 复用现有 --question 能力；核对目标问和必要 model closure | 不改 Model Challenge 或人工批准规则 |
+| Code Delivery | scripts/validate_code_delivery.py | 在现有交付门检查当前问和必要上游依赖资格 | 不重新实现 SIB 或数值验收 |
+| 问题快照 | scripts/project_snapshot.py | 生成目标问与依赖 closure 的快照 | 不把未注册历史目录当成正式问题 |
+| 单问同步 | scripts/sync_project.py | 增加 question scope；将目标快照和全局观察分开 | 不裁剪 State Transition 全图 |
+| 同步合同 | core/output_contract.yaml | 明确 delivery_scope 与 question_scope 正交及 final scope 全题规则 | 不复制 workbook 规则 |
+| stale 传播 | scripts/state_transitions.py、core/state_transition_contract.yaml | 继续负责完整 typed downstream invalidation | 不新增 private stale set |
+| 环境元数据 | core/user_execution_contract.yaml、scripts/validate_user_execution.py | 新版本回执环境字段可选，核心执行事实严格 | 不删除执行真实性字段 |
+| 入口说明 | AGENTS.md、SKILL.md、core/hsk_core_policy.md、相关 modules 与 scripts README | 让用户理解项目层/小问层/最终层流程 | 不在多个文件复制同一硬规则 |
+| 回归 | 相关 tests 与新集成夹具 | 覆盖一问隔离、typed dependency、全题收尾、初始化、环境字段 | 不删除现有有效断言 |
+
+---
+
+## 11. 分批实施顺序与 PR 边界
+
+### PR-A：项目记录初始化与安全恢复
+
+目标：助手在首次正式模型建立后自动创建项目记录，并安全恢复已有项目。
+
+- 新增初始化编排器。
+- 注册全部已知 Qn 的 pending 问题条目。
+- 原子创建框架与 State。
+- 复用事务、Schema、框架验证。
+- 恢复矩阵与幂等测试。
+- 不改数学模型身份和批准语义。
+
+核心验收：新项目创建成功；重复初始化不覆盖；多问注册完整；没有批准或数值的字段不会被伪造；半写入事务可安全恢复。
+
+### PR-B：Resolver 默认选问与一问一动作
+
+目标：不指定题号时，助手能根据项目证据选出一个当前可推进的小问。
+
+- 建立只读问题选择器。
+- 复用现有 State、Problem Contract 顺序、依赖和执行回执。
+- 输出 selection reason 和 blocked questions。
+- 明确 full_solution/full_workflow 的问题级执行含义。
+- 一个问题级动作只交付一个 Qn。
+
+核心验收：显式 Qn 优先；唯一等待点可恢复；Q2 被阻断时 Q3 可成为下一道独立可推进问；明确指定被阻断的 Q2 时不静默跳问。
+
+### PR-C：问题级语义治理与 typed dependency eligibility
+
+目标：语义治理只因当前问和真实必要依赖阻断当前问；typed dependency 变成真正的执行资格条件。
+
+- validate_semantic_governance.py 增加 --question。
+- Resolver 把当前问题范围传给 semantic_governance gate。
+- 保留 State/schema/global backend/共享预处理观察。
+- 对目标问与必要依赖检查语义和模型身份。
+- 将 typed dependency eligibility 接入现有 code_delivery gate，不新增独立 gate。
+- result dependency 使用 validated_results 语义。
+- parameter 来源不明确时只阻断相关问。
+- legacy untyped 不自动解释成 result prerequisite。
+- cycle 只阻断目标闭包内自动排队。
+
+核心验收：无关 Q2 的语义待办不阻断独立 Q1；Q1 模型变化使 Q2 stale；model dependency 不强制等待数值结果；result dependency 等待有效上游结果。
+
+### PR-D：question-scoped sync 与完整 stale 传播
+
+目标：同步器支持目标问交付，但保持全局 State 观察和完整 downstream invalidation。
+
+- sync_project.py 增加通用 --question。
+- project_snapshot.py 生成 target + upstream closure 快照。
+- _formal_state_issues() 接收当前 question set。
+- _scope_artifact_issues() 只检查当前范围的每问产物。
+- docx/latex/submission final scope 仍全题。
+- 保留项目根 backend、共享 preprocessing、State schema、generation/read-set 和 transaction。
+- 变化源触发完整 State Transition downstream propagation。
+
+核心验收：Q1 results 不被 Q2 无关文件阻断；Q2 result dependency 缺上游时等待；Q1 变化 stale Q2 不 stale Q3；全题 submission 仍要求所有必需问。
+
+### PR-E：新回执环境元数据解耦
+
+目标：缺少 solver_version/platform/matlab_release 不再单独拒绝新版本回执。
+
+- 调整 User Execution Contract 的 required/optional 分层。
+- 修改 configuration_map() 和对应消费者。
+- 保持 legacy reader 行为。
+- 保持 MATLAB/Python writer 在可得时记录元数据。
+- 保持 code/data/source bundle、backend、stop reason、fallback 和 full-fidelity 检查。
+
+核心验收：新版本回执缺少环境元数据仍可通过；核心执行字段缺失仍失败；旧回执兼容；MATLAB JVM/License 仍在真实运行时验证。
+
+### PR-F：用户入口、模块说明和全流程集成
+
+目标：让仓库入口、Router、业务 Module、脚本和测试对同一流程说法一致。
+
+- 更新 Router 和 Runtime Assurance 的目标范围语义。
+- 更新 Module Manifest 的 gate command scope。
+- 更新 Output Contract 的 question scope 与 final scope。
+- 更新 AGENTS/SKILL/核心政策中必要的用户流程说明。
+- 为三层工作流增加清晰用户动作说明。
+- 不复制业务细则，不另建 gate list。
+
+核心验收：从新项目到最终提交的端到端行为与本计划一致；旧项目兼容和全部质量底线不退化。
+
+### PR 依赖关系
+
+~~~text
+PR-A 项目初始化
+    ↓
+PR-B 默认选问与一问一动作
+    ↓
+PR-C 问题级语义治理与 typed dependency eligibility
+    ↓
+PR-D question-scoped sync 与完整 stale 传播
+    ↓
+PR-F 入口/模块/全流程集成
+
+PR-E 新回执环境元数据解耦
+    可在 PR-C 后独立实施；最终由 PR-F 集成验收
+~~~
+
+每个 PR 都从届时最新 main 建立独立分支；不直接写 main；不把多个主题混在同一 PR。某一 PR 的测试通过不代表其他 PR 或全项目已经通过。
+
+---
+
+## 12. 必须建立的回归矩阵
+
+### 12.1 三问核心集成夹具
+
+固定一份三问项目：
+
+- Q1：独立问题。
+- Q2：typed result dependency 指向 Q1。
+- Q3：独立问题。
+
+另加变体：Q2 仅依赖 Q1/model、Q2 依赖 Q1/parameter、项目级共享预处理、循环依赖。
+
+### 12.2 问题选择测试
+
+| 场景 | 期望 |
 |---|---|
-| docs/semantic_state_runtime_refactor_plan.md、docs/phase_f_transaction_writer_inventory.md | 作为现有事务机制的历史来源；本次复用，不重建 transaction engine |
-| docs/project_solver_backend_redefinition_plan.md、docs/project_solver_backend_redefinition_p1_audit.md | 项目级唯一后端已形成独立政策；本次不重新设计后端选择/迁移 |
-| docs/runtime_router_and_gate_simplification_refactor_plan.md | 作为历史路由/门禁审计参考；本次只处理默认选问和 question-scoped sync 的具体缺口 |
-| docs/v10180_analysis_comparison_plan.md 与当前 modules/03_result_analysis.md | 多模型/多算法分析与现有 03B 必要性判断已有专门规则；本次不重复建设 |
-| docs/v11_0_0_migration.md、docs/v11_rule_preservation_map.md | 保留 v11 固定来源、读取和迁移边界 |
-| PR #326、#335、#336 | 当前仍为开放的旧基线文档 PR；其分支与当前 main 已分叉。本计划使用新文件路径，不覆盖它们，也不把旧分支视为当前源码 |
-| PR #348 | 独立客户端试验资料，不与本次三个运行时方向混合 |
-| Issue #352 | parameter-only / embedded_parameters 输入身份问题，作为独立技术议题，不塞入本次三批主流程改造 |
+| 显式指定 Q2，依赖满足 | 只选择 Q2 |
+| 显式指定 Q2，result dependency 未满足 | 明确报告 Q2 等待，不自动改选 Q3 |
+| 未指定问号，唯一等待点是 Q1 用户执行 | 恢复 Q1 |
+| Q2 被 Q1/result 阻断，Q3 独立且可推进 | 选择 Q3 |
+| Q1/model 已批准但结果未完成，Q2 只依赖 model | 不要求 Q1 数值结果 |
+| Q1 primary accepted，但 03B required 尚未完成，Q2 依赖 Q1 validated result | Q2 等待 |
+| 所有必需小问 validated_results 已满足 | 选择项目级论文/终审任务 |
+| 多个等待点冲突且无法唯一判断 | 报告歧义，不随机选择 |
 
----
+### 12.3 单问与全局范围测试
 
-## 3. 第一批：助手接管项目记录的创建、更新与恢复
-
-### 3.1 目标行为
-
-新项目的项目记录创建时点沿用现有合同：proposed_model_spec 已形成后，助手建立当前项目框架和 State。纯审题阶段只维护 Problem Contract，不为满足 Schema 而提前生成空 State 或虚构小问模型。
-
-推荐链路：
-
-**题面与附件 → Module 01 冻结 Problem Contract → Module 02 形成 proposed_model_spec → 助手建立真实项目框架与 State → Model Challenge → Model Approval Brief → 等待用户明确批准。**
-
-若创建时 Model Challenge 尚未完成，State 如实记录 pending；若双重 Challenge 已真实通过，才记录 passed；用户尚未明确批准当前 semantic_revision 和 validated semantic_identity_hash 时，human_model_approval_status 仍为 pending。创建文件不能代替批准。
-
-### 3.2 计划修改的文件与职责
-
-| 文件 | 当前职责 | 计划修改摘要 | 处理方式 |
-|---|---|---|---|
-| core/output_contract.yaml | 定义项目框架、State 路径和产物创建时点 | 明确框架与 State 的配套创建时点、项目记录所有权、首次创建与部分修复的边界 | 修改唯一 Authority，不在入口重复字段清单 |
-| core/runtime_assurance_contract.yaml | 只读 State snapshot、Hydration、Artifact assurance、读取计划 | 明确 State 不存在、State 损坏、事务待恢复、框架缺失和部分记录缺失的不同处理；resolver 继续只读 | 修改规则，不让 resolver 自动写文件 |
-| scripts/initialize_project.py（拟新增） | 当前未发现统一的项目初始化编排入口 | 协调真实题目信息、Problem Contract、框架生成、State 构造、Schema/框架验证和事务提交；可提供首次初始化与可证明的部分修复动作 | 新增单一编排器，不新增第二个事务引擎 |
-| scripts/instantiate_model_paper_framework.py | 从 canonical 模板生成框架文本 | 优先复用现有 instantiate() 返回文本的接口；若保留直接输出项目文件的 CLI，补充防止意外覆盖的保护 | 原则上不重写模板生成逻辑 |
-| scripts/project_transaction.py | generation/read-set/事务日志/恢复 | 初始化器复用 commit_project_state() 和现有 expected_file_hashes；只有测试发现缺少必要原子性时才改事务实现 | 优先不改 |
-| scripts/validate_project_state.py、scripts/validate_model_paper_framework.py | 分别验证 State 与框架 | 为初始化器提供 staged validators，确保提交前结构和身份检查 | 复用现有验证器 |
-| AGENTS.md、PROJECT_INSTRUCTIONS.md、scripts/README.md | Agent/网页/App/脚本入口说明 | 只增加“何时创建、缺失时如何恢复、无写权限时如何说明”的导航 | 最后更新，引用 Authority |
-| tests/ | 现有 State snapshot、事务、框架和 writer 测试 | 新增初始化/恢复集成测试，扩展已有事务和缺失 State 测试 | 新增 tests/test_project_initialization.py（拟） |
-
-### 3.3 初始化与恢复规则
-
-1. **首次创建：** 只在 proposed_model_spec 已形成且真实题号、问题映射、分类、模型候选和依赖可用时创建；不得从 state/project_state.example.yaml 复制示例竞赛、示例模型或 placeholder。
-2. **真实初始状态：** 按当前事实填写 project、requirements、decisions、subproblems、variables、paper_framework、artifacts、risks 和 next_gate；未发生的审批、执行、accepted 和图表通过状态保持 pending / not_applicable。
-3. **配套提交：** 先生成完整框架文本与 State 候选，再使用一个 guarded transaction 同时提交；读取集合明确声明 State、框架原先不存在，防止覆盖已存在文件。
-4. **现有项目续做：** 优先读取 current 框架、State 和 accepted 工作簿；只更新发生变化的事实，不重建或清空整个项目。
-5. **部分缺失：** 只有当其他当前权威来源足以无歧义恢复缺失记录时才修复；无法恢复批准、语义身份或历史执行证据时，保留待核状态并说明缺口，不从聊天摘要推断通过。
-6. **事务中断：** 遵守现有 prepared journal 的显式恢复规则；先恢复并重新取得快照，不沿用旧 read-set，也不让 resolver 偷偷恢复。
-7. **没有可写工作区：** 助手可维护会话内的临时记录并继续已授权分析，但必须明确它不是持久化 State；不要求用户额外运行本地 checker。
-8. **不新增当前问字段：** 当前问仍由已有 State、阶段状态、Artifact 和依赖证据推导；除非后续反例证明无法可靠推导，否则不增加人工维护的 current_question。
-
-### 3.4 第一批验收
-
-| 场景 | 通过标准 |
+| 场景 | 期望 |
 |---|---|
-| 只有题面和附件，尚在审题 | 不创建空白 State 或伪造框架；Problem Contract 可继续 |
-| proposed_model_spec 已形成 | 一次性建立真实框架和 State，Schema 有效，初始批准/执行状态准确 |
-| 已有框架、State 不存在 | 不直接覆盖；检查项目是否属于新项目或历史项目缺失 |
-| State 存在、框架缺失 | 仅在当前语义身份与批准证据可验证时恢复框架 |
-| 框架存在、State 部分缺失 | 只补可证实字段；无法证明的批准和数值资格保持未确认 |
-| 已存在事务 journal | 明确恢复后重新读快照，不隐式覆盖 |
-| 重复执行初始化 | 幂等；不重复生成、不覆盖用户当前记录、不改变 accepted 身份 |
-| 写入中断或并发修改 | 使用现有事务恢复/冲突机制；不能留下只写一半的框架/State 组合 |
+| Q1 code scope，Q2 缺少主代码 | Q1 不被 Q2 阻断 |
+| Q1 results scope，Q2 缺少工作簿 | Q1 不被 Q2 阻断 |
+| Q1 figures scope，Q2 stale 且无依赖 | Q1 不被 Q2 阻断 |
+| Q1 有 Q2/result dependency | Q1 必须核对 Q2 的必要上游证据 |
+| Q1 sync 时项目根 backend 冲突 | 阻断 Q1，因为这是全局不变量 |
+| Q1 sync 时 State generation 并发变化 | 拒绝旧快照写入 |
+| Q1 变化且 Q2 依赖 Q1 | Q2 正确 stale |
+| Q1 变化且 Q3 独立 | Q3 保持 current |
+| docx/latex/submission scope | 检查所有必需小问，不受单问过滤 |
+| project_level preprocessing | 作为一次项目级共享动作，不按每问重复 |
+
+### 12.4 语义治理测试
+
+- Q1 语义变化：Q1 自身与必要下游按 typed impact stale。
+- Q2 有不相关的待审模型：不阻断独立 Q1。
+- Q2 与 Q1 的 dependency SIB/State 不一致且位于 Q1 相关闭包：阻断相关问。
+- Q3 与 Q1 无关的语义问题：保留诊断，不污染 Q1 资格。
+- 完整项目 finalization：全部注册小问的语义和审批按全项目条件核对。
+- State Schema 本身损坏：仍全局拒绝，不允许用 question scope 绕过。
+- Legacy untyped dependency：不被误判为无影响，不自动猜成 result。
+
+### 12.5 项目初始化与恢复测试
+
+- 全新项目、单问、三问、五问。
+- 所有 Qn 已登记，但仅 Q1 有 proposed model。
+- pending 小问不被误判为 approved/solved。
+- selected_model 空值规则由 Schema、State Validator、Framework Validator、Semantic Governance 联合验证。
+- 重复初始化同一输入：幂等，不覆盖。
+- 初始化中断：事务可恢复，不能留下半成品。
+- State 缺失、框架缺失、两者不一致、journal pending、历史数值文件存在等恢复矩阵全部覆盖。
+- 没有可信原始来源时，不合成批准、哈希和 accepted 数值。
+
+### 12.6 环境元数据测试
+
+- 新版本 RUN_RECEIPT 缺少 solver_version/platform：可通过对应元数据检查。
+- 新版本有合法元数据：保留并记录。
+- 新版本有格式异常的可选元数据：给出非核心元数据诊断，不覆盖核心执行事实。
+- 缺 code_sha256/code_bundle_sha256/data_sha256：失败。
+- backend 与项目根选择不一致：失败。
+- actual_stop_reason 缺失、fallback_used=true、full_fidelity 标志不符：失败。
+- legacy unversioned receipt：维持原兼容规则。
+- MATLAB JVM/License 不可用：实际 MATLAB 运行失败，不由助手提前伪造证明或自动切换。
+
+### 12.7 核心能力非回归
+
+必须继续覆盖：
+
+- SIB 完整性和 semantic_revision。
+- Model Challenge 两个独立 pass。
+- Human Model Approval 明确绑定。
+- project_level preprocessing 的真实输入与 accepted workbook。
+- 项目唯一 Python/MATLAB backend。
+- code SHA / bundle SHA / data SHA。
+- RUN_CONFIG / RUN_RECEIPT 版本握手。
+- full_fidelity/no-degradation。
+- PQS 与数值证据独立复核。
+- Analysis Necessity Gate。
+- required 03B 的完整实验覆盖与主张处置。
+- Figure Evidence 与人工视觉检查。
+- LaTeX 审计、正式编译、PDF 全页查看。
+- 最终提交包 allowlist 与内容校验。
 
 ---
 
-## 4. 第二批：从模型审批与数值验收中移出用户环境证明
+## 13. 现有测试复用与新增测试
 
-### 4.1 目标行为
+| 测试文件 | 本次用途 |
+|---|---|
+| tests/test_v712_runtime_assurance.py | 问题级 assurance、模型依赖和 SIB 传播 |
+| tests/test_v900_semantic_governance.py | 语义闭环、依赖冲突、typed transition |
+| tests/test_v900_state_transitions.py | stale、依赖类型、循环和幂等 |
+| tests/test_sync_project.py | 当前同步范围和交付要求 |
+| tests/test_sync_project_source_read_set.py | 同步过程源码/工作簿读集 |
+| tests/test_project_state_read_snapshot.py | State snapshot、generation 和 scope read |
+| tests/test_project_transaction_read_set.py | 多文件事务、并发、缺失路径与恢复 |
+| tests/test_user_execution_contract.py | 单工作簿、回执、代码/数据身份和数值验收 |
+| tests/test_v900_transactional_writers.py | State writer 事务保护 |
+| tests/test_solver_backend_runtime_resume.py | 项目唯一 backend 与恢复行为 |
+| tests/test_framework_project_memory_contract.py | 框架作为项目记忆的职责边界 |
+| tests/test_v900_phase_h_sync_split.py | sync 兼容接口和拆分行为 |
 
-把“模型/算法是否具有数学适用性”与“用户当前机器是否已经安装某个软件包或取得某个 License”分开。
+拟新增专项测试：
 
-- Model Challenge 继续检查求解器能力、数学保证、计算规模、全精度可实现性和必要依赖。
-- 用户本地包、Toolbox、软件版本或 License 尚未验证，可以作为明确的未验证条件记录，不单独阻断候选模型讨论或代码准备。
-- 代码交付前不要求用户提供环境截图、版本清单或本地预检证明。
-- 用户仍负责真实 full-fidelity 执行；实际缺包、License 不可用、运行错误或数值失败发生时，按真实错误排查，不能把未知状态写成已验证。
-- 项目根唯一求解后端、solver、代码/数据身份、停止条件、数值质量、no-degradation 标志和用户执行所有权全部保留。
+- tests/test_project_initialization.py
+- tests/test_question_scheduler.py
+- tests/test_question_scoped_semantic_governance.py
+- tests/test_question_scoped_sync.py
+- tests/test_environment_metadata_optional.py
+- tests/test_question_runtime_integration.py
 
-### 4.2 计划修改的文件与职责
+新增测试必须围绕行为反例，不以函数名存在或 CLI 参数能解析作为验收。
 
-| 文件 | 当前职责 | 计划修改摘要 | 处理方式 |
-|---|---|---|---|
-| core/model_approval_contract.yaml | 两个独立 Model Challenge pass 与 Approval Brief | 将“环境能力”明确拆成求解器数学能力/全精度可计算性与本机安装状态；未验证安装事实可记录，不作为模型正确性自动否决 | 修改语义边界，不删 Challenge |
-| core/user_execution_contract.yaml | 项目唯一后端、RUN_CONFIG/RUN_RECEIPT、用户 full-fidelity 执行 | 明确环境信息是可选运行事实/未验证条件；保持 solver_backend、solver、数据身份和执行政策 | 修改唯一执行 Authority |
-| core/workbook_schema.yaml | 工作簿结构与运行配置表 | 核对 RUN_RECEIPT 字段是否被 Schema 额外声明为必填；若没有字段级要求，不为此机械升级 Schema | 仅在真实字段合同需要时修改 |
-| scripts/validate_user_execution.py | 返回工作簿配置与 RUN_RECEIPT 验收 | 将 platform、solver_version 从通用必填集合移为可选事实；缺失不阻断，其余核心字段与绑定仍严格校验 | 主要实现点 |
-| templates/code/starter/ | Python 主求解、分析与对照示例 | 保留可获得时的 solver_version/platform 输出；缺失时不制造占位值，不将其作为运行前配置要求 | 同步 writer |
-| templates/code/matlab/ | MATLAB 主求解、分析与对照示例 | 保留可获得的 MATLAB 版本/平台信息；运行前不要求用户先证明环境 | 同步 writer |
-| templates/code/hsk_pipeline/ | Python 工作簿写入与公共验证 | 检查通用 writer 是否对可选回执字段施加隐含必填约束；只修改真实消费者 | 按影响面核验 |
-| scripts/validate_code_delivery.py | 代码静态检查、配置和源码 bundle 交付 | 审查是否仍存在与本机环境证明绑定的阻断；若无，不为形式统一而改写 | 以审计为主 |
-| AGENTS.md、PROJECT_INSTRUCTIONS.md、scripts/README.md | 操作边界与用户执行说明 | 删除要求用户提前证明平台/版本的说明，保留真实运行依赖和错误报告 | 最后同步导航 |
-| tests/ | 执行回执、后端、模板、MATLAB 静态检查 | 新增缺失 platform/solver_version 的有效回执对照，同时保留错误哈希、错误 backend、降级标志和数值失败的阻断测试 | 扩展现有测试 |
+---
 
-### 4.3 必须保留与不能混淆的字段
+## 14. 兼容、迁移与回滚
 
-| 类别 | 字段/行为 | 目标 |
+### 14.1 CLI 兼容
+
+- 现有 Resolver 显式 --question Qn 保持。
+- 新 selector 仅在 question-specific route 且用户未指定 Qn 时生效。
+- 项目级 route 仍保持 project scope。
+- sync_project.py 增加 --question；未传时保留旧 project-scope 行为。
+- validate_semantic_governance.py 增加 --question；未传时保留旧全项目语义检查。
+- validate_model_approval.py 已有问题范围能力，保持。
+- validate_user_execution.py --workbook 保持单工作簿行为。
+- 不改变旧项目 State 的读取含义；如需新增 Schema 字段，另行版本和迁移评估。
+
+### 14.2 旧项目
+
+- 已有 State 与框架的项目不重新初始化。
+- 只有部分小问已登记的旧项目，不从目录名或历史文件擅自生成完整状态。
+- 未注册的 Qn 被显式指定时，先要求完成 Problem Contract/项目登记。
+- 旧项目缺少新 selector 需要的信息时，保持显式 Qn 路径；不假装自动选择成功。
+- legacy untyped dependency 保持保守传播，不自动推断为 result。
+- 历史回执、工作簿和旧 backend 记录继续按原只读兼容规则处理。
+
+### 14.3 回滚原则
+
+- 每个实现 PR 独立 revert。
+- 回滚代码不自动恢复项目状态中的旧批准或 accepted 资格。
+- 新状态字段若存在，必须有明确兼容读取和迁移策略。
+- 已被真实上游变化判 stale 的下游产物不能因回滚代码自动变 current。
+- 任何迁移、重建或恢复都必须有原始来源与字节身份；无法确认时停止并报告。
+
+---
+
+## 15. 相关计划与开放 PR 的边界
+
+本次计划不是把所有历史计划重新合并，也不是用新文档覆盖历史台账。
+
+| 相关材料 / PR | 当前观察 | 本次处理 |
 |---|---|---|
-| 项目策略 | execution.solver_backend、selection_reason | 仍是全项目唯一 Python/MATLAB 选择；缺失不默认 Python |
-| 实际求解 | solver、tolerance、iteration_or_time_limit、random_seed | 继续按现行阶段和算法要求验收 |
-| 身份证据 | code_sha256、code_bundle_sha256、data_sha256、适用的 auxiliary input 和 primary_workbook_sha256 | 必须保持当前来源绑定 |
-| 执行事实 | actual_stop_reason、repetitions_or_scenarios、grid_or_time_range、fallback_used | 继续记录和核验；不能以代码计划值替代实际执行 |
-| 执行所有权 | execution_owner=user、execution_profile=full_fidelity、所有 allow_* 降级标志为 false | 继续严格要求 |
-| 可选环境元数据 | solver_version、platform、matlab_release 等 | 有则保留；没有不单独阻断；不得写虚假占位 |
-| 运行时失败 | 缺少真实依赖、License、文件权限或运行失败 | 仍如实报告；不能用“环境未核验”伪装成功 |
+| docs/runtime_router_and_gate_simplification_refactor_plan.md | v10.23.x 历史计划；其保留必要质量控制、去除重复和过早门禁的原则已进入当前全局政策与部分运行时 | 作为设计历史，不重新实现已落地的通用路由简化 |
+| docs/stage_reading_execution_refactor_plan.md | 已形成阶段原文读取、来源身份和完整性机制 | 保留现有读取 Authority，不另造读取框架 |
+| docs/repository_audit_and_handoff_refactor_plan.md | 历史 AUD 台账与审查记录 | 重新核对当前实现，不覆盖历史证据 |
+| PR #326 | 旧基线的工作流范围与数值验收计划，含单问启动/全题收尾和循环依赖设计 | 作为历史设计参考；按当前 main 重新核对，不直接合并旧分支 |
+| PR #335 | 正式全文启动与阅读架构计划；当前 v11.0.0 已有 full_reading 实现 | 不复制阅读架构，不把旧分支作为当前代码事实 |
+| PR #336 | 基于 v10.35.3 的 11.0.0 逐文件重构计划；与当前 main 已明显分叉 | 作为历史计划，不作为当前 v11.0.0 的实施基线 |
+| PR #339–#347、#349–#350 | 当前检查到的 head 均为当前 main 的祖先提交，相关代码已进入 main | 不 cherry-pick、不重复实施；以固定 main 为准 |
+| PR #348 | 基于较旧 P1 分支的独立 client-trial 分支，与当前 main 分叉 | 不纳入本次主流程实现；若将来接入，单独重审 |
+| PR #355 | 当前 main 基线上的 docs-only 计划 PR | 本文更新对象，保持 Draft |
 
-历史 RUN_CONFIG 的兼容必填字段与返回工作簿中的运行后元数据是两个不同对象。本批首先调整的是工作簿 RUN_RECEIPT 的通用验收必填性；不应顺手删除历史配置协议的兼容读取要求。
-
-### 4.4 MATLAB JVM / License 的专门边界
-
-当前 MATLAB 模板在入口处检查 JVM 和 MATLAB License；同时，路径规范化与 SHA-256 helper 实际使用 Java 类。
-
-因此有两种不同修改，不能混为一谈：
-
-- **最低范围：** 不要求用户在模型审批或代码交付前提供 JVM/License 证明；真实 MATLAB 执行时仍可能因运行条件不足而明确失败。模板若保留实际 Java 调用，就必须如实说明它仍依赖 JVM。
-- **扩大范围：** 若目标是彻底取消 JVM 依赖，必须替换路径规范化、文件身份与 SHA-256 实现，并用同一组文件对 Python/MATLAB 摘要进行字节级一致性测试。仅删除 usejava('jvm') 检查不算完成。
-
-MATLAB License 是实际运行前提，不应被描述成可有可无；本次只移出提前证明要求，不承诺无 License 仍能运行。
-
-### 4.5 第二批验收
-
-1. 新回执缺少 platform、solver_version，但其他必需字段和身份/数值证据完整时，可以通过相应字段检查。
-2. 新回执提供 platform、solver_version 时，保留实际值；非法类型或重复键仍按对应规则处理。
-3. code_sha256、bundle、data_sha256、backend、primary workbook 绑定错误仍必须失败。
-4. actual_stop_reason、执行规模、fallback 和 no-degradation 证据缺失或不一致仍必须失败。
-5. 历史工作簿继续可读，不要求批量重跑或重写历史回执。
-6. Python 与 MATLAB 两端输出字段保持兼容；MATLAB JVM/License 的真实依赖不被虚构为已验证。
-7. 用户仍是数值代码执行者，助手不得代跑或自动降级。
+若上述旧文档 PR 后续合并，生成索引与 MANIFEST 必须由当前 main 的 GitHub refresh-generated 重新生成；不得合并旧分支上的生成文件来覆盖当前结果。
 
 ---
 
-## 5. 第三批：默认逐问调度与单问 Figure 独立验收
+## 16. 验收标准与完成定义
 
-### 5.1 目标行为
+只有同时满足以下条件，才能认为主流程架构重构完成：
 
-用户只说“进入 03A”或“继续”时，助手能够根据当前项目记录和真实证据选择当前小问，而不是要求用户每次重复提供题号，也不是把所有小问的缺失产物一起检查。
-
-**建议的选问优先级：**
-
-1. 用户明确指定的 Qn 优先；显式指定不能绕过该问的上游依赖。
-2. 未指定题号时，如果 State/Artifact 中只有一个明确等待用户执行、返回验收、03B 或当前 Figure 动作的小问，继续该问。
-3. 没有唯一待续动作时，按 Problem Contract 的题目顺序，选择依赖已满足且当前阶段具备资格的第一道小问。
-4. 若多个小问同时处于无法区分的等待状态，或依赖关系形成未解决冲突，返回明确歧义/等待原因，不随机选问。
-5. 不增加人工维护的 current_question State 字段；当前问由现有阶段状态、执行回执、工作簿、Figure 证据和 typed dependency 推导。
-
-### 5.2 单问执行链
-
-**Q1 进入 03A → Q1 主代码交付 → 用户运行并返回主工作簿 → Q1 主结果验收 → 现有 Analysis Necessity Gate → required 时独立 03B 代码/工作簿验收，not_required 时记录理由 → Q1 Figure Evidence → Q1 当前问完成 → 选择下一道依赖满足的小问。**
-
-需要区分三个状态：
-
-- 只交付绘图脚本：进度只到脚本交付，不标记 Figure Evidence 已完成。
-- 结果图已经本地渲染：仍需核对当前 accepted 来源、实际图像与图表证据链。
-- 当前问所需图表证据及视觉/语义审查完成：才可把当前问推进到下一问。
-
-本批不改变 modules/04_figure_evidence.md 的科研图设计、真实数据来源、渲染、视觉审查和论文引用要求。
-
-### 5.3 单问与全题的边界
-
-| 检查对象 | 单问 code/results/figures | 全题论文/终审/提交 |
-|---|---|---|
-| 当前问 State 与模型身份 | 检查目标 Qn | 检查所有相关小问 |
-| 上游依赖 | 检查目标问实际需要的 typed dependency closure | 检查整题依赖与综合结论 |
-| 无关小问的工作簿/绘图文件 | 不得阻断当前 Qn | 按全题最终要求检查 |
-| 项目级唯一 backend | 仍是全项目不变量 | 仍是全项目不变量 |
-| 项目级共享预处理 | 按当前 preprocessing_decision 检查共享数据事实 | 仍需检查全部下游使用范围 |
-| 03B 必要性 | 只执行当前问已有 Analysis Necessity Gate | 每道需要的问都必须有 accepted 03B 或有理由的 not_required |
-| 最终论文、PDF、提交包 | 不因单问 Figure 资格自动通过 | 仍按全部登记小问、论文与提交证据检查 |
-
-### 5.4 计划修改的文件与职责
-
-| 文件 | 当前职责 | 计划修改摘要 | 处理方式 |
-|---|---|---|---|
-| core/workflow_router.yaml | 任务意图、runtime segment、阶段边界与 gate 顺序 | 定义默认选问优先级、继续当前等待点和完成当前问后的推进语义 | 作为调度规则 Authority |
-| core/runtime_assurance_contract.yaml | 项目 State 快照、question scope、依赖诊断与最终全题资格 | 明确单问检查范围、必要上游闭包、全题 finalization 边界 | 作为证据范围 Authority |
-| core/output_contract.yaml | code/results/figures/docx/latex/submission 产物资格 | 明确哪些 scope 支持单问检查，哪些 scope 必须全题 | 不改变各阶段真实产物要求 |
-| scripts/resolve_runtime.py | 当前默认状态感知 Resolver，已有可选 --question | 未显式题号时按 State 与证据选择当前问，并把所选问传入已有阶段/门禁规划 | 主要调度实现点 |
-| scripts/sync_project.py | 项目同步 CLI 与正式交付编排 | 增加通用 question 参数/作用域；保留现有 mechanism_question 兼容入口；单问检查不遍历无关小问 | 主要阻塞修复点 |
-| scripts/project_snapshot.py | 按小问发现源码、工作簿、绘图与 Figure 快照 | 支持只捕获目标问及必要上游依赖；项目级共享输入仍按真实范围核验 | 配合同步器 |
-| scripts/resolve_workflow.py | 旧无状态兼容解析器 | 原则上不承载新默认调度；只有兼容测试要求时作窄幅适配 | 保持 legacy/stateless |
-| modules/03_result_analysis.md | 现有 03B 必要性与执行规则 | 原则上不重写；仅在阶段交接文字缺失时做引用性澄清，不新增第二个 Gate | 保留现有 Authority |
-| modules/04_figure_evidence.md | 每问结果图、Figure Evidence、渲染和审查 | 保持原规则；同步单问调度如何提供目标问的合法证据 | 不降低图表审查 |
-| PROJECT_INSTRUCTIONS.md、AGENTS.md、RUNTIME_ROUTER.md | 用户与 Agent 操作入口 | 说明“进入 03A / 继续”如何选问、显式 Qn 如何覆盖、单问与全题边界 | 只引用 Router/Runtime Authority |
-| tests/ | Router、runtime resume、sync、snapshot、Figure routing 回归 | 新增三问依赖夹具与 question-scoped sync 反例 | 扩展现有测试，不新建独立验收体系 |
-
-### 5.5 第三批验收
-
-采用三问项目夹具：
-
-- Q1：已锁模，可执行 03A。
-- Q2：依赖 Q1 的 accepted result。
-- Q3：不依赖 Q1/Q2 的独立小问。
-
-必测：
-
-1. 三问均已锁模，只说“进入 03A”，首轮只交付 Q1 主代码。
-2. Q1 主工作簿 accepted 后，required 与 not_required 两条 03B 分支均正确。
-3. Q1 的 Figure 检查不因 Q2 缺少工作簿或绘图脚本而失败。
-4. Q2 在 Q1 结果尚未 accepted 时等待；Q1 accepted 后才允许进入 Q2。
-5. Q3 的独立性按真实依赖处理，不把 Q2 的无关结果错误传播给 Q3。
-6. 显式指定 Q2 时仍检查 Q2 的真实上游依赖，不能以题号覆盖依赖门。
-7. 多个问题同时等待时返回歧义，不随机选一个。
-8. 当前问只交付 Figure 脚本时，不把脚本交付写成 Figure Evidence 完成。
-9. 当前问 Figure Evidence 完成后，才允许默认推进下一问。
-10. 全题 LaTeX、终审与 submission 仍要求所有登记小问满足 validated_results 和相应最终证据。
-11. 既有 State snapshot、read-set、stale 传播和并发写入保护不因 question filter 被绕过。
+1. 用户发起新题时，助手先完成项目级审题和问题登记，不要求先证明本机平台或版本。
+2. 第一个 proposed_model_spec 形成后，项目框架与 State 能安全、原子地建立。
+3. 用户只说“继续”时，Resolver 能根据当前状态和依赖选择一个小问；显式 Qn 优先。
+4. 一次问题级求解操作只交付一个 Qn，不一次性生成全部小问求解代码。
+5. Qn 的检查只覆盖当前问和真实必要上游，不被无关问的缺失产物阻断。
+6. project backend、State/schema、共享预处理、generation、事务等全局约束仍严格有效。
+7. typed result/model/parameter/data 依赖按真实含义决定等待；legacy untyped 不被静默解释。
+8. Qn 变化沿完整 typed dependency graph 传播 stale；独立小问不被错误失效。
+9. 新版本回执缺少 solver_version/platform/matlab_release 不会单独失败。
+10. code/data/source bundle、solver backend、actual_stop_reason、fallback 和 full-fidelity 仍严格验收。
+11. Model Challenge、Human Model Approval、SIB、PQS、03B、Figure Evidence、LaTeX/PDF 和最终交付全部保留。
+12. 全题终审与提交仍要求所有必需小问满足现有 validated_results 和正式交付条件。
+13. 不要求用户新增本地 checker、同步器或审计报告任务。
+14. GitHub 最终 head 的适用正式 CI 通过，合并后 main 的 GitHub Actions 复核完成。
 
 ---
 
-## 6. 三批统一实施顺序与 PR 切分
+## 17. 本 PR 当前状态与下一步
 
-### 6.1 当前交付：唯一总计划文档
+**本 PR 当前只交付架构计划。**
 
-本 PR 只新增本文件。目标是让用户先审查结构、文件范围、现有能力、兼容边界和测试矩阵。该 PR 不修改运行行为，不合并任何实现。
+已完成的只读审查：
 
-### 6.2 后续三个单主题 PR
+- 固定 v11.0.0 main 基线。
+- 读取启动、全局政策、Router、Module Manifest、Runtime Assurance、State、Transition、Output、Model Approval、User Execution 等权威来源。
+- 检查 Resolver、semantic governance、sync、snapshot、transaction、framework generator 和对应测试。
+- 识别当前默认选问、语义治理范围、同步范围、依赖授权和环境元数据的实际缺口。
+- 对照已有计划和开放 PR，确认哪些设计已在当前 main，哪些仍是缺口。
 
-| 顺序 | 主题 | 主要文件面 | 先决条件 | 退出条件 |
-|---|---|---|---|---|
-| PR-A | 项目记录初始化与恢复 | Output/Runtime Authority、初始化编排器、框架/State validators、事务复用、初始化测试 | 用户审查并批准本计划；刷新最新 main 与重叠 PR | 新建、续做、部分修复、事务恢复和重复初始化全部通过 |
-| PR-B | 执行环境信息解耦 | Model Approval、User Execution、Workbook、回执验收、Python/MATLAB writer 与测试 | PR-A 完成并核对主干；环境元数据与实际运行事实边界冻结 | 缺少 platform/solver_version 不再单独阻断；其余身份/数值/执行边界不回归 |
-| PR-C | 默认逐问调度与单问同步 | Router、Runtime Assurance、Output、resolve_runtime、sync_project、project_snapshot 与集成测试 | PR-A 完成；PR-B 完成或其影响面已冻结；三问测试夹具固定 | Q1 可独立完成当前问 Figure；依赖问正确等待；全题 finalization 仍严格 |
+尚未完成：
 
-每批从最新 main 创建独立分支；写入前重新检查开放 PR、相同 Authority 的实际差异和生成工作流。若后续 PR 修改相同权威文件，按治理要求串行重基，不让不同分支并行改写同一合同。
+- 本 PR 计划文档的用户审查。
+- 本 PR 更新后的 GitHub refresh-generated。
+- 最终 PR head 的 GitHub Actions 正式验收。
+- 所有运行时代码实现。
+- 三问集成测试和双后端回归。
+- 任何实际用户项目迁移或恢复。
 
-### 6.3 版本与迁移
+**下一步顺序：**
 
-- 本计划 PR 只增加 docs，不升级 Skill 版本。
-- 实现 PR 是否需要修改 Project State Schema、Workbook Schema、RUN_RECEIPT 协议或 CLI，必须由实际差异决定。
-- 仅增加可选 question 参数且保持旧默认兼容，和改变既有默认选问/阻断范围，不应未经分析就按同一版本等级处理。
-- 历史 State、工作簿和批准不能因为新默认调度而批量作废。
-- 若出现破坏性 Schema/CLI/目录变化，必须另有迁移说明和兼容窗口；不得为完成三批而顺手升级无关协议。
+1. 更新本计划并保持 PR #355 Draft。
+2. 推送源文档后等待 GitHub refresh-generated，核对 bot 生成提交与最终 head。
+3. 在最终 head 上执行适用的 GitHub 文档/生成/CI 检查；没有证据的项标记未完成。
+4. 用户审查并批准计划后，再按 PR-A 至 PR-F 顺序创建独立实现 PR。
+5. 每个实现 PR 分别验收，不以计划通过代替代码通过。
 
----
-
-## 7. 跨批次非回归底线
-
-以下约束贯穿三个 PR，不得由“体验简化”削弱：
-
-1. 固定 Skill commit、全文读取、阶段换问换章重新取得适用原文的规则继续有效。
-2. Problem Contract、两个独立 Model Challenge、用户明确批准当前语义身份和 Model Approval gate 保留。
-3. 项目根仍只允许一个 Python/MATLAB 数值后端；所有小问主求解和 required 分析入口继承它。
-4. 真实赛题数值代码仍由用户本地 full-fidelity 执行；助手不得导入、运行或间接执行题目专属求解代码。
-5. 不允许静默降采样、粗网格、缩短时域、减少场景/重复、放宽容差或替换求解器。
-6. 代码、数据、辅助输入、RUN_RECEIPT、accepted workbook 和模型身份的绑定继续严格。
-7. 03A 只负责当前主计算及其内在数值有效性；accepted 后的 03B 仍由现有 Analysis Necessity Gate 条件激活。
-8. not_required 需要非空理由，且不等于稳健性/稳定性已通过。
-9. Figure Evidence 只消费当前合法的已验收来源；脚本存在不等于图已渲染或人工审查通过。
-10. 单问 scope 不得削弱项目级唯一后端、共享预处理和 typed upstream dependencies。
-11. 整题论文、终审和提交仍检查全部必需小问及跨问结论。
-12. resolver、reading plan、sync PASS、文件存在或 hash 一致均不得自动提升为数学正确、人工批准或数值 accepted。
-
----
-
-## 8. 综合验收矩阵
-
-| 维度 | 必测正例 | 必测反例 |
-|---|---|---|
-| 项目初始化 | proposed_model_spec 后创建框架+State，事务完整提交 | 纯审题阶段创建空 State；复制示例值；覆盖现有项目 |
-| 项目恢复 | 单个缺失文件能从当前权威证据安全恢复 | 从聊天摘要恢复批准、从框架数字恢复 accepted 数值 |
-| 事务 | read-set、generation、staged validator、journal recovery 正常 | 并发修改、文件缺失/替换、事务中断后旧快照继续提交 |
-| Model Approval | 未批准时状态保持 awaiting_model_approval | 以环境未知、文件存在或模糊“继续”伪造批准 |
-| 环境元数据 | 缺少 platform/solver_version 但其余证据完整可验收 | 缺 code/data hash、错误 backend、降级标志为 true 却被放行 |
-| MATLAB | 保留真实可用的运行事实，错误能定位 | 删除 JVM assert 后仍声称无 JVM 依赖 |
-| 逐问选择 | 明确 Qn、唯一待续问、首个可执行问均可正确选择 | 多个 pending 时随机选择、显式 Qn 绕过上游依赖 |
-| 单问同步 | Q1 figures 只检查 Q1 和必要依赖 | Q2 缺工作簿导致 Q1 figures 阻塞 |
-| 03B | required 和 not_required 两条现有分支正确 | 新建第二套 03B Gate，或把 not_required 写成鲁棒性通过 |
-| Figure | 脚本交付、实际渲染、视觉审查状态分开记录 | 仅有 qX_plot 文件就标记 Figure Evidence accepted |
-| 全题收尾 | 所有必需小问证据齐备后进入终审 | 单问 Q1 通过就跳过 Q2/Q3 的全题最终检查 |
-| 兼容性 | 历史 State/Workbook/RUN_RECEIPT 可读 | 为删字段要求历史项目批量重跑 |
-
----
-
-## 9. 当前不纳入本计划的事项
-
-### 9.1 Issue #352：parameter-only / embedded_parameters
-
-该问题涉及 RUN_CONFIG 输入身份、空 data_paths、参数规范化摘要、Python/MATLAB 跨后端一致性、回执和所有输入文件消费者。它是独立的数据身份协议改造，不属于“项目记录初始化、环境元数据、逐问调度”的直接必要范围。
-
-后续若使用没有外部数据文件的 D-Q1 做 03A 正式测试，应先按 Issue #352 单独实施和验收；本计划的三问调度测试先使用有真实输入文件的测试项目，不用 placeholder 文件绕过输入身份。
-
-### 9.2 本次不重构的现有能力
-
-- v11_full_read 与 fixed-commit 全文读取；
-- Model Challenge / Human Model Approval；
-- 项目级唯一求解后端与历史 backend migration；
-- Analysis Necessity Gate 与多模型/多算法 03B 比较；
-- 项目级预处理与 question_local 数据处理；
-- Figure Evidence 的视觉/语义审查；
-- LaTeX 模板、PDF 逐页审查和 submission package；
-- Case Memory、Review Receipt、Claim Consumption 与其他独立专项 Gate。
-
----
-
-## 10. 用户审查项与实施前停止点
-
-请重点审查以下设计决定：
-
-1. **项目记录创建时点：** 是否确认在 proposed_model_spec 形成后，由助手一次性创建框架和 State；纯审题阶段不创建正式 State。
-2. **恢复边界：** 是否确认缺失文件只在当前证据可恢复时修复；批准、数值 accepted 和历史执行身份绝不从聊天摘要推断。
-3. **环境元数据：** 是否确认 platform、solver_version 缺失不再单独阻断返回工作簿验收，但代码/数据身份、实际停止原因、full-fidelity 与数值质量仍严格。
-4. **JVM 处理：** 是否只移出提前环境证明，暂时保留 MATLAB 模板的真实 Java 运行依赖；还是要求第二批同时彻底取消 JVM，并承担 SHA-256/路径实现替换与跨后端一致性测试。
-5. **默认选问优先级：** 是否确认“显式 Qn > 唯一待续小问 > 依赖已满足的题目顺序首问”；多个 pending 无法唯一判断时不随机选问。
-6. **单问同步范围：** 是否确认当前问 + 必要上游依赖 + 项目级共享事实，而不是所有已登记小问；docx/LaTeX/终审/submission 仍按全题范围。
-7. **当前问完成条件：** 是否确认只交付绘图脚本不算 Figure Evidence 完成；应区分脚本交付、实际渲染和必要视觉/语义审查。
-8. **独立问题：** 是否确认 Issue #352 不并入本次三批 PR。
-
-**停止条件：** 用户审查前不修改三个方向的活动规则或业务代码。用户批准计划后，仍须从当时最新 main 重新核对 Bootstrap、治理规范、开放 PR、权威源与实际差异，再形成各批单独的修改简报和实现 PR。
-
----
-
-## 11. 本次结构核查范围与证据状态
-
-本计划基于固定提交的目录清单、活动入口、相关 Authority、业务 Module、实现脚本、模板、测试名称与既有历史计划进行结构盘点。已核对的重点源码包括：
-
-- 项目记录：AGENTS.md、core/output_contract.yaml、core/project_state.schema.yaml、scripts/runtime_assurance.py、scripts/instantiate_model_paper_framework.py、scripts/project_transaction.py、scripts/validate_project_state.py。
-- 环境与回执：core/model_approval_contract.yaml、core/user_execution_contract.yaml、core/workbook_schema.yaml、scripts/validate_user_execution.py、scripts/validate_code_delivery.py、Python starter 与 MATLAB 数值模板。
-- 逐问调度：core/workflow_router.yaml、core/runtime_assurance_contract.yaml、scripts/resolve_runtime.py、scripts/resolve_workflow.py、scripts/project_snapshot.py、scripts/sync_project.py、modules/03_result_analysis.md、modules/04_figure_evidence.md。
-- 现有回归：State snapshot、transaction read-set、transactional writers、router、runtime resume、user execution、sync project、solver backend end-to-end 和 Figure routing 测试。
-- 既有计划：semantic/state runtime、transaction writer inventory、runtime router/gate simplification、project backend redefinition、03B comparison、v11 migration。
-
-本次没有运行 resolver、checker、unittest、MATLAB、真实赛题代码或网页/App 端到端试验。目录/源码读取可以支持结构判断，但不等于三个改造已经实现、数学正确或通过正式 CI。后续正式验收只认最终 PR head 的 GitHub Actions 与实际产物。
-
+**本计划不授权自动合并 PR #355，也不授权任何后续实现 PR 自动合并。**
