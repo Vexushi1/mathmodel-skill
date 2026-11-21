@@ -134,9 +134,9 @@ class EmbeddedParametersInputTests(unittest.TestCase):
             "stage": "analysis",
             "primary_workbook": "问题一求解/问题一求解结果.xlsx",
         }
-        accepted = 'params = RUN_CONFIG["embedded_parameters"]\\nbook = open("问题一求解/问题一求解结果.xlsx")'
+        accepted = 'params = RUN_CONFIG["embedded_parameters"]\nbook = open("问题一求解/问题一求解结果.xlsx")'
         self.assertEqual(_embedded_parameter_source_issues(accepted, config), [])
-        rejected = 'params = RUN_CONFIG["embedded_parameters"]\\nbook = open("extra.csv")'
+        rejected = 'params = RUN_CONFIG["embedded_parameters"]\nbook = open("extra.csv")'
         self.assertTrue(_embedded_parameter_source_issues(rejected, config))
 
     def test_primary_quality_receipt_accepts_an_empty_embedded_input_list(self) -> None:
