@@ -605,7 +605,7 @@ def preview_migration(project_root: str | Path, *, target_backend: str, reason: 
                     closure_issues = stage_code.dependency_reference_issues(root, path, config)
                     if closure_issues:
                         raise ValueError(f"{question}.{stage}: legacy source inventory is unresolved: {closure_issues}")
-                    for source in stage_inputs.input_files(root, config.get("data_paths")):
+                    for source in stage_inputs.declared_input_files(root, config):
                         capture(source.relative_to(root).as_posix())
                     if workbook:
                         wbpath = capture(workbook)
