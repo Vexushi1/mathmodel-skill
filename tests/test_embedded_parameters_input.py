@@ -18,6 +18,7 @@ from stage_inputs import (
     observe_inputs,
 )
 from validate_code_delivery import _embedded_parameter_source_issues, _required_config_field_missing
+from validate_user_execution import validate_run_receipt_binding
 
 
 class EmbeddedParametersInputTests(unittest.TestCase):
@@ -148,6 +149,25 @@ class EmbeddedParametersInputTests(unittest.TestCase):
         self.assertTrue(_embedded_parameter_source_issues(workbook_reader, config))
         path_reader = 'params = RUN_CONFIG["embedded_parameters"]\nraw = Path("extra.txt").read_text()'
         self.assertTrue(_embedded_parameter_source_issues(path_reader, config))
+
+    def test_receipt_1_1_binds_embedded_parameter_digest_without_file_echo(self) -> None:
+        config = {
+            **self.config,
+            "run_receipt_protocol_version": "1.1.0",
+        }
+        receipt = {
+            "run_receipt_version": "1.1.0",
+            "stage": "primary",
+            "problem_name": "问题一",
+            "data_sha256": self.digest,
+            "solver": "test_solver",
+            "random_seed": 2026,
+            "tolerance": 1e-8,
+            "iteration_or_time_limit": "full",
+            "solver_backend": "python",
+            "code_bundle_sha256": "b" * 64,
+        }
+        self.assertEqual(validate_run_receipt_binding(receipt, config), [])
 
     def test_primary_quality_receipt_accepts_an_empty_embedded_input_list(self) -> None:
         digest = "a" * 64
