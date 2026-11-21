@@ -2,9 +2,9 @@
 
 网页或 App 可以从这里直接复制[数学建模项目指令](PROJECT_INSTRUCTIONS.md#web-app-start)。
 
-本版本将文献证据研究接入**首次模型设计与实质性模型修订**：Problem Contract 冻结后先独立识别数学机制和研究缺口，再在获授权的学术检索工具可用时主动查询近期高相关原始研究，核实方法与条件、进行迁移性评价，最后构建最小充分主模型并进入既有 Model Challenge / Human Model Approval。无网络或无外部证据需求时允许透明降级；文献报告结构 PASS 仍不证明来源真实性或模型正确。
+v11.0.0 将正式任务的启动方式升级为固定来源、完整规范读取与阶段化执行：新赛题或正式单问通过 v11_full_read 取得当前版本全部生效规范原文；局部字段咨询、定型图的纯视觉修改和仓库维护仍按请求范围读取。跨会话正式恢复、只剩摘要或规则范围不明时重新取齐规范与当前项目框架；换阶段、换问、换章和新图时重取对应完整规则与项目证据。
 
-此前 v10.27.1 兼容性补丁修复无显式意图请求中两类有界混合动作的漏识别问题（图表＋LaTeX、模型检验＋LaTeX），并纳入 G1–G6 非退化回归与审计证据。未通过安全/收益准入的生产读取缓存、混合窄读和局部 Review 快捷路径均未启用；已有模型批准、数值执行、工作簿与论文交付门禁保持不变。
+本版本完成网页、App 与插件统一入口，固定版本规则分卷与接收校验，P4 阶段/图文/数值证据接线，以及 10.x 历史项目只读兼容、旧 CLI 兼容和迁移恢复说明。既有模型双审、用户明确批准、用户本地 full-fidelity 数值执行、工作簿复核、LaTeX/PDF 终审与 resolver 有序交付门禁均保留。已有项目不会因发布自动改写固定提交、批准或数值事实。完整网页与原生 App A/B/C 人工对照未作为本次发行门完成，保留为后续按真实使用问题选择的诊断资产；不得把仓库 CI 解释为客户端实测。
 
 HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构化简、最小充分的 `proposed_model_spec`、独立 Model Reviewer / Devil's Advocate、`awaiting_model_approval` 到用户明确批准后的 `locked_model_spec`，以及数值求解、证据绘图、论文和终稿交付。每问保留自己的数学模型、算法、源码与结果；数值求解语言与科研绘图语言分别在项目根统一选择；一个竞赛的所有结果图只使用一次选定的 Python 或 MATLAB 后端，保留原 Figure 设计 Authority 和历史 MATLAB 项目。仓库改造不代表任何具体项目已完成后端选择、迁移或数值验收。 竞赛专属 Pack、模板与 profile 是可选适配器；缺失时回退通用规则。建模方案和框架草稿不触发仅适用于论文终稿或提交包的正式交付门禁。
 
@@ -29,7 +29,7 @@ HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构�
 ## 最短启动
 
 1. 网页、App 和插件共用启动合同。插件从 `SKILL.md` 或 `skills/mathmodel-skill/SKILL.md` 进入，两条路径均以同一固定提交的 `core/bootstrap.yaml` 和全局规则决定开场。
-2. 选用候选全文入口后，正式赛题先取齐规范原文。单独查询字段或修改定型图配色只处理当前请求。阶段间重取与恢复由同一启动合同和 `core/runtime_assurance_contract.yaml#reading_plan.consumer_protocol` 衔接。
+2. 选用 v11_full_read 全文入口后，正式赛题先取齐规范原文。单独查询字段或修改定型图配色只处理当前请求。阶段间重取与恢复由同一启动合同和 `core/runtime_assurance_contract.yaml#reading_plan.consumer_protocol` 衔接。
 3. `scripts/resolve_runtime.py` 根据项目事实给出当前业务动作与 `pre_delivery_gates`。助手按实际能力获取正文、执行返回的有序门并核对成果。机器条件不齐时按固定提交直接取原文，说明仍缺的证据。[助手工具与阶段导航](scripts/README.md#阶段正文读取)
 
 用户按 `full_fidelity` 运行实际 Python/MATLAB 数值入口并返回工作簿；绘图时运行脚本、查看图窗、调整并按需导出。交付检查、返回验收、同步、论文审计／编译和包验证由助手完成，分工统一见 [执行 Authority](core/user_execution_contract.yaml)。日常无需另装 Skill 校验环境或提交 checker 报告；求解入口出现缺包或路径错误时，再针对实际问题排查。
