@@ -48,6 +48,30 @@
 
 ---
 
+### 0.2 计划的权威边界：实施参考，不是不可变施工指令
+
+本计划是基于 v11.0.0 固定基线形成的设计参考和验收起点，不是新的 Runtime Authority，也不要求实现代码机械服从文档中的每一项预设。
+
+实际实施时按以下优先级裁决：
+
+1. 当前最新 main 的 `core/bootstrap.yaml`、当前 Authority、实际脚本接口、Schema、状态事实和有效兼容合同；
+2. 当前统一实施分支中已经通过测试验证的实现事实；
+3. 本计划提出的目标架构、M0–M5 顺序、文件映射和预期接口；
+4. 历史 PR、旧计划、聊天摘要和旧分支实现。
+
+如果真实代码、当前合同或 GitHub CI 证据与计划不同：
+
+- 先重新取得当前阶段适用的完整 Authority 原文和实际源码，不用旧摘要推断。
+- 判断差异属于计划遗漏、当前实现已具备能力、旧假设错误、兼容约束或测试环境限制。
+- 采用能满足用户目标且改动最小、职责最清楚、可验证的实现；不为了“对齐计划”制造重复字段、平行 gate、无意义脚本或 Schema 变更。
+- 必要时调整 M0–M5 顺序、文件范围、PR 规模和验收案例，并在实施 PR 中记录“计划偏差、实际证据、裁决理由、影响与回滚”。
+- 若原定单一主流程 PR 在实际实现中出现可独立合并且不会暴露不一致运行时状态的边界，可以重新评估拆分；反之，即使文件较多，也不得为了缩小 PR 而把互相依赖的执行准入和 stale 传播分开合并。
+- 用户提出的目标与本计划冲突时，以用户明确目标为准，但不得突破 Skill 的数学模型身份、人工批准、用户本地 full-fidelity 执行、数值验收、事务安全和最终交付底线。
+
+本计划本身不能授予模型批准、项目迁移、用户项目写入或 PR 合并权限。任何偏差都必须以当前代码和可复现测试为依据，不能以主观判断代替证据。
+
+---
+
 ## 1. 架构决策摘要
 
 ### 1.1 三个运行层次
@@ -875,7 +899,7 @@ PR 描述必须按治理规范解释超过 20 个文件的必要性，并提供�
 
 ## 17. 本 PR 当前状态与下一步
 
-**本 PR 只交付架构计划，不改变 Skill 运行时行为。**
+**本 PR 只交付架构计划，不改变 Skill 运行时行为；计划是实施参考，不是不可变施工指令。**
 
 ### 17.1 六个计划部分的完成状态
 
@@ -892,25 +916,22 @@ PR 描述必须按治理规范解释超过 20 个文件的必要性，并提供�
 
 ### 17.2 当前文档与 PR 状态
 
-- 计划文档约 925 行，包含六个部分、统一分支策略、M0–M5 阶段、文件映射、兼容策略、回滚和测试矩阵。
-- PR #355 基于 v11.0.0 main 87ed5bbd173c02472a9e85cb09bdc4188d37a8bf，保持 Draft，未合并。
-- 计划修订已写入源文档；规则来源登记保持 maintenance/history，不进入规范性全文规则语料。
-- GitHub refresh-generated run 44940120123 成功；生成的 MANIFEST、文件索引和 full-reading manifest 已进入当前 PR 文件列表。
-- 最新已核对 PR head 为 82576dbebc413d30b22db4cd754cb9cd7cfc227c。
+- 计划文档已覆盖六个部分、统一分支策略、M0–M5 阶段、文件映射、兼容策略、回滚和测试矩阵。
+- PR #355 基于 v11.0.0 main `87ed5bbd173c02472a9e85cb09bdc4188d37a8bf`，保持 Draft，未合并。
+- 计划修订源文件后，MANIFEST、文件索引和 full-reading manifest 由 GitHub refresh-generated 管理。
+- 本次更新后必须重新核对 bot 生成提交、最终 PR head 和对应 CI；旧 head 检查不能替代新 head 验收。
 
 ### 17.3 当前验证边界
 
-- 最新已核对的 workflow_dispatch run 44940136874 针对 Draft PR 执行定向验证。
-- 已通过：Static contract lint、Generated file contract、Python Figure rendering 3.10、Python Figure rendering 3.14。
-- Windows Python targeted checks 在本次检查时仍在运行。
-- 完整 Python 回归 shards、MATLAB R2024b native solver、Production LaTeX attestation 和 LaTeX matrix 在 Draft 定向模式下未执行，不能记为通过。
-- 旧 head 的 action_required 和生成前 head 的 generated-file failure 不代表最新 head 的最终结果；应以最终 PR head 对应的最新运行记录为准。
+- 旧最终 head `e0541d67a9fd4b7b565d42c86ad43f510df11bae` 的 workflow_dispatch run `44941024340` 在本次计划再次更新前仍处于运行中；已完成的 lint、generated-file contract 和 Figure rendering 检查为 success，Windows Python targeted checks 尚未完成。
+- 该 run 属于 Draft targeted 验证，不是正式完整回归；Python full regression shards、MATLAB R2024b native solver、Production LaTeX attestation 和 LaTeX matrix 尚未获得本次计划 PR 的完整验证证据。
+- 更新计划后，必须以新最终 head 重新核对 refresh-generated 与 CI。
 - PR #355 当前没有 review submission、inline review thread 或评论记录。
 
 ### 17.4 尚未完成的工作
 
-- 用户对计划的最终审查与明确批准。
-- 将计划 PR 转为 Ready 后，对最终 head 执行适用的完整 GitHub Actions 验收。
+- 本计划更新后的生成文件和最终 head GitHub Actions 验收。
+- 用户已授权按计划启动；计划 PR 转为 Ready 后，对最终 head 执行适用完整 GitHub Actions 验收。
 - 从届时最新 main 创建统一主流程实施分支。
 - 在统一分支中完成 M0–M5 运行时代码、阶段测试和最终集成验收。
 - 创建并验收独立环境元数据 PR。
@@ -918,11 +939,12 @@ PR 描述必须按治理规范解释超过 20 个文件的必要性，并提供�
 
 ### 17.5 下一步顺序
 
-1. 用户审阅本计划的六个部分和统一分支边界。
-2. 用户明确批准计划后，将 PR #355 转为 Ready，触发适用的完整验证；如有失败，先定位并修复计划/生成问题，不把定向检查当作全量通过。
-3. 完整验证具备可核验证据后，重新读取创建时最新 main、bootstrap、治理规范、权威合同和所有开放 PR。
-4. 从最新 main 创建唯一统一主流程分支 refactor/v11-question-scoped-mainflow，按 M0–M5 分阶段提交与专项测试，最终形成一个 Question Runtime 主流程 PR。
-5. 环境元数据解耦另建分支和 PR，不混入主流程。
-6. 各实现 PR 的最终 head 分别执行适用正式验收；不以计划通过代替代码通过。
+1. 完成计划文档的实施偏差原则更新和 refresh-generated。
+2. 以更新后的 PR head 执行 Draft 定向验证，核对实际生成结果与检查状态。
+3. 用户已明确授权开始；在计划 head 及生成检查可核验后，将 PR #355 转为 Ready，触发适用的正式完整验证。
+4. 完整验证具备可核验证据后，重新读取最新 main、bootstrap、治理规范、权威合同和所有开放 PR。
+5. 从最新 main 创建唯一统一主流程分支 `refactor/v11-question-scoped-mainflow`；先完成 M0 反例与正常对照，再按实际证据调整后续阶段。
+6. 环境元数据解耦另建分支和 PR，不混入 Question Runtime。
+7. 每个最终 PR head 分别完成适用正式验收；不以计划通过代替代码通过。
 
 **本 PR 不授权自动合并 PR #355、统一主流程实现 PR 或环境元数据 PR。**
