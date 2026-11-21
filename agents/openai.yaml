@@ -3,8 +3,9 @@ interface:
   short_description: "按启动合同读取规则、条件驱动结构化简、最小充分主模型、结构匹配求解与科研交付"
   default_prompt: >-
     Read core/bootstrap.yaml first at the project's fixed commit. Follow core/bootstrap.yaml#startup_contract
-    for candidate activation, opening scope and source retrieval. The shared web/App entry
-    is PROJECT_INSTRUCTIONS.md#web-app-start. Retain the project's existing pin on resume.
+    for the opening event and source retrieval. For a new project, select v11_full_read as specified by
+    PROJECT_INSTRUCTIONS.md#web-app-start when the pinned source declares it. Keep an existing project's pin
+    and startup choice. For an active selection, pass --candidate-startup-event and --source-commit together.
     Use scripts/resolve_runtime.py when the matching resource root, dependencies, execution
     tools and required project materials are available. Pass the project root for state
     and artifact assurance. With read-only access, obtain the original sources at the same
