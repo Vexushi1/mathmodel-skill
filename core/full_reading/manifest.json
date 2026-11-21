@@ -9,8 +9,8 @@
   "volumes": [
     {
       "path": "core/full_reading/volumes/001.md",
-      "bytes": 12172,
-      "sha256": "3993e2b7af99013b63b7639bf1e9a3adb91ff54ccfb532d91b39b0b86313683e"
+      "bytes": 12176,
+      "sha256": "95c4a248ba2d742c54f6e65fb724dba24485b8cd92b86aaa7ae857c0a18ec315"
     },
     {
       "path": "core/full_reading/volumes/002.md",
@@ -658,19 +658,19 @@
       "path": "PROJECT_INSTRUCTIONS.md",
       "role": "entry",
       "aliases": [],
-      "bytes": 6850,
-      "sha256": "cfffad594dfde5293efb486f82c2e9bca22bcf89d5816e7d23f7688663cc513f",
-      "git_blob_sha1": "04490ff35a0022012b5db24829f1c833b22b7273",
+      "bytes": 6854,
+      "sha256": "0973ba4d78fee8c8254c880745dc5f87913ff7774eeebd8cb9ac974ba04896a2",
+      "git_blob_sha1": "12880f4a2f3b85e57e6e3709cc19a3e5c5d2c005",
       "parts": [
         {
           "volume": "core/full_reading/volumes/001.md",
           "start": 0,
-          "end": 6850,
+          "end": 6854,
           "line_start": 1,
           "line_end": 42,
           "volume_start": 88,
-          "volume_end": 6938,
-          "sha256": "cfffad594dfde5293efb486f82c2e9bca22bcf89d5816e7d23f7688663cc513f"
+          "volume_end": 6942,
+          "sha256": "0973ba4d78fee8c8254c880745dc5f87913ff7774eeebd8cb9ac974ba04896a2"
         }
       ]
     },
@@ -690,8 +690,8 @@
           "end": 5176,
           "line_start": 1,
           "line_end": 27,
-          "volume_start": 6996,
-          "volume_end": 12172,
+          "volume_start": 7000,
+          "volume_end": 12176,
           "sha256": "dc5dddbe4dcd58d3bab8c773a85852be7e85573727846e84a357b71c6e877bc4"
         },
         {
