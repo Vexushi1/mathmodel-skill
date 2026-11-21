@@ -300,6 +300,40 @@ def literal_data_reader_paths(text: str) -> list[str]:
     return list(dict.fromkeys(found))
 
 
+def _embedded_parameter_source_issues(text: str, config: Mapping[str, Any]) -> list[str]:
+    """Require code to consume the frozen parameter map, not merely carry its digest."""
+    try:
+        tree = ast.parse(text)
+    except SyntaxError as exc:
+        return [f"embedded_parameters源码无法解析: {exc}"]
+    consumed = False
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Subscript) and isinstance(node.value, ast.Name) and node.value.id == "RUN_CONFIG":
+            key = node.slice
+            if isinstance(key, ast.Constant) and key.value == "embedded_parameters":
+                consumed = True
+        elif (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+              and isinstance(node.func.value, ast.Name) and node.func.value.id == "RUN_CONFIG"
+              and node.func.attr == "get" and node.args
+              and isinstance(node.args[0], ast.Constant) and node.args[0].value == "embedded_parameters"):
+            consumed = True
+    if not consumed:
+        return ["embedded_parameters模式要求数值代码实际读取RUN_CONFIG.embedded_parameters"]
+
+    allowed_paths = []
+    if config.get("stage") == "analysis":
+        primary = config.get("primary_workbook")
+        if isinstance(primary, str) and primary.strip():
+            allowed_paths.append(primary)
+    untracked = [
+        path for path in literal_data_reader_paths(text)
+        if not any(_path_matches(path, allowed) for allowed in allowed_paths)
+    ]
+    if untracked:
+        return ["embedded_parameters模式发现未登记的外部文件读取: " + "、".join(untracked)]
+    return []
+
+
 def _decision_gate_issues(
     project_root: Path,
     stage: str,
@@ -460,8 +494,8 @@ def validate_script(
     if data_identity_mode == "embedded_parameters" and (
             backend != "python" or stage not in {"primary", "analysis"}):
         issues.append("embedded_parameters仅支持Python primary/analysis")
-    if data_identity_mode == "embedded_parameters" and literal_data_reader_paths(text):
-        issues.append("embedded_parameters不得使用未登记的外部文件读取器")
+    if data_identity_mode == "embedded_parameters":
+        issues.extend(_embedded_parameter_source_issues(text, config))
     if stage == "preprocessing" and ("solver_backend" in config or "code_dependencies" in config):
         issues.append("项目级预处理本期保持1.0协议，不接受solver_backend/code_dependencies扩展")
     if modern:
