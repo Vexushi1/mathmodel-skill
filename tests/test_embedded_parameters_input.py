@@ -138,7 +138,7 @@ class EmbeddedParametersInputTests(unittest.TestCase):
         self.assertEqual(_embedded_parameter_source_issues(accepted, config), [])
         rejected = 'params = RUN_CONFIG["embedded_parameters"]\nbook = open("extra.csv")'
         self.assertTrue(_embedded_parameter_source_issues(rejected, config))
-        suffix_only = 'params = RUN_CONFIG["embedded_parameters"]\\nbook = open("问题一求解结果.xlsx")'
+        suffix_only = 'params = RUN_CONFIG["embedded_parameters"]\nbook = open("问题一求解结果.xlsx")'
         self.assertTrue(_embedded_parameter_source_issues(suffix_only, config))
         primary_reference = 'params = RUN_CONFIG["embedded_parameters"]\nbook = load_workbook(RUN_CONFIG["primary_workbook"])'
         self.assertEqual(_embedded_parameter_source_issues(primary_reference, config), [])
