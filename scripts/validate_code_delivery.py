@@ -60,6 +60,13 @@ PRIMARY_REQUIRED_FIELDS = {"primary_quality_protocol_version"}
 RUN_RECEIPT_PROTOCOL_VERSION = "1.0.0"
 SOLVER_RECEIPT_PROTOCOL_VERSION = "1.1.0"
 VALID_PREPROCESSING_DECISIONS = {"not_needed", "question_local", "project_level"}
+
+def _required_config_field_missing(config: Mapping[str, Any], field: str) -> bool:
+    if field == "data_paths" and config.get("data_identity_mode") == "embedded_parameters":
+        return field not in config or config[field] != []
+    return field not in config or config[field] in (None, "", [])
+
+
 DATA_READER_NAMES = {
     "open", "ExcelFile", "read_csv", "read_excel", "read_table", "read_fwf",
     "read_json", "read_parquet", "read_feather", "read_pickle", "read_hdf",
@@ -324,6 +331,8 @@ def _decision_gate_issues(
         return issues
     if modern and data_identity_mode == "preprocessing_workbook" and decision != "project_level":
         issues.append("preprocessing_workbook模式只允许已验收的project_level预处理")
+    if modern and data_identity_mode == "embedded_parameters" and decision == "project_level":
+        issues.append("embedded_parameters模式不得绕过project_level预处理工作簿")
     if stage in {"primary", "analysis"} and decision == "project_level":
         if preprocessing.get("status") != "accepted" or preprocessing.get("quality_status") != "passed":
             issues.append("project_level项目必须先验收数据预处理结果.xlsx并通过预处理质量门")
@@ -424,7 +433,7 @@ def validate_script(
     if config_name:
         required_fields = TASK_REQUIRED_FIELDS if config_name == "RUN_CONFIG" else LEGACY_REQUIRED_FIELDS
         for field in sorted(required_fields):
-            if field not in config or config[field] in (None, "", []):
+            if _required_config_field_missing(config, field):
                 issues.append(f"{config_name}缺少字段: {field}")
 
     stage = str(config.get("stage", ""))
@@ -445,8 +454,14 @@ def validate_script(
     issues.extend(scale_issues)
     source_fingerprint = None
     data_identity_mode = config.get("data_identity_mode", "combined")
-    if "data_identity_mode" in config and (not modern or data_identity_mode not in ("combined", "preprocessing_workbook")):
-        issues.append("data_identity_mode仅1.1阶段允许combined或preprocessing_workbook")
+    if "data_identity_mode" in config and (
+            not modern or data_identity_mode not in ("combined", "preprocessing_workbook", "embedded_parameters")):
+        issues.append("data_identity_mode仅现代primary/analysis阶段允许combined、preprocessing_workbook或embedded_parameters")
+    if data_identity_mode == "embedded_parameters" and (
+            backend != "python" or stage not in {"primary", "analysis"}):
+        issues.append("embedded_parameters仅支持Python primary/analysis")
+    if data_identity_mode == "embedded_parameters" and literal_data_reader_paths(text):
+        issues.append("embedded_parameters不得使用未登记的外部文件读取器")
     if stage == "preprocessing" and ("solver_backend" in config or "code_dependencies" in config):
         issues.append("项目级预处理本期保持1.0协议，不接受solver_backend/code_dependencies扩展")
     if modern:
