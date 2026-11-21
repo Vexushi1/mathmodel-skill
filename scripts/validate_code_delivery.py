@@ -345,7 +345,7 @@ def _embedded_parameter_source_issues(text: str, config: Mapping[str, Any]) -> l
         literal = _literal_path_argument(candidate) if candidate is not None else None
         primary_reference = False
         if isinstance(primary_path, str) and primary_path.strip():
-            primary_reference = bool(literal and _path_matches(literal, primary_path))
+            primary_reference = bool(literal and _normalize_path_token(literal) == _normalize_path_token(primary_path))
             if not primary_reference and candidate is not None:
                 primary_reference = any(
                     isinstance(item, ast.Subscript)
