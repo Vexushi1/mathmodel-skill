@@ -11,6 +11,7 @@
 新 1.1 实例的数据身份模式服从执行 Authority：`project_level` 显式写 `data_identity_mode="preprocessing_workbook"`，只以已验收预处理 XLSX 作为 `data_paths`，沿用其普通文件 SHA；其他两种预处理决策默认 `combined`。不能把预处理工作簿改算为输入集合摘要来迁就模板。
 
 当题目没有外部数值附件，且所有数值输入本质上是模型参数时，Python primary/analysis 可以显式使用 `data_identity_mode="embedded_parameters"`：把参数直接写入唯一 `RUN_CONFIG.embedded_parameters`，设置 `data_paths=[]`，并按 `scripts/artifact_fingerprint.py#embedded_parameters_hash` 计算 `data_sha256`。不得把题目 PDF、空文件或 JSON 旁车伪装成数据输入；`input_files()` 对真实文件输入仍保持非空和路径安全检查。该模式当前仅支持 Python primary/analysis，不支持 project_level、辅助文件或 MATLAB 后端。
+参数摘要在代码交付前由当前 Skill 的 `embedded_parameters_hash()` 计算并写成 RUN_CONFIG 字面量；正式赛题入口不应运行时导入 Skill 仓库脚本。analysis 阶段沿用 primary 的同一内置参数身份；参数扰动、压力场景等 analysis-only 值放入独立分析计划，由 analysis 源码 bundle 绑定，不改变 `data_sha256`。
 
 ## 推荐项目结构
 
