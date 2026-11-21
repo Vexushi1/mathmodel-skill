@@ -337,6 +337,9 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/fixtures/v10351_approved_source_spans.json`
 - `tests/fixtures/v10352_approved_source_spans.json`
 - `tests/fixtures/v10353_approved_source_spans.json`
+- `tests/fixtures/v11_business_baseline.yaml`
+- `tests/fixtures/v11_web_app_cases.yaml`
+- `tests/fixtures/v11_web_app_rubric.yaml`
 - `tests/fixtures/v900_phase_h_empty_sync_golden.yaml`
 - `tests/fixtures/v900_phase_i_migration_matrix.yaml`
 - `tests/fixtures/v900_phase_i_writer_retirement_inventory.yaml`
@@ -357,6 +360,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/optimization_baseline.py`
 - `tests/plot_patterns_smoke.py`
 - `tests/plot_render_smoke.py`
+- `tests/plot_v11_baseline_smoke.py`
 - `tests/reading_plan_cases.py`
 - `tests/reading_plan_evidence.py`
 - `tests/solver_backend_hash_smoke.py`
@@ -532,6 +536,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_v10_project_runtime_policy.py`
 - `tests/test_v10_recovery_read_boundaries.py`
 - `tests/test_v10_retired_artifact_isolation.py`
+- `tests/test_v11_baseline_packets.py`
 - `tests/test_v631_contract_closure.py`
 - `tests/test_v632_delivery_gate_closure.py`
 - `tests/test_v633_gate_hardening.py`
@@ -623,10 +628,17 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_v931_writing_readability_w4_acceptance.py`
 - `tests/v10270_action_observation.py`
 - `tests/v10270_runtime_measurement.py`
+- `tests/v11_business_baseline.py`
+- `tests/v11_evidence_observations.py`
+- `tests/v11_model_observations.py`
+- `tests/v11_plot_observations.py`
+- `tests/v11_reading_baseline.py`
+- `tests/v11_web_app_packet.py`
 
 ## Current Maintenance Records
 
 - `docs/skill_optimization_status.md`
+- `docs/v11_rule_preservation_map.md`
 - `docs/v931_branch_cleanup_manifest.md`
 - `docs/v931_postrelease_health_remediation_plan.md`
 - `docs/v931_repository_hygiene_inventory.md`
