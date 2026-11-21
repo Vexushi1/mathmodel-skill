@@ -69,6 +69,24 @@ class EntrypointParityTests(unittest.TestCase):
         self.assertNotIn("compatibility only; do not preload the whole repository", agent_instructions)
         self.assertNotIn("只加载当前适用资源，不预载整个仓库", extract_contract(ROOT_SKILL))
 
+    def test_new_project_entries_activate_the_pinned_startup_profile(self):
+        contract = yaml.safe_load((ROOT / "core/bootstrap.yaml").read_bytes())["startup_contract"]
+        selector = re.escape(contract["activation"]["candidate_selector"])
+        host = yaml.safe_load((ROOT / "agents/openai.yaml").read_bytes())["interface"]["default_prompt"]
+        sources = (
+            ("root", extract_contract(ROOT_SKILL), rf"新项目[^。]*启用 `{selector}`"),
+            ("plugin", extract_contract(PACKAGED_SKILL), rf"新项目[^。]*启用 `{selector}`"),
+            ("host", host, rf"For a new project, select {selector}\b"),
+            ("agent", (ROOT / "AGENTS.md").read_text(encoding="utf-8"),
+             rf"For a new project, select {selector}\b"),
+        )
+        for entry, instructions, activation in sources:
+            with self.subTest(entry=entry):
+                self.assertRegex(instructions, activation)
+                self.assertIn("PROJECT_INSTRUCTIONS.md#web-app-start", instructions)
+                self.assertIn("--candidate-startup-event", instructions)
+                self.assertIn("--source-commit", instructions)
+
     def test_all_release_carriers_follow_bootstrap(self):
         current = str(yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8"))["skill_version"])
         plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8"))

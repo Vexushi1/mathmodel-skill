@@ -17,7 +17,7 @@ metadata:
 本文件只负责发现、启动和 Authority 委托，不复制数学建模业务合同。无论从根目录 `SKILL.md` 还是 `skills/mathmodel-skill/SKILL.md` 进入，都按同一链路执行：
 
 1. 首先读取 `core/bootstrap.yaml`，确认并沿用本项目固定的 commit。遵守平台指令；
-2. 由 `core/workflow_router.yaml` 的 `default_load` 加载 `core/hsk_core_policy.md`，按 `core/bootstrap.yaml#startup_contract` 区分当前版本默认行为与显式选用的候选入口。候选中的正式建模、局部工作和恢复分别依该合同取原文，网页和 App 的可复制指令见 `PROJECT_INSTRUCTIONS.md#web-app-start`；
+2. 由 `core/workflow_router.yaml` 的 `default_load` 加载 `core/hsk_core_policy.md`，新项目采用 `PROJECT_INSTRUCTIONS.md#web-app-start` 的启动选择，在固定提交支持时启用 `v11_full_read`。已有项目沿用其固定提交和原选择。按 `core/bootstrap.yaml#startup_contract` 为当前请求选取正式、局部或恢复事件。使用 resolver 执行该选择时，同时传入 `--candidate-startup-event` 和 `--source-commit`；
 3. 执行工具、同版本完整资源根、依赖及必要项目材料齐备时，使用 `scripts/resolve_runtime.py` 根据当前意图、竞赛和项目状态解析 `read_now`、`conditional`、运行时 assurance 与 `pre_delivery_gates`；`load_order` 保留为兼容资源清单，不表示本次正文已读取或门禁已执行。模型批准、条件式预处理与主数值验证分别委托 `core/model_approval_contract.yaml`、`core/global_preprocessing_contract.yaml`、`core/numerical_verification_contract.yaml`；
 4. 按 `core/runtime_assurance_contract.yaml#reading_plan.consumer_protocol`，在当前动作前取得 `read_now` 的实际完整适用正文并评估 `conditional`；进入新阶段／小问／章节／图设计范围、跨聊天恢复或来源／证据范围变化时重新取读，即使版本／哈希相同。分段返回必须核对范围覆盖并补齐缺口；路径、标题、哈希和计划字节不代表正文已消费。开场的读取范围服从启动合同，阶段计划只决定本动作所需的来源；
 5. GitHub-only 使用由现有生成链维护的 `core/stage_reading_guide.md` 定位所选固定 commit 的原 Authority 并分段取读；同版本资源根及真实 resolver YAML 可使用只读 `scripts/read_stage.py` 返回正文与缺口。导航中的候选来源不越过当前批准／执行等待点；工具或必要材料不足时保留未执行／未核验范围，不虚构 resolver 输出。导航、读取结果都不代表审批或 gate 执行；
