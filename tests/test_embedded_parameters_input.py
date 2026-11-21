@@ -138,9 +138,9 @@ class EmbeddedParametersInputTests(unittest.TestCase):
         self.assertEqual(_embedded_parameter_source_issues(accepted, config), [])
         rejected = 'params = RUN_CONFIG["embedded_parameters"]\nbook = open("extra.csv")'
         self.assertTrue(_embedded_parameter_source_issues(rejected, config))
-        primary_reference = 'params = RUN_CONFIG["embedded_parameters"]\\nbook = load_workbook(RUN_CONFIG["primary_workbook"])'
+        primary_reference = 'params = RUN_CONFIG["embedded_parameters"]\nbook = load_workbook(RUN_CONFIG["primary_workbook"])'
         self.assertEqual(_embedded_parameter_source_issues(primary_reference, config), [])
-        dynamic_reader = 'params = RUN_CONFIG["embedded_parameters"]\\nframe = read_csv(source_path)'
+        dynamic_reader = 'params = RUN_CONFIG["embedded_parameters"]\nframe = read_csv(source_path)'
         self.assertTrue(_embedded_parameter_source_issues(dynamic_reader, config))
         workbook_reader = 'params = RUN_CONFIG["embedded_parameters"]\nbook = load_workbook("extra.xlsx")'
         self.assertTrue(_embedded_parameter_source_issues(workbook_reader, config))
