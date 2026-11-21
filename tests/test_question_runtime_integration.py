@@ -14,7 +14,6 @@ SCRIPTS = str(ROOT / "scripts")
 if SCRIPTS not in sys.path:
     sys.path.insert(0, SCRIPTS)
 
-from tests.test_sync_project import framework_text as sync_framework_text
 from tests.test_sync_project import load_syncer, setup_project
 from tests.test_v712_runtime_assurance import load_runtime
 from tests.test_v900_semantic_governance import (
@@ -48,7 +47,7 @@ def build_three_question_project(root: Path) -> tuple[Path, Path]:
         }
         entry["capabilities"] = {}
         entry["depends_on"] = dependencies
-        entry["framework_section"] = f"## {question}：测试问题"
+        entry["framework_section"] = f"### {question}：第一问"
         state["subproblems"][question] = entry
 
         payload = identity_payload()
