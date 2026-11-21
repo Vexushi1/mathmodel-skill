@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import hashlib
+import json
+import math
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Iterable
 
@@ -16,6 +19,33 @@ def sha256_file(path: Path) -> str:
 def sha256_text(text: str) -> str:
     normalized = text.replace("\r\n", "\n").replace("\r", "\n")
     return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+def embedded_parameters_hash(parameters: Mapping[str, object]) -> str:
+    """Hash JSON-compatible parameters with a versioned, domain-separated prefix."""
+    if not isinstance(parameters, Mapping) or not parameters:
+        raise ValueError("embedded_parameters必须是非空JSON对象")
+
+    def normalize(value: object, location: str) -> object:
+        if value is None or isinstance(value, (str, bool, int)):
+            return value
+        if isinstance(value, float):
+            if not math.isfinite(value):
+                raise ValueError(f"embedded_parameters含非有限数值: {location}")
+            return value
+        if isinstance(value, list):
+            return [normalize(item, f"{location}[{index}]") for index, item in enumerate(value)]
+        if isinstance(value, Mapping):
+            if any(not isinstance(key, str) or not key for key in value):
+                raise ValueError(f"embedded_parameters对象键必须为非空字符串: {location}")
+            return {key: normalize(value[key], f"{location}.{key}") for key in sorted(value)}
+        raise ValueError(f"embedded_parameters包含非JSON类型: {location}")
+
+    normalized = normalize(parameters, "embedded_parameters")
+    payload = json.dumps(
+        normalized, ensure_ascii=False, sort_keys=True,
+        separators=(",", ":"), allow_nan=False,
+    ).encode("utf-8")
+    return hashlib.sha256(b"HSK-EMBEDDED-PARAMETERS-V1\0" + payload).hexdigest()
 
 def combined_hash_from_entries(entries: Iterable[tuple[str, str]]) -> str | None:
     """Apply the bundle format to unique, ordered path/hash pairs from one read set."""
