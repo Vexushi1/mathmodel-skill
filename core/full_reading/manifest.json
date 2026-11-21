@@ -2,8 +2,8 @@
   "schema_version": 1,
   "registry": {
     "path": "core/rule_corpus_sources.yaml",
-    "git_blob_sha1": "e65f070d8669be030550cd3c5f12cedd15c8f916",
-    "sha256": "5967f038c645835edd9367c9c482ffc68c51732d267870662a0982a25be01996"
+    "git_blob_sha1": "745646d943730d372922d3ee80699e457cb0f70c",
+    "sha256": "6e7b6e69441d51e5612bc162a2a56f48c31c794460788913ce351b7ef101f83d"
   },
   "offsets": "zero-based half-open raw UTF-8 bytes; original file line numbers are one-based",
   "volumes": [
