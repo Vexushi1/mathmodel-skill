@@ -323,17 +323,40 @@ def _embedded_parameter_source_issues(text: str, config: Mapping[str, Any]) -> l
     if not consumed:
         return ["embedded_parameters模式要求数值代码实际读取RUN_CONFIG.embedded_parameters"]
 
-    allowed_paths = []
-    if config.get("stage") == "analysis":
-        primary = config.get("primary_workbook")
-        if isinstance(primary, str) and primary.strip():
-            allowed_paths.append(primary)
-    untracked = [
-        path for path in literal_data_reader_paths(text)
-        if not any(_path_matches(path, allowed) for allowed in allowed_paths)
-    ]
+    primary_path = config.get("primary_workbook") if config.get("stage") == "analysis" else None
+    untracked: list[str] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        reader = _call_leaf_name(node.func)
+        if reader not in DATA_READER_NAMES:
+            continue
+        if reader == "open":
+            mode_node = node.args[1] if len(node.args) > 1 else next(
+                (item.value for item in node.keywords if item.arg == "mode"), None)
+            if isinstance(mode_node, ast.Constant) and isinstance(mode_node.value, str) and mode_node.value[:1] in {"w", "a", "x"}:
+                continue  # Writing an output file is not an external numerical input.
+        candidate: ast.AST | None = node.args[0] if node.args else None
+        if candidate is None and isinstance(node.func, ast.Attribute) and reader in {"open", "read_text", "read_bytes"}:
+            candidate = node.func.value
+        if candidate is None:
+            candidate = next((item.value for item in node.keywords
+                              if item.arg in DATA_READER_PATH_KEYWORDS), None)
+        literal = _literal_path_argument(candidate) if candidate is not None else None
+        primary_reference = False
+        if isinstance(primary_path, str) and primary_path.strip():
+            primary_reference = bool(literal and _path_matches(literal, primary_path))
+            if not primary_reference and candidate is not None:
+                primary_reference = any(
+                    isinstance(item, ast.Subscript)
+                    and isinstance(item.value, ast.Name) and item.value.id == "RUN_CONFIG"
+                    and isinstance(item.slice, ast.Constant) and item.slice.value == "primary_workbook"
+                    for item in ast.walk(candidate)
+                )
+        if not primary_reference:
+            untracked.append(literal or f"{reader}(动态路径)")
     if untracked:
-        return ["embedded_parameters模式发现未登记的外部文件读取: " + "、".join(untracked)]
+        return ["embedded_parameters模式发现未登记的外部文件读取: " + "、".join(dict.fromkeys(untracked))]
     return []
 
 
