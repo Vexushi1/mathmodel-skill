@@ -21,8 +21,8 @@ import model_code_conformance as BOUNDED
 import run_config_parser
 import stage_code
 import state_transitions
-from execution_protocol import COMPARISON_FIELDS, comparison_config_issues, comparison_receipt_issues, declared_input_paths
-from stage_inputs import input_files
+from execution_protocol import COMPARISON_FIELDS, comparison_config_issues, comparison_receipt_issues
+from stage_inputs import declared_input_files
 
 ROOT = Path(__file__).resolve().parent.parent
 SHEETS = {"多模型检验", "同模型多算法检验"}
@@ -33,7 +33,7 @@ AUTHORITIES = (
     "scripts/analysis_comparison.py", "scripts/analysis_comparison_gate.py",
     "scripts/claim_workbook.py", "scripts/claim_values.py", "scripts/execution_protocol.py",
     "scripts/validate_model_approval.py", "scripts/semantic_identity.py", "scripts/run_config_parser.py",
-    "scripts/stage_code.py", "scripts/stage_inputs.py", safe_yaml.SOURCE_RELATIVE_PATH,
+    "scripts/stage_code.py", "scripts/stage_inputs.py", "scripts/artifact_fingerprint.py", safe_yaml.SOURCE_RELATIVE_PATH,
     "scripts/state_transitions.py", "scripts/validate_semantic_governance.py", "core/state_transition_contract.yaml",
     "templates/code/hsk_pipeline/workbook_validation.py",
 )
@@ -376,7 +376,7 @@ def inspect_gate(root: Path, state: Mapping[str, Any], question: str, *, boundar
                 dependency_raw = BOUNDED._read(root, dependency["path"], 2 * 1024 * 1024, observed["project"])
                 if hashlib.sha256(dependency_raw).hexdigest() != str(dependency.get("sha256", "")).lower():
                     raise ValueError("comparison source dependency identity differs from delivered configuration")
-            for path in input_files(root, declared_input_paths(actual_config)):
+            for path in declared_input_files(root, actual_config):
                 BOUNDED._read(root, path.relative_to(root).as_posix(), 512 * 1024 * 1024, observed["project"])
         if delivered is None:
             # Prerequisite/design checks need the current plan but not a delivered analysis file.
