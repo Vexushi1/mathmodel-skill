@@ -160,7 +160,7 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
         before = {"id": "pure_model_design", "behavior": {"read_now": [], "load_order": []},
                   "source_identity": {"skill_version": "10.27.0", "sources": []}}
         after = {"id": "pure_model_design", "behavior": {"read_now": [], "load_order": []},
-                 "source_identity": {"skill_version": "10.35.3", "sources": []}}
+                 "source_identity": {"skill_version": "11.0.0", "sources": []}}
         for item in manifest["migrations"]:
             original = {
                 "origin": "skill", "path": item["path"],
@@ -187,6 +187,7 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
 
     def test_exact_current_bytes_and_spans_project_without_mutating_actual_evidence(self):
         fixture, old, new = self.cases()
+        self.assertEqual(fixture["version"], "11.0.0")
         preserved = deepcopy(new)
         projected, evidence = self.measurement.project_exact_approved_source_spans(
             old, new, fixture)

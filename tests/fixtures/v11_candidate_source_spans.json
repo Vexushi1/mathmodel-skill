@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "scope": "v11_candidate_legacy_stage_scoped_spans",
-  "version": "10.35.3",
-  "authorizing_reason": "The v11 candidate keeps the legacy stage-scoped profile as default. Only the listed physical ranges on these exact authority bytes project onto the frozen G1A comparisons. Candidate startup with the full-read selector is evaluated separately.",
+  "version": "11.0.0",
+  "authorizing_reason": "The v11.0.0 integrated candidate retains the legacy stage-scoped default. Candidate SHA-256 values bind the exact current authorities; physical ranges are frozen from the eight-case G1A packet. Opt-in full startup and composed figure routes are separately qualified and are not covered by this legacy projection.",
   "required_case_ids": [
     "pure_model_design",
     "pure_python_figures",
@@ -17,14 +17,26 @@
     {
       "path": "core/workflow_router.yaml",
       "baseline_sha256": "eb9d4200cc7196e72e414d590e9f7a9ffdc782986d2d13a17c5ac99e976189b6",
-      "candidate_sha256": "6c0defbfba9fb454c05633bc4d9cdf640308920b242e3318b4b628210f18a4f9",
+      "candidate_sha256": "a7ff2137749fd5961a141ee8e4ffdc65f9b924a6fcdd7422bc78699d3f80d67b",
       "old_ranges": [
-        [416, 416],
-        [419, 430]
+        [
+          416,
+          416
+        ],
+        [
+          419,
+          430
+        ]
       ],
       "new_ranges": [
-        [473, 473],
-        [476, 487]
+        [
+          473,
+          473
+        ],
+        [
+          476,
+          487
+        ]
       ]
     },
     {
@@ -32,10 +44,16 @@
       "baseline_sha256": "d1b607ea5a7704b4e18f01defb69c24e5b82ffc0f70661e28d880f9a8fbbee25",
       "candidate_sha256": "3d97b5a170b1ddd6155fe47b0864caa4a2a4bf513238d6cf38ab85a0436bbc3d",
       "old_ranges": [
-        [1, 272]
+        [
+          1,
+          272
+        ]
       ],
       "new_ranges": [
-        [1, 296]
+        [
+          1,
+          296
+        ]
       ]
     },
     {
@@ -43,10 +61,16 @@
       "baseline_sha256": "6e0d674e4afe4f93b6f948d66a446114a01b4777a1550ef1251d45873a97abdc",
       "candidate_sha256": "2fc8fecefd068f918f4a6bc698d763081bd27b73c85464c0545be9e4b176444f",
       "old_ranges": [
-        [1, 83]
+        [
+          1,
+          83
+        ]
       ],
       "new_ranges": [
-        [1, 92]
+        [
+          1,
+          92
+        ]
       ]
     },
     {
@@ -54,10 +78,16 @@
       "baseline_sha256": "5541bb8e44b80aefece95a5a785b3386a0433aac79320065a71f37fb262f6b1f",
       "candidate_sha256": "4deb0db4d7ff06c6cfc6cda0344fc25212e7cb9bbe8155b11d516c1f3c2107f4",
       "old_ranges": [
-        [1, 700]
+        [
+          1,
+          700
+        ]
       ],
       "new_ranges": [
-        [1, 719]
+        [
+          1,
+          719
+        ]
       ]
     }
   ],
@@ -72,29 +102,41 @@
         "path": "core/literature_research_contract.yaml",
         "candidate_sha256": "92ef6b1ea2ae2ce12113386b3700946f92fa126c98566cd6ddeaa9ae8d5a9011",
         "ranges": [
-          [1, 169]
+          [
+            1,
+            169
+          ]
         ]
       },
       {
         "path": "packs/artifact/literature_research.md",
         "candidate_sha256": "6966319982f7d67aed7058058828974404e299168601c60d1293205e3b71204b",
         "ranges": [
-          [1, 60]
+          [
+            1,
+            60
+          ]
         ]
       }
     ]
   },
   "output_read_shift": {
     "path": "core/output_contract.yaml",
-    "candidate_sha256": "d1a395266067db570001e23813b90941e409ce73d0911c70aba401abf81a2cbf",
+    "candidate_sha256": "0da0fd4c9e6440fa3d1f2f0f35dd1e8d11e894e7141648fe69919256406b335b",
     "cases": [
       {
         "case_id": "review_word_readonly",
         "current_ranges": [
-          [466, 512]
+          [
+            466,
+            512
+          ]
         ],
         "historical_ranges": [
-          [443, 489]
+          [
+            443,
+            489
+          ]
         ],
         "selectors": {
           "yaml_paths": [
@@ -105,10 +147,16 @@
       {
         "case_id": "natural_language_two_actions_probe",
         "current_ranges": [
-          [1, 635]
+          [
+            1,
+            635
+          ]
         ],
         "historical_ranges": [
-          [1, 612]
+          [
+            1,
+            612
+          ]
         ],
         "selectors": {}
       }
@@ -116,12 +164,18 @@
   },
   "output_conditional_shift": {
     "path": "core/output_contract.yaml",
-    "candidate_sha256": "d1a395266067db570001e23813b90941e409ce73d0911c70aba401abf81a2cbf",
+    "candidate_sha256": "0da0fd4c9e6440fa3d1f2f0f35dd1e8d11e894e7141648fe69919256406b335b",
     "current_ranges": [
-      [1, 635]
+      [
+        1,
+        635
+      ]
     ],
     "historical_ranges": [
-      [1, 612]
+      [
+        1,
+        612
+      ]
     ],
     "when": "current_delivery_scope_or_file_layout_requires_definition",
     "case_ids": [
@@ -158,14 +212,20 @@
     {
       "path": "core/bootstrap.yaml",
       "baseline_sha256": "bbf02e3f78532e4b24b06359982794859670e9cd2afcf07555cc9634ce4a1a51",
-      "candidate_sha256": "49c4942e69035e1be3102d92b34e26ffa76c4995a2e769d78be5956eedef1af6",
+      "candidate_sha256": "9778cbcc121513086536566d4720fee324ecc503799922b83d590e3e03efb2b9",
       "spans": [
         {
           "before": [
-            [1, 107]
+            [
+              1,
+              107
+            ]
           ],
           "after": [
-            [1, 120]
+            [
+              1,
+              120
+            ]
           ]
         }
       ]
@@ -177,10 +237,16 @@
       "spans": [
         {
           "before": [
-            [1, 349]
+            [
+              1,
+              349
+            ]
           ],
           "after": [
-            [1, 351]
+            [
+              1,
+              351
+            ]
           ]
         }
       ]
@@ -188,14 +254,20 @@
     {
       "path": "core/hsk_core_policy.md",
       "baseline_sha256": "869f11c53972ac01ac96b6974ed826df9c0941240f0a3cabcf799eb91df82eb2",
-      "candidate_sha256": "f9a78ac9b3cbdda4e0ba45dca4bcd240fee6eddf0e16e93fbaba949cb1b56642",
+      "candidate_sha256": "28529ba3aa32a0e50ad4f710fc099c420fd56a61c38f680556a2f9b8d2dcba52",
       "spans": [
         {
           "before": [
-            [1, 101]
+            [
+              1,
+              101
+            ]
           ],
           "after": [
-            [1, 109]
+            [
+              1,
+              109
+            ]
           ]
         }
       ]
@@ -207,10 +279,16 @@
       "spans": [
         {
           "before": [
-            [1, 360]
+            [
+              1,
+              360
+            ]
           ],
           "after": [
-            [1, 370]
+            [
+              1,
+              370
+            ]
           ]
         }
       ]
@@ -218,22 +296,34 @@
     {
       "path": "core/writing_runtime_contract.yaml",
       "baseline_sha256": "af9c4c57a018468f7046e7835f1a8063f072fbee4c8788f504507c109fa0f3e7",
-      "candidate_sha256": "5b4b1d347b817418243871044cf5422059fcc9bc4761c99faeea0160f26077c7",
+      "candidate_sha256": "f1f516c8725aa8bd39d819449e21023b842986506c19c772e14b2bbd074ba89c",
       "spans": [
         {
           "before": [
-            [1, 722]
+            [
+              1,
+              722
+            ]
           ],
           "after": [
-            [1, 733]
+            [
+              1,
+              733
+            ]
           ]
         },
         {
           "before": [
-            [98, 233]
+            [
+              98,
+              233
+            ]
           ],
           "after": [
-            [108, 243]
+            [
+              108,
+              243
+            ]
           ]
         }
       ]
@@ -245,44 +335,98 @@
       "spans": [
         {
           "before": [
-            [1, 40],
-            [116, 477]
+            [
+              1,
+              40
+            ],
+            [
+              116,
+              477
+            ]
           ],
           "after": [
-            [1, 40],
-            [118, 479]
+            [
+              1,
+              40
+            ],
+            [
+              118,
+              479
+            ]
           ]
         },
         {
           "before": [
-            [1, 477]
+            [
+              1,
+              477
+            ]
           ],
           "after": [
-            [1, 479]
+            [
+              1,
+              479
+            ]
           ]
         },
         {
           "before": [
-            [1, 15],
-            [108, 115]
+            [
+              1,
+              15
+            ],
+            [
+              108,
+              115
+            ]
           ],
           "after": [
-            [1, 15],
-            [110, 117]
+            [
+              1,
+              15
+            ],
+            [
+              110,
+              117
+            ]
           ]
         },
         {
           "before": [
-            [1, 15],
-            [116, 147],
-            [438, 466],
-            [473, 477]
+            [
+              1,
+              15
+            ],
+            [
+              116,
+              147
+            ],
+            [
+              438,
+              466
+            ],
+            [
+              473,
+              477
+            ]
           ],
           "after": [
-            [1, 15],
-            [118, 149],
-            [440, 468],
-            [475, 479]
+            [
+              1,
+              15
+            ],
+            [
+              118,
+              149
+            ],
+            [
+              440,
+              468
+            ],
+            [
+              475,
+              479
+            ]
           ]
         }
       ]
@@ -294,44 +438,98 @@
       "spans": [
         {
           "before": [
-            [1, 6],
-            [34, 173],
-            [219, 674],
-            [726, 792]
+            [
+              1,
+              6
+            ],
+            [
+              34,
+              173
+            ],
+            [
+              219,
+              674
+            ],
+            [
+              726,
+              792
+            ]
           ],
           "after": [
-            [1, 6],
-            [36, 175],
-            [221, 676],
-            [728, 794]
+            [
+              1,
+              6
+            ],
+            [
+              36,
+              175
+            ],
+            [
+              221,
+              676
+            ],
+            [
+              728,
+              794
+            ]
           ]
         },
         {
           "before": [
-            [1, 819]
+            [
+              1,
+              819
+            ]
           ],
           "after": [
-            [1, 821]
+            [
+              1,
+              821
+            ]
           ]
         },
         {
           "before": [
-            [1, 6],
-            [174, 218]
+            [
+              1,
+              6
+            ],
+            [
+              174,
+              218
+            ]
           ],
           "after": [
-            [1, 6],
-            [176, 220]
+            [
+              1,
+              6
+            ],
+            [
+              176,
+              220
+            ]
           ]
         },
         {
           "before": [
-            [1, 6],
-            [675, 725]
+            [
+              1,
+              6
+            ],
+            [
+              675,
+              725
+            ]
           ],
           "after": [
-            [1, 6],
-            [677, 727]
+            [
+              1,
+              6
+            ],
+            [
+              677,
+              727
+            ]
           ]
         }
       ]
@@ -343,10 +541,16 @@
       "spans": [
         {
           "before": [
-            [1, 69]
+            [
+              1,
+              69
+            ]
           ],
           "after": [
-            [1, 78]
+            [
+              1,
+              78
+            ]
           ]
         }
       ]
