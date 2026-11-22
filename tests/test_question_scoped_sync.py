@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from pathlib import Path
+from unittest.mock import patch
 import tempfile
 import unittest
 
@@ -118,6 +119,41 @@ class QuestionScopedSyncTests(unittest.TestCase):
             report = SYNC.synchronize(root, write=False, delivery_scope="code", question="Q1")
             self.assertEqual(report["status"], "failed")
             self.assertTrue(any("后端" in item or "backend" in item for item in report["issues"]), report)
+
+    def test_unrelated_schema_corruption_remains_global_blocker(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            path = three_question_project(root)
+            state = yaml.safe_load(path.read_text(encoding="utf-8"))
+            del state["subproblems"]["Q3"]["capabilities"]["requires_convergence_diagnostic"]
+            path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False),
+                            encoding="utf-8")
+            report = SYNC.synchronize(root, write=False, delivery_scope="code", question="Q1")
+            self.assertEqual(report["status"], "failed")
+            self.assertTrue(any("schema" in issue and "Q3" in issue for issue in report["issues"]), report)
+
+    def test_scoped_write_rechecks_target_files_after_observation(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            path = three_question_project(root)
+            before_state = path.read_bytes()
+            source = root / "问题一求解/问题一求解.py"
+            original_snapshot = SYNC._snapshot_question
+            changed = [False]
+
+            def mutate_after_read(*args, **kwargs):
+                observed = original_snapshot(*args, **kwargs)
+                if not changed[0]:
+                    changed[0] = True
+                    source.write_bytes(source.read_bytes() + b"\n# concurrent synthetic edit\n")
+                return observed
+
+            with patch.object(SYNC, "_snapshot_question", side_effect=mutate_after_read):
+                with self.assertRaises(SYNC.PROJECT_TX.ReadSetConflictError):
+                    SYNC.synchronize(root, write=True, delivery_scope="code", question="Q1")
+            self.assertTrue(changed[0])
+            self.assertEqual(path.read_bytes(), before_state,
+                             "concurrent source drift must not commit new State")
 
     def test_unknown_question_and_final_delivery_scope_fail_closed(self):
         with tempfile.TemporaryDirectory() as temp:
