@@ -22,6 +22,7 @@ import project_transaction as PROJECT_TX  # noqa: E402
 import run_config_parser as RUN_CONFIG_PARSER  # noqa: E402
 import primary_quality_binding as PRIMARY_QUALITY  # noqa: E402
 import analysis_prerequisites as ANALYSIS_PREREQUISITES  # noqa: E402
+import question_dependency_gate as QUESTION_DEPENDENCIES  # noqa: E402
 import stage_code as STAGE_CODE  # noqa: E402
 import execution_provenance as EXECUTION_PROVENANCE  # noqa: E402
 import conformance_gate as CONFORMANCE  # noqa: E402
@@ -481,6 +482,17 @@ def validate_script(
                 issues.append("项目后端与源码/RUN_CONFIG/协议不一致，不得静默替换或降级")
         except STAGE_CODE.StageCodeError as exc:
             issues.append(str(exc))
+    # M3 is a real code-delivery prerequisite, not a read-only Resolver
+    # diagnostic. Do not inspect unrelated Qn; the helper observes only the
+    # current target's typed input sources against the shared State snapshot.
+    if stage in {"primary", "analysis"} and state_path.is_file():
+        try:
+            prerequisites = QUESTION_DEPENDENCIES.inspect(
+                project_root, _question_key(problem), config=config,
+            )
+            issues.extend(prerequisites["issues"])
+        except (OSError, ValueError, TypeError) as exc:
+            issues.append(f"{_question_key(problem)}: upstream dependency qualification failed: {exc}")
     if stage == "analysis":
         from validate_user_execution import ordinary_experiment_issues
 
@@ -837,6 +849,14 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
         return transition_reports
 
     key = _question_key(problem)
+    dependencies = QUESTION_DEPENDENCIES.inspect(
+        project_root, key, config=config, snapshot=snapshot,
+    )
+    if dependencies["issues"]:
+        raise ValueError("; ".join(dependencies["issues"]))
+    # Bind exactly observed upstream files to the existing atomic delivery read
+    # set. Any concurrent change before commit must fail, never re-qualify.
+    CONFORMANCE.merge_read_sets(preprocessing_observed, dependencies["observed_sources"])
     entry = state.setdefault("subproblems", {}).setdefault(key, {})
     quality_observed = {"project": {}, "skill": {}}
     if stage == "analysis":
