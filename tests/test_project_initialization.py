@@ -42,7 +42,16 @@ def specification(count: int = 3) -> dict:
                     ["temporal"] if key == "Q2" else ["physical_mechanism"]
                 ),
             },
-            "capabilities": {},
+            # Real Project State Schema requires six explicit, audited booleans.
+            # These are synthetic fixture facts, not default values for user projects.
+            "capabilities": {
+                "has_explicit_constraints": key == "Q1",
+                "requires_feasibility_check": key == "Q1",
+                "requires_equilibrium_residual": False,
+                "requires_conservation_residual": False,
+                "requires_discretization_check": False,
+                "requires_convergence_diagnostic": False,
+            },
             "depends_on": dependency,
         }
     question_entries["Q1"]["proposed_model"] = {
@@ -177,6 +186,12 @@ class ProjectInitializationTests(unittest.TestCase):
         cases.append(changed)
         changed = deepcopy(original)
         changed["questions"]["Q2"]["depends_on"][0]["question"] = "Q99"
+        cases.append(changed)
+        changed = deepcopy(original)
+        del changed["questions"]["Q1"]["capabilities"]["requires_feasibility_check"]
+        cases.append(changed)
+        changed = deepcopy(original)
+        changed["questions"]["Q3"]["capabilities"]["requires_convergence_diagnostic"] = "false"
         cases.append(changed)
         for bad in cases:
             with self.subTest(case=cases.index(bad)), tempfile.TemporaryDirectory() as temporary:
