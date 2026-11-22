@@ -347,7 +347,11 @@ def _scope_gate_commands(
             issues.append(f"{question}: gate requires a supported registered question")
         if (name == "semantic_governance"
                 and plan.get("delivery_scope") in {"design", "code", "results", "figures"}
-                and stage != "preprocessing"):
+                and stage != "preprocessing"
+                and "requirements" in state):
+            # M1-created projects have a complete registered Qn roster. Existing
+            # unversioned read-compatible State retains the historical whole-
+            # project semantic command until its roster is explicitly migrated.
             target = question if known else "<registered_question>"
             gate["command"] += f' --question "{target}"'
         elif name == "model_approval" and stage != "preprocessing":
