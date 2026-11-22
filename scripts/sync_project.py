@@ -447,6 +447,7 @@ def contract_preflight_issues(
                 else framework_path.read_text(encoding="utf-8"),
                 state=candidate_state if candidate_state is not None else load_yaml(state_path),
                 project_root=root,
+                question_scope=question_scope,
             )
         )
     return issues
