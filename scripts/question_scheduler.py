@@ -43,6 +43,8 @@ def _next_action(entry: Mapping[str, Any], verified: set[str]) -> str:
         return "model_challenge"
     if entry.get("human_model_approval_status") != "approved":
         return "human_model_approval"
+    if "locked_model_spec" not in verified:
+        return "model_identity_requalification"
     primary = entry.get("primary_execution_status")
     if primary == "workbook_received":
         return "primary_workbook_acceptance"
