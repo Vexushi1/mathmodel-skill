@@ -307,9 +307,13 @@ def _candidate_issues(root: Path, state: Mapping[str, Any], framework: str) -> l
     issues = STATE_VALIDATOR.validate_state_payload(
         state, project_root=root, framework_text_override=framework,
     )
+    # A first proposed model is not a paper/delivery stage. The canonical
+    # framework deliberately retains unresolved writing/algorithm preflight
+    # choices; strict=True is reserved for later writing/final review checks.
+    # Structural, State and current SIB validation still run at this boundary.
     issues.extend(FRAMEWORK_VALIDATOR.validate_framework_text(
         framework, state=state, mode=state["paper_framework"]["mode"],
-        strict=True, project_root=root,
+        strict=False, project_root=root,
     ))
     sections = question_sections(framework)
     if set(sections) != set(state["subproblems"]):
