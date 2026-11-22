@@ -1396,8 +1396,8 @@ QUESTION_SYNC_SCOPES = frozenset({"design", "code", "results", "figures"})
 
 def _question_sync_selection(
     state: Mapping[str, Any], target: str, scope: str,
-) -> tuple[list[str], list[str], list[str]]:
-    """Return the exact numerical snapshot closure and non-numeric evidence names.
+) -> tuple[list[str], dict[str, list[str]], list[str]]:
+    """Return exact numerical snapshot closure and typed non-numeric evidence roles.
 
     The State graph is observed whole.  Only result dependencies need upstream
     *numerical* snapshots: model-only dependencies need current SIB/approval
@@ -1426,7 +1426,7 @@ def _question_sync_selection(
     for edge in STATE_TRANSITIONS.dependency_edges(safe_graph):
         incoming.setdefault(edge["target"], []).append(edge)
     numeric = {target}
-    evidence: set[str] = set()
+    evidence: dict[str, set[str]] = {}
     visited: set[tuple[str, str]] = set()
     pending = [(target, "numeric")]
     issues: list[str] = []
@@ -1445,22 +1445,23 @@ def _question_sync_selection(
                 pending.append((source, "numeric"))
             elif kind == "model":
                 if source not in numeric:
-                    evidence.add(source)
+                    evidence.setdefault(source, set()).add("model")
                 pending.append((source, "model"))
             elif kind in {"parameter", "data"}:
                 if source not in numeric:
-                    evidence.add(source)
+                    evidence.setdefault(source, set()).add(kind)
             elif kind == "legacy_untyped":
-                evidence.add(source)
+                evidence.setdefault(source, set()).add("legacy_untyped")
                 issues.append(f"{current}: {source}/legacy_untyped requires dependency type review")
-    evidence.difference_update(numeric)
-    relevant = numeric | evidence
+    for q in numeric:
+        evidence.pop(q, None)
+    relevant = numeric | set(evidence)
     for cycle in STATE_TRANSITIONS.dependency_cycles(safe_graph):
         if set(cycle.split(" -> ")).intersection(relevant):
             issues.append(f"{target}: dependency cycle requires joint-model review: {cycle}")
     return (
         sorted(numeric, key=lambda q: int(q[1:])),
-        sorted(evidence, key=lambda q: int(q[1:])),
+        {q: sorted(evidence[q]) for q in sorted(evidence, key=lambda q: int(q[1:]))},
         list(dict.fromkeys(issues)),
     )
 
@@ -1680,15 +1681,28 @@ def synchronize(
     )
     upstream_question_evidence: dict[str, dict[str, Any]] = {}
     if scoped:
-        for name in semantic_qids:
-            hydration = RUNTIME_ASSURANCE.hydrate_project_context(
-                root, name, state_snapshot=state_snapshot,
-            )
-            upstream_question_evidence[name] = {
-                "verified_artifacts": hydration["verified_artifacts"],
-                "conflicts": hydration["conflicts"],
-                "ambiguities": hydration["ambiguities"],
-            }
+        for name, roles in semantic_qids.items():
+            record: dict[str, Any] = {"dependency_kinds": roles}
+            if {"model", "parameter"}.intersection(roles):
+                # The existing Model Approval Authority examines current SIB
+                # and activated challenge receipts without opening upstream
+                # numerical workbooks/plotting files for model-only edges.
+                from validate_model_approval import validate_state as validate_model_state
+                try:
+                    observed_issues = validate_model_state(
+                        state_path, [name], project_root=root,
+                    )
+                except (ValueError, TypeError, OSError) as exc:
+                    observed_issues = [f"{name}: current upstream model cannot be inspected: {exc}"]
+                record["model_approval_issues"] = observed_issues
+            if "data" in roles:
+                # Dataset/preprocessing identities are observed by the global
+                # data_source_files / active_data_hash branch above; do not
+                # accidentally make a data-only edge depend on numerical runs.
+                record["source_kind"] = "project_data_identity"
+            if "legacy_untyped" in roles:
+                record["dependency_kind_status"] = "unresolved"
+            upstream_question_evidence[name] = record
     for chinese_name in question_names:
         key = question_key(chinese_name)
         entry = subproblems.get(key) or subproblems.get(chinese_name) or {}
