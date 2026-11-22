@@ -233,6 +233,12 @@ def validate_project(
 ) -> dict[str, Any]:
     state_path = root / "state" / "project_state.yaml"
     framework_path = root / "模型论文框架.md"
+    # A question-scoped write consumes the original raw State bytes as well as
+    # current framework bytes. Neither generation alone nor a missing state key
+    # may authorize the guarded transaction.
+    scoped_state_bytes = (
+        state_path.read_bytes() if question is not None and state_path.is_file() else None
+    )
     if write and state_path.is_file():
         _, state, base_generation = PROJECT_TX.load_state_for_update(root)
     else:
@@ -372,9 +378,11 @@ def validate_project(
         issues.extend(messages)
     # An ambiguous graph cannot advance even an upstream baseline. Report the typed
     # reach on a copy so that reconciling the declarations can replay the original change.
-    write_allowed = (write and not legacy_write_blocked_sources
-                     and not semantic_parse_failed and not conflicts
-                     and (question is None or not issues))
+    # Preserve the legacy-writer retirement guard verbatim; question-scoped
+    # failures add a separate fail-closed requirement.
+    write_allowed = write and not legacy_write_blocked_sources and not semantic_parse_failed and not conflicts
+    if question is not None and issues:
+        write_allowed = False
     transition_state = state if write_allowed else deepcopy(state)
     for question in conflicts:
         # An unreadable incoming edge list has no usable edges for the diagnostic
@@ -422,8 +430,9 @@ def validate_project(
                 entry["validated_semantic_revision"] = entry.get("semantic_revision")
         if state_path.is_file() and (question is None or state != original_state):
             expected_files = (
-                {"模型论文框架.md": hashlib.sha256(framework_bytes).hexdigest()}
-                if question is not None else None
+                {"模型论文框架.md": hashlib.sha256(framework_bytes).hexdigest(),
+                 PROJECT_TX.STATE_RELATIVE_PATH: hashlib.sha256(scoped_state_bytes).hexdigest()}
+                if question is not None and scoped_state_bytes is not None else None
             )
             PROJECT_TX.commit_project_state(
                 root, state, expected_generation=base_generation,
