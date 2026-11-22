@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from pathlib import Path
+from unittest.mock import patch
 import sys
 import tempfile
 import unittest
@@ -183,6 +184,33 @@ class QuestionSchedulerTests(unittest.TestCase):
             self.assertEqual(plan["question_selection"]["blocked_questions"]["Q2"][0]["kind"], "result")
             self.assertTrue(plan["question_selection"]["diagnostic_only"])
             self.assertFalse(plan["solver_backend"]["environment_verified"])
+
+    def test_explicit_q1_does_not_read_unrelated_question_artifacts(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            build_three_question_project(root)
+            runtime = load_runtime()
+            original = runtime.hydrate_project_context
+            visited = []
+
+            def observed_hydration(project_root, question=None, **kwargs):
+                visited.append(question)
+                if question in {"Q2", "Q3"}:
+                    raise AssertionError("Q1 continuation must not hydrate unrelated Q2/Q3 files")
+                return original(project_root, question, **kwargs)
+
+            with patch.object(runtime, "hydrate_project_context",
+                              side_effect=observed_hydration):
+                plan = runtime.resolve_runtime(
+                    "full_solution", project_root=root, question="Q1",
+                )
+            self.assertEqual(plan["runtime_plan"]["selected_question"], "Q1")
+            self.assertEqual(set(visited), {"Q1"})
+            self.assertEqual(plan["question_selection"]["blocked_questions"], {})
+            self.assertIsNone(next(
+                row["blocked"] for row in plan["question_selection"]["candidate_questions"]
+                if row["question"] == "Q2"
+            ))
 
     def test_real_resolver_explicit_blocked_q2_retains_its_scope(self):
         with tempfile.TemporaryDirectory() as temporary:
