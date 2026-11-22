@@ -7,7 +7,7 @@ import hashlib
 import re
 from collections import deque
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Iterable, Mapping
 
 import safe_yaml
 from jsonschema import Draft202012Validator
