@@ -33,7 +33,7 @@ from semantic_identity import (
 FRAMEWORK_PATH = "模型论文框架.md"
 STATE_PATH = TX.STATE_RELATIVE_PATH
 QUESTION = re.compile(r"^Q[1-9][0-9]*$")
-MODEL_STATUS = "- 当前模型状态：\`proposed_model_spec / locked_model_spec / stale\`"
+MODEL_STATUS = "- 当前模型状态：`proposed_model_spec / locked_model_spec / stale`"
 SLOT = "#### 当前模型口径\n\n"
 
 
@@ -182,9 +182,9 @@ def build_candidates(spec: Mapping[str, Any], *, mode: str = "compact") -> tuple
                 raise InitializationError(f"{name}: explicit prior semantic and complexity review is required")
             marker_text = (
                 f"<!-- HSK_SEMANTIC_IDENTITY_BEGIN {name} -->\n"
-                "~~~yaml\n"
+                "```yaml\n"
                 + yaml.safe_dump(identity, allow_unicode=True, sort_keys=False)
-                + "~~~\n"
+                + "```\n"
                 + f"<!-- HSK_SEMANTIC_IDENTITY_END {name} -->\n\n"
                 + model_text + "\n\n"
             )
@@ -192,7 +192,7 @@ def build_candidates(spec: Mapping[str, Any], *, mode: str = "compact") -> tuple
             text = text.replace(SLOT, SLOT + marker_text, 1)
             text = text.replace(MODEL_STATUS, "- 当前模型状态：proposed_model_spec", 1)
             text = text.replace(
-                "- 当前状态：\`audited / designed / solved / analyzed / validated / written / completed\`",
+                "- 当前状态：`audited / designed / solved / analyzed / validated / written / completed`",
                 "- 当前状态：designed", 1,
             )
             decisions[name] = {
@@ -202,16 +202,16 @@ def build_candidates(spec: Mapping[str, Any], *, mode: str = "compact") -> tuple
             current_status, selected = "designed", model_name
         elif proposed is None:
             text = text.replace(
-                "- 当前状态：\`audited / designed / solved / analyzed / validated / written / completed\`",
+                "- 当前状态：`audited / designed / solved / analyzed / validated / written / completed`",
                 "- 当前状态：audited", 1,
             )
             current_status, selected = "audited", ""
         else:
             raise InitializationError(f"{name}.proposed_model must be a mapping")
         # The template's approval alternatives are not affirmative approval records.
-        text = text.replace("- Model Challenge：\`pending / passed / revision_required / stale\`",
+        text = text.replace("- Model Challenge：`pending / passed / revision_required / stale`",
                             "- Model Challenge：pending", 1)
-        text = text.replace("- Human Model Approval：\`pending / approved / revision_required / stale\`",
+        text = text.replace("- Human Model Approval：`pending / approved / revision_required / stale`",
                             "- Human Model Approval：pending", 1)
         section_texts.append(text.rstrip("\n") + "\n\n")
         dependencies = deepcopy(entry.get("depends_on", []))
