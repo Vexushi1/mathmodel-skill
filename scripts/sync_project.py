@@ -1410,11 +1410,29 @@ def _question_sync_selection(
         raise ValueError(f"question-scoped sync requires a canonical Qn: {target!r}")
     if scope not in QUESTION_SYNC_SCOPES:
         raise ValueError(f"{scope}: explicit Qn sync is not allowed for global/final/mechanism scope")
-    if "requirements" not in state:
-        raise ValueError("question-scoped sync requires a complete registered requirements roster")
+    requirements = state.get("requirements")
     entries = state.get("subproblems") or {}
     if not isinstance(entries, Mapping) or target not in entries:
         raise ValueError(f"{target}: question is not registered in the current State")
+    # Presence of "requirements" alone is not evidence of a complete Qn
+    # roster: historical projects can have total=0 or only Q1 registered.
+    # Do not infer Q2/Q3 readiness from such incomplete metadata. Preserve
+    # unrelated non-Q task markers; compare only canonical Qn entries.
+    if not isinstance(requirements, Mapping):
+        raise ValueError("question-scoped sync requires a complete registered requirements roster")
+    completed, pending = requirements.get("completed"), requirements.get("pending")
+    declared = (
+        [*completed, *pending]
+        if isinstance(completed, list) and isinstance(pending, list) else None
+    )
+    if (declared is None or not all(isinstance(name, str) for name in declared)
+            or isinstance(requirements.get("total"), bool)
+            or not isinstance(requirements.get("total"), int)
+            or requirements["total"] != len(set(declared))
+            or len(declared) != len(set(declared))
+            or {name for name in declared if re.fullmatch(r"Q[1-9][0-9]*", name)}
+            != set(entries)):
+        raise ValueError("question-scoped sync requires a complete registered requirements roster")
     # A malformed unrelated entry must be identified by whole-State Schema,
     # not allowed to cause TypeError during the scoped dependency traversal.
     safe_graph = {
