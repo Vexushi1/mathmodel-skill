@@ -1418,8 +1418,10 @@ class ContractAndDriftTests(unittest.TestCase):
         # C1 distinguishes optional receipt metadata from the internal review matrix.
         "modules/06_review_delivery.md": "4d2bc78193c14f2ee72983db7d58b1870e9ca59f",
         "config/competition_profiles.yaml": "0cfe08e2edac99f07f2e527643499b8bc73c0479",
-        # P4c binds typed dependencies and semantic revisions before updating validated baselines.
-        "scripts/validate_semantic_governance.py": "769eb05089111a11624db7da880a1402ecfec853",
+        # P4c historical Git blob: 769eb05089111a11624db7da880a1402ecfec853.
+        # M3 explicitly adds question-scoped semantic validation while retaining
+        # the original unscoped writer guard; exact current blob remains pinned.
+        "scripts/validate_semantic_governance.py": "9ba8c2b996c447fa77af9406f5e54ae6d422b544",
         # A5 requires current per-question files and exact official allowlist entries.
         # B2c additionally binds the selected LaTeX entrypoint and blocks
         # DOCX submission until a supported rendered proof exists. C2 adds
