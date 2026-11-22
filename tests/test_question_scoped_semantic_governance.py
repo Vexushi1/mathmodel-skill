@@ -113,6 +113,23 @@ class QuestionScopedSemanticGovernanceTests(unittest.TestCase):
                 self.assertTrue(any("schema" in issue and "Q3" in issue for issue in result["issues"]), result)
                 self.assertEqual(state_path.read_bytes(), before)
 
+    def test_actual_resolver_targets_semantic_gate_only_in_question_stage(self):
+        from tests.test_v712_runtime_assurance import load_runtime
+
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            project(root)
+            runtime = load_runtime()
+            plan = runtime.resolve_runtime("full_solution", project_root=root, question="Q1")
+            named = {row["name"]: row["command"] for row in plan["pre_delivery_gates"]}
+            self.assertIn("semantic_governance", named, named)
+            self.assertIn('--question "Q1"', named["semantic_governance"])
+
+            full = runtime.resolve_runtime("review", project_root=root, question="Q1")
+            for gate in full["pre_delivery_gates"]:
+                if gate["name"] == "semantic_governance":
+                    self.assertNotIn("--question", gate["command"])
+
     def test_unknown_question_fails_closed_and_preserves_state(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
