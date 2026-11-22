@@ -450,6 +450,7 @@ excluded:
   - scripts/project_snapshot.py
   - scripts/project_solver_backend.py
   - scripts/project_transaction.py
+  - scripts/question_scheduler.py
   - scripts/python_source_checks.py
   - scripts/read_stage.py
   - scripts/reading_plan.py
