@@ -9,10 +9,14 @@ import unittest
 
 import yaml
 
-from tests.test_sync_project import setup_project, capabilities, load_syncer
+from tests.test_sync_project import setup_project, capabilities
 from tests.test_question_runtime_integration import add_unfinished_questions_to_sync_project
+import sync_project as SYNC
 
-SYNC = load_syncer()
+# Use the canonical module already imported by other production consumers.
+# Loading sync_project afresh at unittest discovery time replaces
+# sys.modules["sync_project"] and breaks transaction patch targets in
+# project_solver_backend's independent integration tests.
 
 
 def three_question_project(root: Path) -> Path:
