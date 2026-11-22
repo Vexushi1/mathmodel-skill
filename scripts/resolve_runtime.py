@@ -343,9 +343,14 @@ def _scope_gate_commands(
     issues: list[str] = []
     for gate in plan["pre_delivery_gates"]:
         name = gate["name"]
-        if not known and name in {"model_approval", "code_delivery", "user_execution_receipt"}:
+        if not known and name in {"semantic_governance", "model_approval", "code_delivery", "user_execution_receipt"}:
             issues.append(f"{question}: gate requires a supported registered question")
-        if name == "model_approval" and stage != "preprocessing":
+        if (name == "semantic_governance"
+                and plan.get("delivery_scope") in {"design", "code", "results", "figures"}
+                and stage != "preprocessing"):
+            target = question if known else "<registered_question>"
+            gate["command"] += f' --question "{target}"'
+        elif name == "model_approval" and stage != "preprocessing":
             target = question if known else "<registered_question>"
             gate["command"] += f' --question "{target}"'
         elif name == "code_delivery":
