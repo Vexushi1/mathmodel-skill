@@ -6,6 +6,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import yaml
 
@@ -23,7 +24,8 @@ from tests.test_v900_semantic_governance import framework, identity_payload
 
 
 def set_dependency(root: Path, target: str, source: str, kind: str, *,
-                   selector: str | None = None) -> None:
+                   selector: str | None = None,
+                   selectors: tuple[str, ...] | None = None) -> None:
     """Change synthetic State and current SIB together, with exact hash bindings."""
     state_path = root / "state/project_state.yaml"
     framework_path = root / "模型论文框架.md"
@@ -32,7 +34,9 @@ def set_dependency(root: Path, target: str, source: str, kind: str, *,
     state["subproblems"][target]["depends_on"] = [dependency]
     identity = identity_payload()
     identity["question"] = target
-    identity["dependencies"] = [dict(dependency, **({"selector": selector} if selector else {}))]
+    requested = selectors if selectors is not None else ((selector,) if selector else ())
+    identity["dependencies"] = ([dict(dependency, selector=name) for name in requested]
+                                if requested else [dependency])
     digest = semantic_identity.semantic_identity_hash(identity)
     entry = state["subproblems"][target]
     for key in ("semantic_identity_hash", "validated_semantic_identity_hash",
@@ -47,6 +51,32 @@ def set_dependency(root: Path, target: str, source: str, kind: str, *,
     )
     framework_path.write_text(rewritten, encoding="utf-8")
     state_path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8")
+
+
+def set_approved_upstream_parameters(
+    root: Path, *, second: bool = True, p2_value: object = 5.0,
+    p2_source: str = "合成参数 P2 的已审核来源",
+) -> None:
+    """Bind file-backed Q1 approved SIB with one or two independent parameters."""
+    state_path, framework_path = root / "state/project_state.yaml", root / "模型论文框架.md"
+    state = yaml.safe_load(state_path.read_text(encoding="utf-8"))
+    identity = identity_payload()
+    identity["parameters"][0].update(value=7.0, source="合成参数 P1 的已审核来源")
+    if second:
+        second_param = deepcopy(identity["parameters"][0])
+        second_param.update(id="P2", symbol="theta", value=p2_value, source=p2_source)
+        identity["parameters"].append(second_param)
+    digest = semantic_identity.semantic_identity_hash(identity)
+    for field in ("semantic_identity_hash", "validated_semantic_identity_hash",
+                  "approved_semantic_identity_hash"):
+        state["subproblems"]["Q1"][field] = digest
+    text = framework_path.read_text(encoding="utf-8")
+    start, stop = text.index("### Q1：第一问"), text.index("### Q2：第一问")
+    section = framework(identity, question="Q1").split("## 各问模型与结果\n", 1)[1]
+    framework_path.write_text(text[:start] + section + text[stop:], encoding="utf-8")
+    state_path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False),
+                          encoding="utf-8")
+    set_dependency(root, "Q2", "Q1", "parameter", selectors=("P1", "P2"))
 
 
 class TypedQuestionDependencyGateTests(unittest.TestCase):
@@ -130,6 +160,91 @@ class TypedQuestionDependencyGateTests(unittest.TestCase):
             stale = GATE.inspect(root, "Q2")
             self.assertEqual(stale["status"], "failed", stale)
             self.assertTrue(any("Q1/parameter" in issue for issue in stale["issues"]))
+
+    def test_two_individually_proven_approved_parameters_are_eligible(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            build_three_question_project(root)
+            set_approved_upstream_parameters(root)
+            original_state = (root / "state/project_state.yaml").read_bytes()
+            accepted = GATE.inspect(root, "Q2")
+            self.assertEqual(accepted["status"], "passed", accepted)
+            self.assertEqual(accepted["checked_edges"][0]["kind"], "parameter")
+            self.assertEqual((root / "state/project_state.yaml").read_bytes(), original_state)
+
+    def test_each_parameter_selector_must_resolve_to_exact_finite_sourced_value(self):
+        for case in ("missing_second", "empty_source", "boolean_value"):
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                build_three_question_project(root)
+                set_approved_upstream_parameters(
+                    root, second=case != "missing_second",
+                    p2_source="" if case == "empty_source" else "合成参数来源",
+                    p2_value=True if case == "boolean_value" else 5.0,
+                )
+                result = GATE.inspect(root, "Q2")
+                self.assertEqual(result["status"], "failed", result)
+                self.assertTrue(any("P2" in issue for issue in result["issues"]), result)
+
+    def test_framework_drift_after_qualification_cannot_rebind_late_hash(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            _, framework_path = build_three_question_project(root)
+            set_dependency(root, "Q2", "Q1", "model")
+            original_source = GATE.hydrate_project_context
+            initial_state = (root / "state/project_state.yaml").read_bytes()
+
+            def rewrite_after_qualification(*args, **kwargs):
+                qualified = original_source(*args, **kwargs)
+                framework_path.write_bytes(framework_path.read_bytes() + b"\n<!-- changed after qualification -->\n")
+                return qualified
+
+            with patch.object(GATE, "hydrate_project_context",
+                              side_effect=rewrite_after_qualification):
+                result = GATE.inspect(root, "Q2")
+            self.assertEqual(result["status"], "failed", result)
+            self.assertTrue(any("模型论文框架.md" in issue for issue in result["issues"]), result)
+            self.assertEqual((root / "state/project_state.yaml").read_bytes(), initial_state)
+
+    def test_accepted_workbook_drift_after_qualification_cannot_rebind_late_hash(self):
+        from tests.test_v10_project_delivery_receipt import ProjectDeliveryReceiptTests
+
+        case = ProjectDeliveryReceiptTests(
+            "test_missing_upstream_result_is_diagnostic_and_verified_artifact_clears_it"
+        )
+        case.setUp()
+        try:
+            case.approved_question_scope()
+            case.approve_additional_question("Q2", depends_on=[
+                {"question": "Q1", "kind": "result"},
+            ])
+            case.accept_primary_fixture()
+            state = case.state()
+            state["subproblems"]["Q1"]["result_analysis_status"] = "not_required"
+            state["subproblems"]["Q1"]["result_analysis_requirement_reason"] = (
+                "合成测试已审计不需要额外03B；不代表实际用户数值验证"
+            )
+            case.save(state)
+            stable = GATE.inspect(case.root, "Q2")
+            self.assertEqual(stable["status"], "passed", stable)
+            workbook = case.root / state["subproblems"]["Q1"]["solution_workbook"]
+            original_source = GATE.hydrate_project_context
+            original_state = case.state_path.read_bytes()
+
+            def replace_after_qualification(*args, **kwargs):
+                qualified = original_source(*args, **kwargs)
+                workbook.write_bytes(workbook.read_bytes() + b"changed-after-qualification")
+                return qualified
+
+            with patch.object(GATE, "hydrate_project_context",
+                              side_effect=replace_after_qualification):
+                rejected = GATE.inspect(case.root, "Q2")
+            self.assertEqual(rejected["status"], "failed", rejected)
+            self.assertTrue(any("solution_workbook" in issue or "xlsx" in issue
+                                for issue in rejected["issues"]), rejected)
+            self.assertEqual(case.state_path.read_bytes(), original_state)
+        finally:
+            case.doCleanups()
 
     def test_unbound_raw_data_dependency_is_not_approved_by_filenames(self):
         with tempfile.TemporaryDirectory() as temp:
