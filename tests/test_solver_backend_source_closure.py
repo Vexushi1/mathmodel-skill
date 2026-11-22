@@ -25,7 +25,13 @@ class SolverBackendSourceClosureTests(unittest.TestCase):
         self.root = Path(temporary.name).resolve()
         self.folder = self.root / "问题一求解"
         self.folder.mkdir()
-        self.write("state/project_state.yaml", yaml.safe_dump({"preprocessing": {"decision": "not_needed"}}))
+        # Source-closure tests isolate import/call resolution, not project
+        # initialization. Register a synthetic Q1 without approval/results:
+        # M3 must not mistake absent registration for a source-closure defect.
+        self.write("state/project_state.yaml", yaml.safe_dump({
+            "preprocessing": {"decision": "not_needed"},
+            "subproblems": {"Q1": {"depends_on": []}},
+        }))
 
     def write(self, relative, content):
         path = self.root / relative
@@ -75,6 +81,15 @@ class SolverBackendSourceClosureTests(unittest.TestCase):
                  self.write("问题一求解/pkg/sub/calculation.py", calculation)]
         constants = self.write("问题一求解/pkg/constants.py", "VALUE = 1\n")
         return paths, constants
+
+    def test_unregistered_question_still_blocks_delivery_prerequisite(self):
+        source, _ = self.source("python", "from math import sqrt\nvalue = sqrt(4)\n")
+        state_path = self.root / "state/project_state.yaml"
+        state = yaml.safe_load(state_path.read_text(encoding="utf-8"))
+        state["subproblems"] = {}
+        state_path.write_text(yaml.safe_dump(state), encoding="utf-8")
+        issues, _ = DELIVERY.validate_script(self.root, source)
+        self.assertIn("Q1: missing registered question", issues)
 
     def test_parent_relative_import_changes_real_output_and_is_rejected_until_declared(self):
         declared, constants = self.package()
