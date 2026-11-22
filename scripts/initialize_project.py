@@ -139,6 +139,17 @@ def build_candidates(spec: Mapping[str, Any], *, mode: str = "compact") -> tuple
     }
 
     blueprint = FRAMEWORK_TEMPLATE.instantiate(mode)
+    # Canonical tables include illustrative rows. Never promote examples into
+    # current project registries or State evidence at first initialization.
+    illustrative_rows = (
+        "| T1 |  |  |  |  |  |  |  |  | current / stale |",
+        "| N1 |  |  |  | decimal / percent / scientific / interval |  |  |  |  | prompt / official / reviewer / model_resolution |",
+        "| TC1 |  | research_object / main_method / core_mechanism / core_contribution |  |  |  |  |  | pending / current / stale |",
+        "| paper.abstract.q1 | abstract_claim | Q1 | Q1.result_summary |  | `final_latex/frontmatter/abstract.tex` | current / stale / not_applicable |",
+    )
+    for row in illustrative_rows:
+        if row in blueprint:
+            blueprint = blueprint.replace(row + "\n", "", 1)
     parts = FRAMEWORK_TEMPLATE.split_top_level(blueprint)
     question_area = parts.sections["各问模型与结果"]
     marker = "### Q1：__QUESTION_NAME__"
