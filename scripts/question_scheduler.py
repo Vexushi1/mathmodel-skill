@@ -161,11 +161,17 @@ def select_question(
                 issues.append({**label, "reason": "legacy_dependency_kind_unresolved"})
         return issues
 
-    blocked = {name: issues for name in order if (issues := blockers_for(name))}
+    # An explicit Qn must not inspect or report the unrelated siblings as
+    # ineligible merely because their evidence was not read for this action.
+    checked = (
+        [explicit_question] if explicit_question in subproblems
+        else order if explicit_question is None else []
+    )
+    blocked = {name: issues for name in checked if (issues := blockers_for(name))}
     actions = {name: _next_action(subproblems[name], qualifications[name]) for name in order}
     candidates = [
         {"question": name, "next_action": actions[name],
-         "blocked": name in blocked}
+         "blocked": (name in blocked if name in checked else None)}
         for name in order
     ]
 
