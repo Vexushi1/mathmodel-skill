@@ -228,6 +228,32 @@ class QuestionScopedSyncTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "preprocessing must synchronize globally"):
                 SYNC.synchronize(root, write=False, delivery_scope="code", question="Q1")
 
+    def test_scoped_sync_refuses_incomplete_or_duplicate_modern_question_rosters(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            state_path = three_question_project(root)
+            canonical = yaml.safe_load(state_path.read_text(encoding="utf-8"))
+            rosters = (
+                {"total": 0, "completed": [], "pending": []},
+                {"total": 2, "completed": [], "pending": ["Q1", "Q2"]},
+                {"total": 4, "completed": [], "pending": ["Q1", "Q2", "Q3", "Q9"]},
+                {"total": 3, "completed": [], "pending": ["Q1", "Q2", "Q2"]},
+                {"total": True, "completed": [], "pending": ["Q1", "Q2", "Q3"]},
+                {"total": 3, "completed": ["Q1"], "pending": ["Q1", "Q2", "Q3"]},
+            )
+            for roster in rosters:
+                with self.subTest(roster=roster):
+                    candidate = deepcopy(canonical)
+                    candidate["requirements"] = roster
+                    state_path.write_text(
+                        yaml.safe_dump(candidate, allow_unicode=True, sort_keys=False),
+                        encoding="utf-8",
+                    )
+                    before = state_path.read_bytes()
+                    with self.assertRaisesRegex(ValueError, "requirements roster"):
+                        SYNC.synchronize(root, write=True, delivery_scope="code", question="Q1")
+                    self.assertEqual(state_path.read_bytes(), before)
+
     def test_unknown_question_and_final_delivery_scope_fail_closed(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
