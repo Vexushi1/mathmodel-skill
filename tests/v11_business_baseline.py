@@ -69,7 +69,8 @@ def observations(case):
         return {"declared_all_pages": paper.page_coverage("manual", "passed", "Pages 1 through 3 of 3 viewed"),
                 "declared_unverified": paper.page_coverage("manual", "unverifiable", "Only page 1 of 3 viewed"),
                 "logs_only": paper.page_coverage("machine", "passed", "Only compilation logs; no pages viewed"),
-                "partial": paper.page_coverage("manual", "passed", "Page 1 of 3 viewed; pages 2 and 3 not viewed")}
+                "partial": paper.page_coverage("manual", "passed", "Page 1 of 3 viewed; pages 2 and 3 not viewed"),
+                "bound_pdf_full_pages": paper.bound_pdf_page_coverage()}
     if case == "14":
         return {"absent": model.legacy_id(None, has_column=False), "spaces": model.legacy_id(" "),
                 "real_id": model.legacy_id("PQ-Q1-01"), "bound": model.legacy_id(None, force_strict=True),
