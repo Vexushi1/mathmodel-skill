@@ -13,7 +13,7 @@ import hashlib
 import re
 import sys
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Iterable, Mapping
 
 import yaml
 
@@ -376,6 +376,7 @@ def _validate_writing_preflight(
     state: Mapping[str, Any] | None,
     strict: bool,
     required: bool,
+    question_scope: set[str] | None = None,
 ) -> list[str]:
     issues: list[str] = []
     heading_present = "### 逐问写作能力预检" in text
@@ -410,6 +411,8 @@ def _validate_writing_preflight(
         if len(cells) < 8:
             issues.append(f"{question} Writing Capability Preflight row must contain all eight project fields")
             continue
+        if question_scope is not None and question not in question_scope:
+            continue  # Unrelated Qn readiness is revisited at its own scope or final review.
         if question_sections and question not in question_sections:
             issues.append(f"Writing Capability Preflight references unknown question: {question}")
         summary_state, proposition_state, algorithm_state = cells[2], cells[3], cells[4]
@@ -588,6 +591,7 @@ def _validate_algorithm_trace(
     state: Mapping[str, Any] | None,
     strict: bool,
     project_root: Path | None = None,
+    question_scope: set[str] | None = None,
 ) -> list[str]:
     issues: list[str] = []
     rows = _algorithm_rows(text)
@@ -633,6 +637,8 @@ def _validate_algorithm_trace(
         question = cells[1]
         if question and question not in question_sections:
             issues.append(f"{algorithm_id} references unknown question: {question}")
+        if question_scope is not None and question not in question_scope:
+            continue  # Keep table structure global; implementation evidence is per-question.
         subproblem = state_subproblems.get(question, {}) if isinstance(state_subproblems, Mapping) else {}
         status = str(subproblem.get("status", "")) if isinstance(subproblem, Mapping) else ""
         if cells[11] == "current" and status in SOLVED_STATUSES and not cells[9]:
@@ -643,6 +649,8 @@ def _validate_algorithm_trace(
             ))
 
     for question, section in question_sections.items():
+        if question_scope is not None and question not in question_scope:
+            continue
         presentation = _extract_scalar(section, "算法流程呈现")
         if presentation is None:
             continue
@@ -690,8 +698,10 @@ def validate_framework_text(
     strict: bool = False,
     mode: str | None = None,
     project_root: Path | None = None,
+    question_scope: Iterable[str] | None = None,
 ) -> list[str]:
     issues: list[str] = []
+    scoped = set(question_scope) if question_scope is not None else None
     try:
         _question_sections(text)
     except SemanticIdentityError as exc:
@@ -746,13 +756,15 @@ def validate_framework_text(
     elif resolved_mode == "full":
         issues.append("full framework requires proposition planning section")
 
-    issues.extend(_validate_algorithm_trace(text, state=state, strict=strict, project_root=project_root))
+    issues.extend(_validate_algorithm_trace(
+        text, state=state, strict=strict, project_root=project_root, question_scope=scoped,
+    ))
     issues.extend(_validate_writing_preflight(
         text,
         formula_by_id=formula_by_id,
         state=state,
         strict=strict,
-        required=framework_version.startswith("v0.8"),
+        required=framework_version.startswith("v0.8"), question_scope=scoped,
     ))
 
     if strict:
@@ -806,6 +818,8 @@ def validate_framework_text(
                 issues.append(f"project-state {name} IDs do not match 模型论文框架.md")
 
     for name, subproblem in (state.get("subproblems", {}) or {}).items():
+        if scoped is not None and name not in scoped:
+            continue
         if not isinstance(subproblem, Mapping):
             continue
         if COMPARISON.enabled(subproblem):
