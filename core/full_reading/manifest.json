@@ -4435,9 +4435,9 @@
       "path": "scripts/validate_semantic_governance.py",
       "role": "implementation_protocol",
       "aliases": [],
-      "bytes": 21132,
-      "sha256": "b07fe1ca1cdafd7e849b825c99b77baccef492f5b602d0e362fcf578b50ae238",
-      "git_blob_sha1": "f876ccf55e5d7f4b58a6f28ad72bb1df393f2dcb",
+      "bytes": 21712,
+      "sha256": "61c0d382c45a8622fbda1b2cf49146ca3f72a41e9cb65ab6ad4fb089e10bd539",
+      "git_blob_sha1": "9af8d8fe15e153e9bc681b7a6ec1b674dac985ba",
       "parts": [
         {
           "volume": "core/full_reading/volumes/130.md",
