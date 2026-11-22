@@ -1429,6 +1429,7 @@ def _question_sync_selection(
     numeric = {target}
     evidence: dict[str, set[str]] = {}
     visited: set[tuple[str, str]] = set()
+    active_edges: dict[str, list[dict[str, str]]] = {}
     pending = [(target, "numeric")]
     issues: list[str] = []
     while pending:
@@ -1444,22 +1445,30 @@ def _question_sync_selection(
             if kind == "result" and mode == "numeric":
                 numeric.add(source)
                 pending.append((source, "numeric"))
+                active_edges.setdefault(current, []).append({"question": source, "kind": kind})
             elif kind == "model":
                 if source not in numeric:
                     evidence.setdefault(source, set()).add("model")
                 pending.append((source, "model"))
-            elif kind in {"parameter", "data"}:
+                active_edges.setdefault(current, []).append({"question": source, "kind": kind})
+            elif kind in {"parameter", "data"} and mode in {"numeric", kind}:
                 if source not in numeric:
                     evidence.setdefault(source, set()).add(kind)
+                pending.append((source, kind))
+                active_edges.setdefault(current, []).append({"question": source, "kind": kind})
             elif kind == "legacy_untyped":
                 evidence.setdefault(source, set()).add("legacy_untyped")
                 issues.append(f"{current}: {source}/legacy_untyped requires dependency type review")
     for q in numeric:
         evidence.pop(q, None)
-    relevant = numeric | set(evidence)
-    for cycle in STATE_TRANSITIONS.dependency_cycles(safe_graph):
-        if set(cycle.split(" -> ")).intersection(relevant):
-            issues.append(f"{target}: dependency cycle requires joint-model review: {cycle}")
+    # Cycle diagnostics must use actually traversed typed edges. A model-only
+    # edge must not be blocked by an independent result cycle behind that model.
+    active_graph = {
+        name: {"depends_on": active_edges.get(name, [])}
+        for name in {target, *active_edges, *(row["question"] for rows in active_edges.values() for row in rows)}
+    }
+    for cycle in STATE_TRANSITIONS.dependency_cycles(active_graph):
+        issues.append(f"{target}: dependency cycle requires joint-model review: {cycle}")
     return (
         sorted(numeric, key=lambda q: int(q[1:])),
         {q: sorted(evidence[q]) for q in sorted(evidence, key=lambda q: int(q[1:]))},
