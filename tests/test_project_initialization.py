@@ -109,6 +109,10 @@ class ProjectInitializationTests(unittest.TestCase):
                     self.assertIn(entry["framework_section"], framework)
                 self.assertEqual(state["artifacts"]["code"], [])
                 self.assertEqual(state["artifacts"]["results"], [])
+                self.assertNotIn("| T1 |", framework)
+                self.assertNotIn("| N1 |", framework)
+                self.assertNotIn("| paper.abstract.q1 |", framework)
+                self.assertNotIn("| TC1 |", framework)
                 self.assertFalse((root / TX.JOURNAL_RELATIVE_PATH).exists())
                 self.assertEqual(STATE.validate_state_payload(state, project_root=root), [])
                 self.assertEqual(FRAMEWORK.validate_framework_text(
