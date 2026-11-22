@@ -171,15 +171,34 @@ class TypedQuestionDependencyGateTests(unittest.TestCase):
             state_path.write_text(yaml.safe_dump(current, allow_unicode=True, sort_keys=False), encoding="utf-8")
             self.assertEqual(APPROVAL.validate_state(state_path, ["Q2"], project_root=root), [])
 
-    def test_scoped_model_approval_rejects_untyped_legacy_edge(self):
+    def test_legacy_dependency_keeps_model_approval_read_compatibility_but_blocks_delivery(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             state_path, _ = build_three_question_project(root)
             current = yaml.safe_load(state_path.read_text(encoding="utf-8"))
             current["subproblems"]["Q2"]["depends_on"] = ["Q1"]
             state_path.write_text(yaml.safe_dump(current, allow_unicode=True, sort_keys=False), encoding="utf-8")
-            rejected = APPROVAL.validate_state(state_path, ["Q2"], project_root=root)
-            self.assertTrue(any("legacy_untyped" in issue for issue in rejected), rejected)
+            # Historical string dependencies are read-compatible for the
+            # mathematical Model Approval itself (no invented kind here).
+            self.assertEqual(APPROVAL.validate_state(state_path, ["Q2"], project_root=root), [])
+            # New numerical execution cannot assume the untyped edge is result,
+            # model, data or parameter; the code-delivery prerequisite stays hard.
+            delivery = GATE.inspect(root, "Q2")
+            self.assertEqual(delivery["status"], "failed", delivery)
+            self.assertTrue(any("legacy" in issue for issue in delivery["issues"]), delivery)
+
+    def test_malformed_dependency_is_reported_without_crashing_unrelated_model_approval(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            state_path, _ = build_three_question_project(root)
+            state = yaml.safe_load(state_path.read_text(encoding="utf-8"))
+            state["subproblems"]["Q2"]["depends_on"] = 7
+            state_path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8")
+            invalid = APPROVAL.validate_state(state_path, ["Q2"], project_root=root)
+            self.assertTrue(any("depends_on" in issue for issue in invalid), invalid)
+            # Q3 is independent: one malformed Q2 list cannot raise TypeError
+            # or revoke the unrelated current Model Approval.
+            self.assertEqual(APPROVAL.validate_state(state_path, ["Q3"], project_root=root), [])
 
     def test_accepted_primary_only_does_not_clear_required_analysis_wait(self):
         from tests.test_v10_project_delivery_receipt import ProjectDeliveryReceiptTests
