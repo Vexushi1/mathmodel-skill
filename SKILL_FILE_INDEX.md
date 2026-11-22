@@ -314,6 +314,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `scripts/project_solver_backend.py`
 - `scripts/project_transaction.py`
 - `scripts/python_source_checks.py`
+- `scripts/question_scheduler.py`
 - `scripts/read_stage.py`
 - `scripts/reading_plan.py`
 - `scripts/render_paper.py`
