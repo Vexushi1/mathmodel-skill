@@ -315,6 +315,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `scripts/project_solver_backend.py`
 - `scripts/project_transaction.py`
 - `scripts/python_source_checks.py`
+- `scripts/question_dependency_gate.py`
 - `scripts/question_scheduler.py`
 - `scripts/read_stage.py`
 - `scripts/reading_plan.py`
@@ -622,6 +623,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_python_execution_reference_closure.py`
 - `tests/test_python_matlab_ownership.py`
 - `tests/test_python_reference_followup.py`
+- `tests/test_question_dependency_gate.py`
 - `tests/test_question_runtime_integration.py`
 - `tests/test_question_scheduler.py`
 - `tests/test_question_scoped_semantic_governance.py`
