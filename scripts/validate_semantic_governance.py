@@ -208,11 +208,12 @@ def _scoped_global_invariant_issues(state: Mapping[str, Any]) -> list[str]:
     schema = load_yaml(root / "core/project_state.schema.yaml")
     result = []
     # Current M1 projects have a complete requirements roster and must satisfy
-    # the entire State Schema. Older read-compatible states may lack that roster
-    # and mandatory modern subproblem columns; preserve their previous scoped
-    # semantic-gate behavior rather than silently requiring a schema migration.
-    # A PRESENT but malformed requirements key is still fully schema-checked.
-    if "requirements" in state:
+    # the entire State Schema. Older read-compatible states retain the original
+    # *unscoped* gate; lacking a roster must NOT silently downgrade the new
+    # scoped gate to an incomplete schema check.
+    if "requirements" not in state:
+        result.append("global State schema: scoped governance requires the complete registered requirements roster; use the legacy unscoped gate or explicit State migration")
+    else:
         for error in Draft202012Validator(schema).iter_errors(state):
             location = "/".join(str(item) for item in error.path) or "<root>"
             result.append(f"schema {location}: {error.message}")
