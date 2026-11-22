@@ -99,6 +99,38 @@ class TypedQuestionDependencyGateTests(unittest.TestCase):
             self.assertEqual(param["status"], "failed", param)
             self.assertTrue(any("parameter selector/value/source" in issue for issue in param["issues"]))
 
+    def test_exact_approved_parameter_value_and_selector_can_pass(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            state_path, framework_path = build_three_question_project(root)
+            upstream = identity_payload()
+            upstream["parameters"][0]["value"] = 7.0
+            upstream["parameters"][0]["source"] = "合成题面参数已审计"
+            digest = semantic_identity.semantic_identity_hash(upstream)
+            state = yaml.safe_load(state_path.read_text(encoding="utf-8"))
+            q1 = state["subproblems"]["Q1"]
+            for name in ("semantic_identity_hash", "validated_semantic_identity_hash",
+                         "approved_semantic_identity_hash"):
+                q1[name] = digest
+            state_path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8")
+            text = framework_path.read_text(encoding="utf-8")
+            first, following = text.index("### Q1：第一问"), text.index("### Q2：第一问")
+            section = framework(upstream, question="Q1").split(
+                "## 各问模型与结果\n", 1,
+            )[1]
+            framework_path.write_text(text[:first] + section + text[following:],
+                                      encoding="utf-8")
+            set_dependency(root, "Q2", "Q1", "parameter", selector="P1")
+            good = GATE.inspect(root, "Q2")
+            self.assertEqual(good["status"], "passed", good)
+            changed = framework_path.read_text(encoding="utf-8")
+            self.assertIn("value: 7.0", changed)
+            framework_path.write_text(changed.replace("value: 7.0", "value: 8.0", 1),
+                                      encoding="utf-8")
+            stale = GATE.inspect(root, "Q2")
+            self.assertEqual(stale["status"], "failed", stale)
+            self.assertTrue(any("Q1/parameter" in issue for issue in stale["issues"]))
+
     def test_unbound_raw_data_dependency_is_not_approved_by_filenames(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
