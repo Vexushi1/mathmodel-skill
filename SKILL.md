@@ -36,6 +36,12 @@ metadata:
 
 项目语义继续由 `模型论文框架.md`、`state/project_state.yaml` 与 accepted workbook 分层恢复；本节只保留稳定导航标题，不复制 Project Memory 合同字段。
 
+### 项目级登记与逐问推进
+
+新项目完成整体 Problem Contract 和已确认的 typed `depends_on` 登记后，只有在第一个真实 `proposed_model_spec` 成立时，才由 `scripts/initialize_project.py` 原子建立当前 State 与 `模型论文框架.md`。已有项目恢复已记录的事实，不因继续求解而重新初始化。
+
+对已有的完整项目，`scripts/resolve_runtime.py` 从同一个 State 快照选择至多一个本次小问或用户等待点；显式 `--question Qn` 优先，但选问不产生模型批准或数值验收。单问产物同步可在 `design/code/results/figures` 使用 `scripts/sync_project.py --question Qn`；全局 Schema、项目后端与完整下游 typed stale 仍生效。`project_sync` 的默认调用及正式 `docx/latex/submission` 仍是全项目范围；同步报告不是 Code Delivery 的通过凭据。具体行为服从现有 Resolver、Sync 代码及其 Authority，不以本节替代门禁。
+
 ## 主链
 
 为兼容活动导航与健康检查，只列出主链语义节点，不在入口重新定义其业务规则：

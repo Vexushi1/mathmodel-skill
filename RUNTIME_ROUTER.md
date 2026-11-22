@@ -27,6 +27,12 @@
 
 `core/runtime_assurance_contract.yaml` 只管理运行时证明层，不重新定义 Router、Manifest、Model Approval、Workbook 或 User Execution 的业务语义。默认 resolver 保留旧 plan 字段，同时输出 `runtime_plan` 与 `assurance`：context 说明字段来自 explicit input 还是 project state；intent resolution 给出关键词证据与歧义；artifact assurance 记录 scope、accepted/stale 状态、路径和 SHA-256；dependency closure 记录由选中 module/gate 自动补入的 contracts；authority fingerprint 绑定本次计划所依据的配置所列 Authority 文件。旧 `scripts/resolve_workflow.py` 继续用于无状态兼容调用。
 
+## 项目级、逐问与全题收尾的衔接
+
+这三个层次共用同一份项目 State，而不是三套状态：首次 `proposed_model_spec` 后由 `scripts/initialize_project.py` 登记全部已确认 Qn；`scripts/resolve_runtime.py` 从真实 State 快照给出一个本次选择或等待点；每次代码交付仍需真正执行返回的 Semantic Governance / Model Approval / Code Delivery 等现有门禁，且题目专属数值任务只能由用户按原合同运行。
+
+`scripts/sync_project.py` 的默认范围仍是全项目。只对完整登记的现行项目及明确的小问，`--question Qn` 可用于 `--delivery-scope design|code|results|figures`：其报告区分目标问、必要上游证据和完整下游 stale；无关问缺少数值产物不自动阻断本问。项目根 backend、Schema、共享预处理和事务检查不缩小；`docx/latex/submission` 以及项目级预处理不得缩成 Qn。此同步状态仅表示本次产物核对，并不宣称上游已获 Model Approval 或已获得新的 `validated_results`；实际代码与回执资格仍由相应消费者检查。
+
 ## 按任务读取与工具资源
 
 默认 resolver 另返回 `reading_plan`，语义由 `core/runtime_assurance_contract.yaml#reading_plan` 管理，选择配置只在 `core/workflow_router.yaml#reading_policy`。它给出各阶段的读取安排。正式开场的全部规范范围由启动合同定义；模型批准、module/gate/output 计划分别沿用对应的规则。

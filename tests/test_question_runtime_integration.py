@@ -291,5 +291,88 @@ class QuestionRuntimeCharacterizationTests(unittest.TestCase):
         self.assertFalse(state["subproblems"]["Q3"]["artifacts_stale"])
 
 
+class MainflowEndToEndContractTests(unittest.TestCase):
+    """Exercise the live M1->M4 consumers on one honest synthetic three-Q project."""
+
+    def _initialize(self, root: Path) -> Path:
+        import initialize_project as INITIALIZE
+        from tests.test_project_initialization import specification, put_spec
+
+        source = put_spec(root, specification(3))
+        result = INITIALIZE.initialize_project(root, source, write=True)
+        self.assertEqual(result["status"], "initialized", result)
+        return root / "state/project_state.yaml"
+
+    def test_new_project_registers_all_questions_but_resolves_only_one_waiting_action(self):
+        from resolve_runtime import resolve_runtime
+        import sync_project as SYNC
+        import question_dependency_gate as DEPENDENCIES
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            state_path = self._initialize(root)
+            state = yaml.safe_load(state_path.read_text(encoding="utf-8"))
+            self.assertEqual(set(state["subproblems"]), {"Q1", "Q2", "Q3"})
+            self.assertEqual(state["requirements"]["pending"], ["Q1", "Q2", "Q3"])
+            self.assertEqual(state["subproblems"]["Q1"]["human_model_approval_status"], "pending")
+            self.assertNotIn("semantic_identity_hash", state["subproblems"]["Q2"])
+
+            plan = resolve_runtime("full_solution", project_root=root, question="Q1")
+            self.assertEqual(plan["assurance"]["context"]["question"], "Q1")
+            self.assertTrue(plan["pause_for_model_approval"], plan)
+            self.assertNotEqual(plan.get("pause_state"), "awaiting_user_execution")
+
+            scoped = SYNC.synchronize(root, write=False, delivery_scope="design", question="Q1")
+            self.assertEqual(scoped["target_question"], "Q1")
+            self.assertEqual(set(scoped["questions"]), {"Q1"})
+            full = SYNC.synchronize(root, write=False, delivery_scope="design")
+            self.assertEqual(set(full["questions"]), {"Q1", "Q2", "Q3"})
+            blocked = DEPENDENCIES.inspect(root, "Q2")
+            self.assertEqual(blocked["status"], "failed", blocked)
+            self.assertTrue(any("Q1/result" in issue for issue in blocked["issues"]), blocked)
+            self.assertEqual(DEPENDENCIES.inspect(root, "Q3")["status"], "passed")
+            self.assertEqual(yaml.safe_load(state_path.read_text(encoding="utf-8"))["project"]["state_generation"], 1)
+
+    def test_semantic_baseline_never_auto_approves_and_final_sync_remains_global(self):
+        import initialize_project as INITIALIZE
+        import sync_project as SYNC
+        import validate_semantic_governance as SEMANTIC_GATE
+        import validate_model_approval as APPROVAL
+        import state_transitions as TRANSITIONS
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            state_path = self._initialize(root)
+            baseline = SEMANTIC_GATE.validate_project(
+                root, write=True, strict=True, question="Q1",
+            )
+            self.assertEqual(baseline["status"], "passed", baseline)
+            state = yaml.safe_load(state_path.read_text(encoding="utf-8"))
+            self.assertEqual(state["subproblems"]["Q1"]["human_model_approval_status"], "pending")
+            self.assertNotIn("approved_semantic_identity_hash", state["subproblems"]["Q1"])
+            self.assertTrue(APPROVAL.validate_state(state_path, ["Q1"], project_root=root))
+
+            before = state_path.read_bytes()
+            for scope in ("docx", "latex", "submission"):
+                with self.subTest(scope=scope), self.assertRaises(ValueError):
+                    SYNC.synchronize(root, write=True, delivery_scope=scope, question="Q1")
+            self.assertEqual(state_path.read_bytes(), before)
+
+            # Typed stale uses the full graph even though only Q1 was the
+            # semantic validation target; no user solver is executed.
+            contract = yaml.safe_load(
+                (ROOT / "core/state_transition_contract.yaml").read_text(encoding="utf-8")
+            )
+            projected = deepcopy(state)
+            q3_before = deepcopy(projected["subproblems"]["Q3"])
+            changed = TRANSITIONS.apply_transition(
+                projected, event="semantic_identity_changed", source_question="Q1",
+                contract=contract,
+            )
+            self.assertEqual(changed["affected_questions"], ["Q1", "Q2"], changed)
+            self.assertEqual(projected["subproblems"]["Q3"], q3_before)
+
+
+
 if __name__ == "__main__":
     unittest.main()

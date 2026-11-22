@@ -21,6 +21,8 @@ v11.0.0 正式版通过 v11_full_read 显式选择器启用正式任务全文启
 2. 项目语义和证据位置回到当前 模型论文框架.md，revision、structured identity、批准和 stale 回到 state/project_state.yaml，具体数值回到 accepted workbook。恢复正式项目时取完整当前框架；尚无框架时，按实际业务阶段建立。
 3. 阶段选段、条件补读及同阶段材料的复用服从 core/runtime_assurance_contract.yaml#reading_plan.consumer_protocol。可用工具和分段读取方法见[阶段正文读取](scripts/README.md#阶段正文读取)。旧 scripts/resolve_workflow.py 仅作无状态兼容入口。
 
+完整新项目先按题意登记全部已确认小问及依赖，第一份真实 `proposed_model_spec` 形成后才调用 `scripts/initialize_project.py` 原子建立 State 与框架。已有项目的继续操作由 `resolve_runtime.py` 从同一份当前 State 选择一个小问／等待点；显式 Qn 优先，不能把选问误认为通过 Model Approval。需要只检查某一问的产物时，可在 `design/code/results/figures` 显式调用 `sync_project.py --question Qn`，但它仍检查项目级约束并沿完整依赖图传播 stale；默认项目同步及正式 `docx/latex/submission` 保持全项目范围。上述入口仅作导航，批准、工作簿和代码资格仍服从对应 Authority。
+
 ## 执行硬边界
 
 - Problem Contract 冻结后形成 proposed_model_spec，依次经过独立 Model Reviewer 与 Devil's Advocate；challenge passed 后进入 awaiting_model_approval，只有用户显式批准 current semantic_revision 与 validated semantic_identity_hash，并由 Model Approval gate 确认 current = validated = approved identity 后，才形成 current locked_model_spec；legacy hash 只读兼容不能授权新代码。正式项目级预处理或主求解代码前仍必须执行 resolver 返回的语义/模型批准 gate。
