@@ -174,11 +174,11 @@ class QuestionRuntimeCharacterizationTests(unittest.TestCase):
             self.assertEqual(scoped["assurance"]["status"], "pass")
             self.assertEqual(scoped["classification"]["objective"], "optimization")
 
-    def test_semantic_governance_currently_has_no_question_scope(self):
+    def test_semantic_governance_keeps_full_audit_and_adds_explicit_question_scope(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             _, framework_path = build_three_question_project(root)
-            self.assertNotIn(
+            self.assertIn(
                 "question", inspect.signature(SEMANTIC.validate_project).parameters
             )
 
@@ -193,6 +193,12 @@ class QuestionRuntimeCharacterizationTests(unittest.TestCase):
             self.assertTrue(
                 any("Q2" in issue and "缺少对应" in issue for issue in report["issues"]),
                 report["issues"],
+            )
+            scoped = SEMANTIC.validate_project(root, write=False, strict=True, question="Q1")
+            self.assertEqual(scoped["scoped_questions"], ["Q1"])
+            self.assertFalse(
+                any("Q2" in issue and "缺少对应" in issue for issue in scoped["issues"]),
+                scoped["issues"],
             )
 
     def test_sync_currently_observes_all_registered_questions_for_code_scope(self):
