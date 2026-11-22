@@ -503,11 +503,26 @@ def resolve_runtime(
             registered = state_for_selection.get("subproblems") or {}
             if not isinstance(registered, dict):
                 raise ValueError("project subproblems must be a mapping")
+            # Explicit Qn observes one target and its necessary incoming graph
+            # closure. Unrelated sibling artifacts must not be opened just to
+            # decide the requested target; the complete State snapshot is shared.
+            inspected = set(registered) if question is None else set()
+            if question is not None:
+                incoming = {}
+                for edge in dependency_edges(registered):
+                    incoming.setdefault(edge["target"], set()).add(edge["source"])
+                pending = [question]
+                while pending:
+                    target = pending.pop()
+                    if target in inspected or target not in registered:
+                        continue
+                    inspected.add(target)
+                    pending.extend(incoming.get(target, ()))
             verified_by_question = {
                 name: hydrate_project_context(
                     project_root, name, state_snapshot=state_snapshot,
                 ).get("verified_artifacts", [])
-                for name in registered
+                for name in sorted(inspected)
             }
             question_selection = QUESTION_SCHEDULER.select_question(
                 state_for_selection,
