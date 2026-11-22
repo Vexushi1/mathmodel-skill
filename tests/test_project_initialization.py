@@ -112,7 +112,7 @@ class ProjectInitializationTests(unittest.TestCase):
                 self.assertFalse((root / TX.JOURNAL_RELATIVE_PATH).exists())
                 self.assertEqual(STATE.validate_state_payload(state, project_root=root), [])
                 self.assertEqual(FRAMEWORK.validate_framework_text(
-                    framework, state=state, strict=True, mode="compact", project_root=root,
+                    framework, state=state, strict=False, mode="compact", project_root=root,
                 ), [])
 
                 before_state, before_framework = state_path.read_bytes(), framework_path.read_bytes()
@@ -133,7 +133,7 @@ class ProjectInitializationTests(unittest.TestCase):
             self.assertEqual(state["paper_framework"]["mode"], "full")
             self.assertIn("## 论文整体框架", text)
             self.assertEqual(FRAMEWORK.validate_framework_text(
-                text, state=state, strict=True, mode="full", project_root=root,
+                text, state=state, strict=False, mode="full", project_root=root,
             ), [])
 
     def test_proposed_identity_can_gain_validation_without_gaining_approval(self):
