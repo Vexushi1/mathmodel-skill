@@ -2033,10 +2033,10 @@ V11_DEFAULT_AUTHORITY_VERSIONS = {
     "skill": "11.0.0",
 }
 
-# Exact-current M2 source migration for historical v10.27/v11 reader tests.
+# Exact-current unified Question Runtime source migration for historical v10.27/v11 reader tests.
 # This is comparison evidence only: no current gate or approval is projected.
 M2_CURRENT_SOURCE_SHA256 = {
-    "scripts/resolve_runtime.py": "f832ddb7bfd1994ad93a441d44a4c74f058d313ab9ba0eb4e46c50153686063e",
+    "scripts/resolve_runtime.py": "4cc063467546e0405587397af3515cf872e0c63fddc8899b34f6886b2e46f2a7",
     "scripts/question_scheduler.py": "0fbf77eda4dd161b4c40284c6f398a6c36651e26b8c05979b0c87f13f202ac11",
     "core/runtime_assurance_contract.yaml": "9d2e192913ce0e1855424eea65549e0bd693f62ea8e73fb15c7959113114c2b1",
 }
