@@ -204,13 +204,10 @@ class QuestionSchedulerTests(unittest.TestCase):
                 plan = runtime.resolve_runtime(
                     "full_solution", project_root=root, question="Q1",
                 )
-            self.assertEqual(plan["runtime_plan"]["selected_question"], "Q1")
+            self.assertEqual(plan["assurance"]["context"]["question"], "Q1")
             self.assertEqual(set(visited), {"Q1"})
-            self.assertEqual(plan["question_selection"]["blocked_questions"], {})
-            self.assertIsNone(next(
-                row["blocked"] for row in plan["question_selection"]["candidate_questions"]
-                if row["question"] == "Q2"
-            ))
+            self.assertNotIn("question_selection", plan)
+            self.assertIn("code_delivery", plan["runtime_plan"]["pre_delivery_gate_names"])
 
     def test_real_resolver_explicit_blocked_q2_retains_its_scope(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -218,9 +215,13 @@ class QuestionSchedulerTests(unittest.TestCase):
             build_three_question_project(root)
             runtime = load_runtime()
             plan = runtime.resolve_runtime("full_solution", project_root=root, question="Q2")
-            self.assertEqual(plan["runtime_plan"]["selected_question"], "Q2")
             self.assertEqual(plan["assurance"]["context"]["question"], "Q2")
-            self.assertEqual(plan["question_selection"]["blocked_questions"]["Q2"][0]["kind"], "result")
+            self.assertNotIn("question_selection", plan)
+            dependency = plan["assurance"]["context"]["dependency_diagnostics"]
+            self.assertEqual(
+                [(row["question"], row["upstream"]) for row in dependency["result_dependencies"]],
+                [("Q2", "Q1")],
+            )
             self.assertIn("code_delivery", plan["runtime_plan"]["pre_delivery_gate_names"])
 
 
