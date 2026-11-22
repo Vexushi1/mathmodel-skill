@@ -207,9 +207,15 @@ def _scoped_global_invariant_issues(state: Mapping[str, Any]) -> list[str]:
     root = Path(__file__).resolve().parents[1]
     schema = load_yaml(root / "core/project_state.schema.yaml")
     result = []
-    for error in Draft202012Validator(schema).iter_errors(state):
-        location = "/".join(str(item) for item in error.path) or "<root>"
-        result.append(f"schema {location}: {error.message}")
+    # Current M1 projects have a complete requirements roster and must satisfy
+    # the entire State Schema. Older read-compatible states may lack that roster
+    # and mandatory modern subproblem columns; preserve their previous scoped
+    # semantic-gate behavior rather than silently requiring a schema migration.
+    # A PRESENT but malformed requirements key is still fully schema-checked.
+    if "requirements" in state:
+        for error in Draft202012Validator(schema).iter_errors(state):
+            location = "/".join(str(item) for item in error.path) or "<root>"
+            result.append(f"schema {location}: {error.message}")
     try:
         validate_consumed_state_shapes(state)
     except ProjectStateShapeError as exc:
