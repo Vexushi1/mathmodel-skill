@@ -988,10 +988,16 @@ def validate_state_payload(
     framework_text_override: str | None = None,
     report_path_overrides: Mapping[str, Path] | None = None,
     allow_read_only_source_drift: bool = False,
+    question_scope: Iterable[str] | None = None,
 ) -> list[str]:
     if not isinstance(payload, Mapping):
         return ["schema <root>: project state must be a mapping"]
     issues: list[str] = []
+    scoped = set(question_scope) if question_scope is not None else None
+    if scoped is not None:
+        registered = payload.get("subproblems") or {}
+        if not isinstance(registered, Mapping) or not scoped or not scoped.issubset(registered):
+            return ["question-scoped State validation requires registered subproblem keys"]
     schema = load_yaml(schema_path)
     taxonomy = load_yaml(taxonomy_path)
     transition_contract = load_yaml(ROOT / "core/state_transition_contract.yaml")
@@ -1116,8 +1122,16 @@ def validate_state_payload(
             if not isinstance(gate, Mapping) or gate.get("module") != gate_phase:
                 issues.append(f"structured rejection return requires next_gate.module={gate_phase}")
 
-    any_subproblem_stale = False
+    # Schema, backend, requirements, global claim/rejection policy and the
+    # framework hash above remain project-wide. Only the per-Q code/workbook/
+    # result-status checks below are narrowed to observed question sources.
+    any_subproblem_stale = any(
+        isinstance(row, Mapping) and row.get("artifacts_stale") is True
+        for row in (payload.get("subproblems") or {}).values()
+    )
     for name, state in payload.get("subproblems", {}).items():
+        if scoped is not None and name not in scoped:
+            continue
         if not isinstance(state, Mapping):
             continue
         status = str(state.get("status", ""))
