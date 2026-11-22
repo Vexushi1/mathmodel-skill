@@ -2033,6 +2033,77 @@ V11_DEFAULT_AUTHORITY_VERSIONS = {
     "skill": "11.0.0",
 }
 
+# Exact-current M2 source migration for historical v10.27/v11 reader tests.
+# This is comparison evidence only: no current gate or approval is projected.
+M2_CURRENT_SOURCE_SHA256 = {
+    "scripts/resolve_runtime.py": "f832ddb7bfd1994ad93a441d44a4c74f058d313ab9ba0eb4e46c50153686063e",
+    "scripts/question_scheduler.py": "ea240f79dccec7256351f36ba69e15074365ee39f1de979f171455a26a7204ee",
+    "core/runtime_assurance_contract.yaml": "9d2e192913ce0e1855424eea65549e0bd693f62ea8e73fb15c7959113114c2b1",
+}
+
+
+def _registered_m2_source_predecessor(plan, authority_versions):
+    """Project only exact M2 source identities; reject source drift on disk."""
+    old_versions = RUNTIME_CONSISTENCY_PROJECTION["authority_versions"]
+    supported = (
+        authority_versions == V11_DEFAULT_AUTHORITY_VERSIONS and plan.get("version") == "11.0.0"
+    ) or (
+        authority_versions == old_versions and plan.get("version") == old_versions["skill"]
+    )
+    if not supported:
+        return deepcopy(plan), [], False
+    candidate = deepcopy(plan)
+    try:
+        rows = candidate["assurance"]["authority_fingerprint"]["sources"]
+        if not isinstance(rows, list) or not all(
+            isinstance(row, dict) and set(row) == {"path", "sha256"} for row in rows
+        ):
+            return None, [], False
+        prior_paths = [row["path"] for row in RUNTIME_CONSISTENCY_PROJECTION["fingerprint"]["candidate"]]
+        actual_paths = [row["path"] for row in rows]
+        pivot = prior_paths.index("scripts/resolve_runtime.py") + 1
+        current_paths = prior_paths[:pivot] + ["scripts/question_scheduler.py"] + prior_paths[pivot:]
+        if actual_paths not in (prior_paths, current_paths):
+            return None, [], False
+        root = HERE.parent.parent
+        for path, expected in M2_CURRENT_SOURCE_SHA256.items():
+            if hashlib.sha256((root / path).read_bytes()).hexdigest() != expected:
+                return None, [], False
+        resolver = next(row for row in rows if row["path"] == "scripts/resolve_runtime.py")
+        new_digest = M2_CURRENT_SOURCE_SHA256["scripts/resolve_runtime.py"]
+        prior_digest = V11_P5_DEFAULT_SOURCE_HASHES["scripts/resolve_runtime.py"]
+        old_candidate = next(row["sha256"]
+                             for row in RUNTIME_CONSISTENCY_PROJECTION["fingerprint"]["candidate"]
+                             if row["path"] == "scripts/resolve_runtime.py")
+        if resolver["sha256"] not in (prior_digest, new_digest, old_candidate):
+            return None, [], False
+        if resolver["sha256"] == new_digest and actual_paths != current_paths:
+            return None, [], False
+        if resolver["sha256"] == old_candidate and authority_versions != old_versions:
+            return None, [], False
+        changes = []
+        if resolver["sha256"] == new_digest:
+            resolver["sha256"] = prior_digest
+            changes.append({
+                "path": "assurance.authority_fingerprint.sources.scripts/resolve_runtime.py",
+                "baseline": prior_digest, "candidate": new_digest,
+                "approval": "M2 exact read-only resolver source identity transition",
+            })
+        if actual_paths == current_paths:
+            record = rows.pop(pivot)
+            if record["path"] != "scripts/question_scheduler.py" or record["sha256"] != (
+                M2_CURRENT_SOURCE_SHA256["scripts/question_scheduler.py"]
+            ):
+                return None, [], False
+            changes.append({
+                "path": "assurance.authority_fingerprint.sources.scripts/question_scheduler.py",
+                "baseline": None, "candidate": record["sha256"],
+                "approval": "M2 exact registered read-only scheduler source identity",
+            })
+        return candidate, changes, True
+    except (KeyError, TypeError, ValueError, OSError):
+        return None, [], False
+
 
 def runtime_consistency_predecessor(identifier, new, candidate_authority_versions):
     """Reverse only measured repair leaves, preserving all unrelated differences.
@@ -2043,6 +2114,11 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
     fixture = RUNTIME_CONSISTENCY_PROJECTION
     original = deepcopy(new)
     if "startup_reading" in original or "figure_composition" in original:
+        return original, []
+    new, m2_changes, m2_bytes_verified = _registered_m2_source_predecessor(
+        new, candidate_authority_versions,
+    )
+    if new is None:
         return original, []
     # Only the exact patch release carrier may reuse the frozen v10.27.0
     # inverse; no other field, source fingerprint, or historical fixture is waived.
@@ -2291,8 +2367,18 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
             for path, digest in resolver_hashes.items():
                 actual = [row for row in fingerprint["sources"] if row["path"] == path]
                 raw = (HERE.parent.parent / path).read_bytes()
+                raw_digest = hashlib.sha256(raw).hexdigest()
+                # The frozen v11 source identity is qualified only when the live
+                # M2 successor matches the separately pinned current raw bytes.
+                exact_m2_successor = (
+                    m2_bytes_verified
+                    and matched_carrier == V11_DEFAULT_AUTHORITY_VERSIONS
+                    and path == "scripts/resolve_runtime.py"
+                    and digest == V11_P5_DEFAULT_SOURCE_HASHES[path]
+                    and raw_digest == M2_CURRENT_SOURCE_SHA256[path]
+                )
                 if (len(actual) != 1 or actual[0]["sha256"] != digest
-                        or hashlib.sha256(raw).hexdigest() != digest):
+                        or (raw_digest != digest and not exact_m2_successor)):
                     return deepcopy(original), []
                 actual[0]["sha256"] = predecessor_hashes[path]
                 changes.append({"path": f"assurance.authority_fingerprint.sources.{path}",
@@ -2339,7 +2425,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
                     "approval": ("v10.28.0 carrier-only patch; exact v10.27.0 inverse verified"
                                  if is_patch_carrier else
                                  "v10.27.0 compatible runtime repair; historical projections remain checked")})
-    return projected, changes
+    return projected, [*m2_changes, *changes]
 
 
 def compare(before, after):
