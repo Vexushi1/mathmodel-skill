@@ -746,7 +746,10 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
         _, state, base_generation = PROJECT_TX.load_state_for_update(project_root)
     snapshot = None
     preprocessing_observed = {"project": {}, "skill": {}}
-    if guarded or stage == "preprocessing" or preprocessing_batch:
+    # Typed prerequisites contribute a file-backed read-set even for an
+    # ordinary, formerly unguarded numerical delivery. Always bind the original
+    # State bytes as the transaction's write target before adding those sources.
+    if guarded or stage in {"preprocessing", "primary", "analysis"} or preprocessing_batch:
         from runtime_assurance import ProjectStateSnapshot
         snapshot = ProjectStateSnapshot.capture(project_root)
         state = snapshot.payload()
