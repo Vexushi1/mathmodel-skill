@@ -115,9 +115,11 @@ class ProjectInitializationTests(unittest.TestCase):
                     framework, state=state, strict=True, mode="compact", project_root=root,
                 ), [])
 
+                before_state, before_framework = state_path.read_bytes(), framework_path.read_bytes()
                 after = INITIALIZE.initialize_project(root, source, write=True)
                 self.assertEqual(after["status"], "already_initialized")
-                self.assertEqual(state_path.read_bytes(), state_path.read_bytes())
+                self.assertEqual((state_path.read_bytes(), framework_path.read_bytes()),
+                                 (before_state, before_framework))
                 self.assertEqual(yaml.safe_load(state_path.read_text())["project"]["state_generation"], 1)
 
     def test_full_framework_uses_canonical_template_and_validates(self):
@@ -200,10 +202,15 @@ class ProjectInitializationTests(unittest.TestCase):
                     path.write_text("status: prepared")
                 with self.assertRaises(INITIALIZE.RecoveryRequired):
                     INITIALIZE.initialize_project(root, source, write=True)
-                self.assertFalse(
-                    (root / "state/project_state.yaml").exists()
-                    if kind != "state_only" else False
-                )
+                if kind == "state_only":
+                    self.assertEqual((root / "state/project_state.yaml").read_text(),
+                                     "project: {competition: prior}")
+                else:
+                    self.assertFalse((root / "state/project_state.yaml").exists())
+                if kind == "framework_only":
+                    self.assertEqual((root / "模型论文框架.md").read_text(), "old framework")
+                else:
+                    self.assertFalse((root / "模型论文框架.md").exists())
 
     def test_changed_spec_does_not_overwrite_current_project(self):
         with tempfile.TemporaryDirectory() as temporary:
