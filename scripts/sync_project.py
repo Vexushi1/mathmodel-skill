@@ -1809,11 +1809,13 @@ def synchronize(
                 current_phase=str(((transition_state.get("project") or {}).get("current_phase", ""))),
             )
             transition_reports.extend(reports)
-            question = str(snapshot["key"])
-            comparison_entry = (transition_state.get("subproblems") or {}).get(question, {})
+            snapshot_question = str(snapshot["key"])
+            comparison_entry = (transition_state.get("subproblems") or {}).get(snapshot_question, {})
             if COMPARISON.present(comparison_entry):
                 closure = COMPARISON.action_fragment_closure(transition_state, comparison_entry)
-                changed = STATE_TRANSITIONS.mark_claim_fragments_stale(transition_state, question, closure["fragment_ids"])
+                changed = STATE_TRANSITIONS.mark_claim_fragments_stale(
+                    transition_state, snapshot_question, closure["fragment_ids"],
+                )
                 claim_stale_fragments.extend(changed)
             if stale:
                 stale_questions.append(str(snapshot["key"]))
@@ -1928,6 +1930,8 @@ def synchronize(
     scoped_report_only = bool(
         scoped and write and state_present and not claim_report_only
         and not policy_error and transition_state == original_scoped_state
+        and (state.get("artifacts") or {}).get("sync_report") == "sync_report.yaml"
+        and (state.get("execution") or {}).get("last_sync_report") == "sync_report.yaml"
     )
     if write and state_present and not (claim_report_only or scoped_report_only):
         framework["last_sync_scope"] = scope
@@ -2119,7 +2123,7 @@ def synchronize(
         if (current_raw_mode != raw_mode or
                 {path.relative_to(root).as_posix() for path in current_raw_files}
                 != {path.relative_to(root).as_posix() for path in raw_files} or
-                _question_names(root, state) != question_names):
+                (not scoped and _question_names(root, state) != question_names)):
             raise PROJECT_TX.ReadSetConflictError("sync source discovery changed during observation")
         PROJECT_TX._check_read_set(root, sync_read_set)
     if write and not policy_error:
