@@ -335,9 +335,9 @@ class B2b6RejectionReturnTests(unittest.TestCase):
         self.assertTrue(resolved["pause_for_model_approval"])
         self.assertNotIn("modules/03_solve_validate.md", resolved["modules"])
 
-    def test_unsynced_core_reject_revokes_typed_dependent_runtime_qualification(self):
+    def test_unsynced_core_reject_preserves_typed_result_blocker(self):
         from semantic_identity import inspect_question_semantics, question_sections
-        from tests.conformance_a2_smoke import run_stage
+        from question_dependency_gate import inspect as inspect_dependencies
         from tests.test_v900_semantic_governance import framework
         from tests.test_v900_semantic_identity_binding import structured_question
 
@@ -367,12 +367,14 @@ class B2b6RejectionReturnTests(unittest.TestCase):
                          validated_semantic_identity_hash=identity["semantic_identity_hash"],
                          approved_semantic_identity_hash=identity["semantic_identity_hash"])
         save(self.root, self.state)
-        # Establish current numerical and code-conformance receipts for the new Q1 identity.
-        for stage in ("primary", "analysis"):
-            self.state, _ = run_stage(self.root, "python", stage, self.state)
+        # M3 correctly refuses a new numerical run of Q1 while Q2/result
+        # remains unvalidated. The old fixture's synthetic "Q1 accepted"
+        # baseline silently violated its own typed dependency. Keep the real
+        # read-side B2 rejection and propagation assertions below.
+        current_gate = inspect_dependencies(self.root, "Q1")
+        self.assertEqual(current_gate["status"], "failed", current_gate)
+        self.assertTrue(any("Q2/result" in issue for issue in current_gate["issues"]))
         dependent, source = (self.state["subproblems"][key] for key in ("Q1", "Q2"))
-        baseline = runtime_assurance.hydrate_project_context(self.root, "Q1")
-        self.assertIn("accepted_solution_workbook", baseline["verified_artifacts"])
 
         source["analysis_evidence_dispositions"] = [self.disposition(
             identifier="E12", target="answer_claim", action="reject",
