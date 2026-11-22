@@ -654,8 +654,8 @@
     },
     {
       "path": "core/full_reading/volumes/130.md",
-      "bytes": 3027,
-      "sha256": "082e27d115ce5e306558a3ce92ab0ef45d150299757d70961bbd77a565f424f1"
+      "bytes": 3132,
+      "sha256": "c2329fb45979e5325b00c6f5ec84fc4d8177f681751c462d94265432abe529a2"
     }
   ],
   "sources": [
@@ -4435,19 +4435,19 @@
       "path": "scripts/validate_semantic_governance.py",
       "role": "implementation_protocol",
       "aliases": [],
-      "bytes": 16791,
-      "sha256": "b92636654fd331a48a4952e4bd71e3523c152fdacae27678f7ef6788218667a4",
-      "git_blob_sha1": "769eb05089111a11624db7da880a1402ecfec853",
+      "bytes": 20615,
+      "sha256": "8daf0639782e1b04e3eae96ca452f3a81c8c7b7eb0a12245b0a9ebbc5391346b",
+      "git_blob_sha1": "75d270d9ba4b4c56b4919deae13f842090cb9bdc",
       "parts": [
         {
           "volume": "core/full_reading/volumes/130.md",
           "start": 0,
-          "end": 1365,
+          "end": 1470,
           "line_start": 1,
-          "line_end": 49,
+          "line_end": 52,
           "volume_start": 1662,
-          "volume_end": 3027,
-          "sha256": "05cf9ced3fa5bb1d31c648f98e817aca3481744ce35960c3c29f6ebd013df9d1"
+          "volume_end": 3132,
+          "sha256": "4ee2add7a759b538562be8b39f60dab0f37bc3c0a222f2476e1cdcbd292d93aa"
         }
       ]
     }
