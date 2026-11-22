@@ -835,8 +835,70 @@ P5_COMPATIBILITY_BLOCKS = {
 }
 
 
+# M3 adds current question-scoped dependency checks to the code-delivery
+# consumer. The v10.27/v11 historical inverse still compares the unchanged
+# predecessor exactly: recover ONLY these four reviewed M3 hunks after checking
+# the complete current source SHA-256, then authenticate recovered old bytes.
+# No absent, altered, duplicated or extra hunk may masquerade as old evidence.
+M3_CODE_DELIVERY_SHA256 = "b62361eb21b0c47aa5fbf5b5508dbec41f9b18f7a385fbf039762e43c4474b0b"
+PRE_M3_CODE_DELIVERY_SHA256 = "f02ec4ca63fa426b953aa75469d651d66e7bbf50c50bfd80444aa1c8b7087ccc"
+M3_CODE_DELIVERY_HUNKS = (
+    (
+        "import question_dependency_gate as QUESTION_DEPENDENCIES  # noqa: E402\n",
+        "",
+    ),
+    (
+        '    # M3 is a real code-delivery prerequisite, not a read-only Resolver\n'
+        '    # diagnostic. Do not inspect unrelated Qn; the helper observes only the\n'
+        '    # current target\'s typed input sources against the shared State snapshot.\n'
+        '    if stage in {"primary", "analysis"} and state_path.is_file():\n'
+        '        try:\n'
+        '            prerequisites = QUESTION_DEPENDENCIES.inspect(\n'
+        '                project_root, _question_key(problem), config=config,\n'
+        '            )\n'
+        '            issues.extend(prerequisites["issues"])\n'
+        '        except (OSError, ValueError, TypeError) as exc:\n'
+        '            issues.append(f"{_question_key(problem)}: upstream dependency qualification failed: {exc}")\n',
+        "",
+    ),
+    (
+        '    # Typed prerequisites contribute a file-backed read-set even for an\n'
+        '    # ordinary, formerly unguarded numerical delivery. Always bind the original\n'
+        '    # State bytes as the transaction\'s write target before adding those sources.\n'
+        '    if guarded or stage in {"preprocessing", "primary", "analysis"} or preprocessing_batch:\n',
+        '    if guarded or stage == "preprocessing" or preprocessing_batch:\n',
+    ),
+    (
+        '    dependencies = QUESTION_DEPENDENCIES.inspect(\n'
+        '        project_root, key, config=config, snapshot=snapshot,\n'
+        '    )\n'
+        '    if dependencies["issues"]:\n'
+        '        raise ValueError("; ".join(dependencies["issues"]))\n'
+        '    # Bind exactly observed upstream files to the existing atomic delivery read\n'
+        '    # set. Any concurrent change before commit must fail, never re-qualify.\n'
+        '    CONFORMANCE.merge_read_sets(preprocessing_observed, dependencies["observed_sources"])\n',
+        "",
+    ),
+)
+
+
+def m3_predecessor_code_delivery(relative: str, text: str) -> str:
+    if relative != "scripts/validate_code_delivery.py":
+        return text
+    if hashlib.sha256(text.encode("utf-8")).hexdigest() != M3_CODE_DELIVERY_SHA256:
+        raise ValueError("M3 code-delivery current source identity drift")
+    for after, prior in M3_CODE_DELIVERY_HUNKS:
+        if text.count(after) != 1:
+            raise ValueError("M3 code-delivery approved hunk missing or duplicated")
+        text = text.replace(after, prior, 1)
+    if hashlib.sha256(text.encode("utf-8")).hexdigest() != PRE_M3_CODE_DELIVERY_SHA256:
+        raise ValueError("M3 predecessor does not match exact pre-M3 source")
+    return text
+
+
 def p4a_authority_text(relative: str) -> str:
     text = (ROOT / relative).read_text(encoding="utf-8")
+    text = m3_predecessor_code_delivery(relative, text)
     text = _prior_reviewed_blocks(relative, text, P5_COMPATIBILITY_BLOCKS, "P5 compatibility")
     text = _prior_reviewed_blocks(relative, text, WORKBOOK_ACCEPTANCE_BLOCKS, "workbook acceptance")
     return _prior_reviewed_blocks(relative, text, ORDINARY_EXPERIMENT_BLOCKS, "ordinary experiment")
