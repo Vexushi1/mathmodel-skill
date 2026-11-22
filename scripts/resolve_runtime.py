@@ -492,13 +492,15 @@ def resolve_runtime(
     if review_only_request(request or "", router) and set(explicit_intents) - {"review"}:
         raise ValueError("explicit intent conflicts with review-only request; resolve review without write actions")
 
+    requested_question = question
     state_snapshot = ProjectStateSnapshot.capture(project_root) if project_root else None
     question_selection = None
     if state_snapshot is not None and state_snapshot.raw is not None:
         requested = set(selected_intents)
-        if (question is not None or requested.intersection(QUESTION_SCHEDULER.QUESTION_ROUTES)) and not (
-            question is None and requested.intersection(QUESTION_SCHEDULER.FINAL_ROUTES)
-        ):
+        # M2 adds a default only when the caller did not name a Qn.
+        # Explicit --question retains the pre-M2 resolver envelope and gates.
+        if (question is None and requested.intersection(QUESTION_SCHEDULER.QUESTION_ROUTES)
+                and not requested.intersection(QUESTION_SCHEDULER.FINAL_ROUTES)):
             state_for_selection = state_snapshot.payload()
             registered = state_for_selection.get("subproblems") or {}
             if not isinstance(registered, dict):
@@ -767,7 +769,7 @@ def resolve_runtime(
     if (state_snapshot is not None and actual_stage and hydration.get("loaded")
             and any(gate["name"] == "code_delivery" for gate in plan["pre_delivery_gates"])):
         dependency_diagnostics = _dependency_diagnostics(
-            state_snapshot, question, actual_stage, hydration["artifact_evidence"],
+            state_snapshot, requested_question, actual_stage, hydration["artifact_evidence"],
         )
     review_required = bool(context_conflicts or ambiguities)
 
