@@ -16,6 +16,7 @@ if SCRIPTS not in sys.path:
 
 import question_dependency_gate as GATE
 import validate_model_approval as APPROVAL
+import validate_code_delivery as DELIVERY
 import semantic_identity
 from tests.test_question_runtime_integration import build_three_question_project
 from tests.test_v900_semantic_governance import framework, identity_payload
@@ -147,6 +148,25 @@ class TypedQuestionDependencyGateTests(unittest.TestCase):
             state_path.write_text(yaml.safe_dump(current, allow_unicode=True, sort_keys=False), encoding="utf-8")
             rejected = APPROVAL.validate_state(state_path, ["Q2"], project_root=root)
             self.assertTrue(any("legacy_untyped" in issue for issue in rejected), rejected)
+
+    def test_static_and_transactional_code_delivery_both_reject_missing_result(self):
+        from tests.test_v10_project_delivery_receipt import ProjectDeliveryReceiptTests
+
+        case = ProjectDeliveryReceiptTests(
+            "test_missing_upstream_result_is_diagnostic_and_verified_artifact_clears_it"
+        )
+        case.setUp()
+        try:
+            case.approved_question_scope(depends_on=[{"question": "Q2", "kind": "result"}])
+            case.approve_additional_question("Q2")
+            original = case.state_path.read_bytes()
+            problems, parsed = DELIVERY.validate_script(case.root, case.code, "primary")
+            self.assertTrue(any("Q2/result" in issue for issue in problems), problems)
+            with self.assertRaisesRegex(ValueError, "Q2/result"):
+                DELIVERY.update_state(case.root, parsed, case.code)
+            self.assertEqual(case.state_path.read_bytes(), original)
+        finally:
+            case.doCleanups()
 
     def test_unregistered_question_does_not_acquire_implicit_qualification(self):
         with tempfile.TemporaryDirectory() as temp:
