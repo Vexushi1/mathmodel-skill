@@ -15,6 +15,7 @@ if SCRIPTS not in sys.path:
     sys.path.insert(0, SCRIPTS)
 
 import question_dependency_gate as GATE
+import validate_model_approval as APPROVAL
 import semantic_identity
 from tests.test_question_runtime_integration import build_three_question_project
 from tests.test_v900_semantic_governance import framework, identity_payload
@@ -117,6 +118,35 @@ class TypedQuestionDependencyGateTests(unittest.TestCase):
             result = GATE.inspect(root, "Q2")
             self.assertEqual(result["status"], "failed")
             self.assertTrue(any("cycle" in issue for issue in result["issues"]), result)
+
+    def test_scoped_model_approval_checks_model_upstream_not_unrelated_result(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            state_path, _ = build_three_question_project(root)
+            current = yaml.safe_load(state_path.read_text(encoding="utf-8"))
+            current["subproblems"]["Q1"]["human_model_approval_status"] = "pending"
+            state_path.write_text(yaml.safe_dump(current, allow_unicode=True, sort_keys=False), encoding="utf-8")
+            self.assertEqual(
+                APPROVAL.validate_state(state_path, ["Q2"], project_root=root), [],
+            )
+            set_dependency(root, "Q2", "Q1", "model")
+            missing = APPROVAL.validate_state(state_path, ["Q2"], project_root=root)
+            self.assertTrue(any("Q1" in item and "human_model_approval_status" in item
+                                for item in missing), missing)
+            current = yaml.safe_load(state_path.read_text(encoding="utf-8"))
+            current["subproblems"]["Q1"]["human_model_approval_status"] = "approved"
+            state_path.write_text(yaml.safe_dump(current, allow_unicode=True, sort_keys=False), encoding="utf-8")
+            self.assertEqual(APPROVAL.validate_state(state_path, ["Q2"], project_root=root), [])
+
+    def test_scoped_model_approval_rejects_untyped_legacy_edge(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            state_path, _ = build_three_question_project(root)
+            current = yaml.safe_load(state_path.read_text(encoding="utf-8"))
+            current["subproblems"]["Q2"]["depends_on"] = ["Q1"]
+            state_path.write_text(yaml.safe_dump(current, allow_unicode=True, sort_keys=False), encoding="utf-8")
+            rejected = APPROVAL.validate_state(state_path, ["Q2"], project_root=root)
+            self.assertTrue(any("legacy_untyped" in issue for issue in rejected), rejected)
 
     def test_unregistered_question_does_not_acquire_implicit_qualification(self):
         with tempfile.TemporaryDirectory() as temp:
