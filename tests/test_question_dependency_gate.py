@@ -149,6 +149,40 @@ class TypedQuestionDependencyGateTests(unittest.TestCase):
             rejected = APPROVAL.validate_state(state_path, ["Q2"], project_root=root)
             self.assertTrue(any("legacy_untyped" in issue for issue in rejected), rejected)
 
+    def test_accepted_primary_only_does_not_clear_required_analysis_wait(self):
+        from tests.test_v10_project_delivery_receipt import ProjectDeliveryReceiptTests
+        from runtime_assurance import hydrate_project_context
+
+        case = ProjectDeliveryReceiptTests(
+            "test_missing_upstream_result_is_diagnostic_and_verified_artifact_clears_it"
+        )
+        case.setUp()
+        try:
+            case.approved_question_scope()
+            case.approve_additional_question("Q2", depends_on=[
+                {"question": "Q1", "kind": "result"},
+            ])
+            case.accept_primary_fixture()
+            incomplete = GATE.inspect(case.root, "Q2")
+            self.assertEqual(incomplete["status"], "failed", incomplete)
+            self.assertIn("accepted_solution_workbook",
+                          hydrate_project_context(case.root, "Q1")["verified_artifacts"])
+            self.assertNotIn("validated_results",
+                             hydrate_project_context(case.root, "Q1")["verified_artifacts"])
+            state = case.state()
+            entry = state["subproblems"]["Q1"]
+            entry["result_analysis_status"] = "not_required"
+            entry["result_analysis_requirement_reason"] = (
+                "已审计当前主结果不需03B；此为合成Fixture，不是用户成果验收"
+            )
+            case.save(state)
+            self.assertIn("validated_results",
+                          hydrate_project_context(case.root, "Q1")["verified_artifacts"])
+            eligible = GATE.inspect(case.root, "Q2")
+            self.assertEqual(eligible["status"], "passed", eligible)
+        finally:
+            case.doCleanups()
+
     def test_static_and_transactional_code_delivery_both_reject_missing_result(self):
         from tests.test_v10_project_delivery_receipt import ProjectDeliveryReceiptTests
 
