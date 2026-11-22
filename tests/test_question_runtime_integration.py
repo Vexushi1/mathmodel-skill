@@ -201,7 +201,7 @@ class QuestionRuntimeCharacterizationTests(unittest.TestCase):
                 scoped["issues"],
             )
 
-    def test_sync_currently_observes_all_registered_questions_for_code_scope(self):
+    def test_sync_default_remains_global_and_explicit_q1_requires_modern_roster(self):
         syncer = load_syncer()
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -215,7 +215,7 @@ class QuestionRuntimeCharacterizationTests(unittest.TestCase):
             )
             add_unfinished_questions_to_sync_project(root)
 
-            self.assertNotIn("question", inspect.signature(syncer.synchronize).parameters)
+            self.assertIn("question", inspect.signature(syncer.synchronize).parameters)
             report = syncer.synchronize(root, write=False, delivery_scope="code")
 
             self.assertEqual(set(report["questions"]), {"Q1", "Q2", "Q3"})
@@ -226,6 +226,8 @@ class QuestionRuntimeCharacterizationTests(unittest.TestCase):
                 any("正式交付缺少标准主求解脚本" in issue for issue in report["issues"]),
                 report["issues"],
             )
+            with self.assertRaisesRegex(ValueError, "requirements roster"):
+                syncer.synchronize(root, write=False, delivery_scope="code", question="Q1")
 
     def test_result_dependency_is_reported_but_not_yet_an_execution_gate(self):
         with tempfile.TemporaryDirectory() as temporary:
