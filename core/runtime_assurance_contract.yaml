@@ -79,6 +79,26 @@ runtime_context:
     standalone_projection: without_the_original_hydration_snapshot_do_not_qualify_a_narrow_project_read
     boundary: optimistic_state_read_consistency_not_atomic_snapshot_of_every_artifact_or_future_execution_authorization
 
+
+question_selection:
+  role: read_only_target_question_derivation_not_delivery_gate
+  implementation: scripts/question_scheduler.py
+  question_level_intents: [full_solution, full_workflow, code_and_solution, model_selection, new_problem_design, advanced_method, result_analysis, validation]
+  project_level_intents: [problem_analysis, project_sync, data_preprocessing, review, full_submission, latex, docx]
+  source: the_single_current_ProjectStateSnapshot_and_existing_file_backed_artifact_assurance
+  output: [scope_kind, selected_question, selection_reason, candidate_questions, blocked_questions, prerequisite_closure, waiting_action, diagnostic_only]
+  rules:
+  - Apply only to a loaded project; preserve old stateless and explicit --question behavior.
+  - For question-level operations infer at most one selected Qn before classification hydration, so heterogeneous unrelated questions do not create a spurious combined objective.
+  - Explicit Qn wins even if its typed prerequisite is unresolved; report the blocker without silently switching question.
+  - Work requiring a project-wide audit or final paper/submission stays project-scoped; full_solution/full_workflow denote project goals with one question-level execution unit per continuation.
+  - Prefer a single evident existing user wait when the request says resume or continue. Otherwise advance the first numerically ordered non-waiting question whose visible dependencies are not blocked. Keep blocked and independent questions distinguishable.
+  - Model prerequisites consume only verified current locked_model_spec; result prerequisites consume only current validated_results. Do not treat a filename, status string or mere primary workbook existence as acceptance.
+  - Data and parameter sources without machine-readable provenance remain diagnostics requiring source adjudication; legacy untyped edges stay conservative; cycles are reported without choosing a member as implicitly ready.
+  - Use the existing runtime State snapshot and complete typed dependency graph; do not mutate State or hide downstream stale. File-backed assurance remains the eligibility source.
+  - The selector is diagnostic only. No selection grants Model Approval, code delivery, result acceptance or gate PASS; actual gate eligibility belongs to existing consumers and the separately staged M3 integration.
+  - Do not require platform, Python/MATLAB release, CPU, license serial number or other local-machine attestation to choose a question. Actual solver dependencies and user-owned full_fidelity execution retain their original Authority.
+
 intent_resolution:
   explicit_intent_priority: true
   inference_source: core/workflow_router.yaml:routing.*.infer_keywords
@@ -279,6 +299,7 @@ authority_fingerprint:
   - modules/05_writing/paper_writing_protocol.md
   - scripts/resolve_workflow.py
   - scripts/resolve_runtime.py
+  - scripts/question_scheduler.py
   - scripts/reading_plan.py
   - scripts/read_stage.py
   - scripts/plot_backend.py
