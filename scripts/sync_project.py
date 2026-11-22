@@ -1530,13 +1530,23 @@ def synchronize(
         raise ValueError(f"未知delivery scope: {scope}")
     scoped = question is not None
     observed_qids, semantic_qids, scope_issues = (
-        _question_sync_selection(state, question, scope) if scoped else ([], [], [])
+        _question_sync_selection(state, question, scope) if scoped else ([], {}, [])
     )
+    if (scoped and phase == "data_preprocessing"
+            and (state.get("preprocessing") or {}).get("decision") == "project_level"):
+        raise ValueError("project_level preprocessing must synchronize globally, not with --question")
     original_scoped_state = deepcopy(state) if scoped and write else None
 
     issues: list[str] = list(scope_issues)
     warnings: list[str] = []
-    policy_error = False
+    # A malformed or unknown dependency must not be normalized into a write
+    # authorization; all question-scoped State writes require the GLOBAL schema.
+    policy_error = bool(scope_issues)
+    if scoped and state_present:
+        current_state_schema = load_yaml(SKILL_ROOT / "core/project_state.schema.yaml")
+        if not Draft202012Validator(current_state_schema).is_valid(state):
+            policy_error = True
+            issues.append("global State Schema is invalid; scoped sync cannot mutate this project")
     claim_projection_write = False
     claim_propagate = False
     claim_ids: list[str] = []
