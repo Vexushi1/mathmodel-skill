@@ -2037,7 +2037,7 @@ V11_DEFAULT_AUTHORITY_VERSIONS = {
 # This is comparison evidence only: no current gate or approval is projected.
 M2_CURRENT_SOURCE_SHA256 = {
     "scripts/resolve_runtime.py": "f832ddb7bfd1994ad93a441d44a4c74f058d313ab9ba0eb4e46c50153686063e",
-    "scripts/question_scheduler.py": "ea240f79dccec7256351f36ba69e15074365ee39f1de979f171455a26a7204ee",
+    "scripts/question_scheduler.py": "0fbf77eda4dd161b4c40284c6f398a6c36651e26b8c05979b0c87f13f202ac11",
     "core/runtime_assurance_contract.yaml": "9d2e192913ce0e1855424eea65549e0bd693f62ea8e73fb15c7959113114c2b1",
 }
 
