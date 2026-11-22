@@ -99,6 +99,19 @@ class QuestionScopedSemanticGovernanceTests(unittest.TestCase):
             self.assertEqual(saved["subproblems"]["Q3"], before_q3)
             self.assertTrue(saved["subproblems"]["Q2"]["artifacts_stale"])
 
+    def test_removing_roster_cannot_downgrade_current_schema_gate(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            path, _ = project(root)
+            state = state_file(path)
+            del state["requirements"]
+            write_state(path, state)
+            original = path.read_bytes()
+            report = SEMANTIC.validate_project(root, write=True, strict=True, question="Q1")
+            self.assertEqual(report["status"], "failed")
+            self.assertTrue(any("registered requirements roster" in issue for issue in report["issues"]), report)
+            self.assertEqual(path.read_bytes(), original)
+
     def test_scoped_semantic_gate_rejects_global_schema_failure(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
