@@ -168,9 +168,9 @@ def select_question(
         else order if explicit_question is None else []
     )
     blocked = {name: issues for name in checked if (issues := blockers_for(name))}
-    actions = {name: _next_action(subproblems[name], qualifications[name]) for name in order}
+    actions = {name: _next_action(subproblems[name], qualifications[name]) for name in checked}
     candidates = [
-        {"question": name, "next_action": actions[name],
+        {"question": name, "next_action": actions.get(name),
          "blocked": (name in blocked if name in checked else None)}
         for name in order
     ]
