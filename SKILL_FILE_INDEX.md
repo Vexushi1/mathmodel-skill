@@ -627,6 +627,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_question_runtime_integration.py`
 - `tests/test_question_scheduler.py`
 - `tests/test_question_scoped_semantic_governance.py`
+- `tests/test_question_scoped_sync.py`
 - `tests/test_read_path_semantic_closure.py`
 - `tests/test_read_stage.py`
 - `tests/test_reading_module06.py`
