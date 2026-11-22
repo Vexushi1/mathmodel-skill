@@ -61,10 +61,11 @@ def _single_line(value: Any, label: str) -> str:
 def _source(root: Path, path: Path) -> tuple[str, dict[str, Any], str]:
     root = root.resolve()
     raw_path = Path(path)
-    target = (root / raw_path).resolve() if not raw_path.is_absolute() else raw_path.resolve()
+    unresolved = (root / raw_path) if not raw_path.is_absolute() else raw_path
+    target = unresolved.resolve()
     if not target.is_relative_to(root) or not target.is_file():
         raise InitializationError("authored specification must be a regular file inside the project")
-    if raw_path.is_symlink() or any(parent.is_symlink() for parent in target.parents if parent != root):
+    if unresolved.is_symlink():
         raise InitializationError("authored specification must not use a symlink")
     if target.as_posix() in {(root / STATE_PATH).as_posix(), (root / FRAMEWORK_PATH).as_posix()}:
         raise InitializationError("authored specification cannot be a project output")
