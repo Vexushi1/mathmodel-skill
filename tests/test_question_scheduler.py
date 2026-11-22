@@ -50,7 +50,7 @@ class QuestionSchedulerTests(unittest.TestCase):
     def test_first_available_question_and_result_dependency_blocker(self):
         source = state_fixture()
         snapshot = deepcopy(source)
-        result = select(source)
+        result = select(source, verified={"Q1": ["locked_model_spec"]})
         self.assertEqual(result["scope_kind"], "question")
         self.assertEqual(result["selected_question"], "Q1")
         self.assertEqual(result["selection_reason"], "first_unblocked_actionable")
@@ -61,6 +61,18 @@ class QuestionSchedulerTests(unittest.TestCase):
         self.assertNotIn("Q3", result["blocked_questions"])
         self.assertEqual(source, snapshot)
         self.assertTrue(result["diagnostic_only"])
+
+    def test_declared_model_approval_without_current_sib_evidence_is_not_code_ready(self):
+        source = state_fixture()
+        candidate = select(source)
+        self.assertEqual(candidate["selected_question"], "Q1")
+        self.assertEqual(candidate["candidate_questions"][0]["next_action"],
+                         "model_identity_requalification")
+        self.assertNotEqual(candidate["candidate_questions"][0]["next_action"],
+                            "primary_code_delivery")
+        eligible = select(source, verified={"Q1": ["locked_model_spec"]})
+        self.assertEqual(eligible["candidate_questions"][0]["next_action"],
+                         "primary_code_delivery")
 
     def test_explicit_blocked_question_never_switches_to_independent_question(self):
         result = select(state_fixture(), question="Q2")
@@ -79,12 +91,12 @@ class QuestionSchedulerTests(unittest.TestCase):
     def test_unique_user_wait_is_reported_without_claiming_execution(self):
         source = state_fixture()
         source["subproblems"]["Q1"]["primary_execution_status"] = "awaiting_user_execution"
-        result = select(source, request="继续")
+        result = select(source, request="继续", verified={"Q1": ["locked_model_spec"]})
         self.assertEqual(result["selected_question"], "Q1")
         self.assertEqual(result["selection_reason"], "resume_unique_wait")
         self.assertEqual(result["waiting_action"], "user_execution")
         # A generic next action can instead be the independent Q3 while Q1 awaits a run.
-        alternative = select(source)
+        alternative = select(source, verified={"Q1": ["locked_model_spec"]})
         self.assertEqual(alternative["selected_question"], "Q3")
         self.assertEqual(source["subproblems"]["Q1"]["primary_execution_status"],
                          "awaiting_user_execution")
