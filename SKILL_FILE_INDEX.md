@@ -291,6 +291,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `scripts/generate_indexes.py`
 - `scripts/generate_mechanism_drawio.py`
 - `scripts/hsk_pack_submission.py`
+- `scripts/initialize_project.py`
 - `scripts/instantiate_model_paper_framework.py`
 - `scripts/latex_delivery.py`
 - `scripts/lint_skill.py`
@@ -610,6 +611,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_project_backend_migration_preview.py`
 - `tests/test_project_backend_policy_shared.py`
 - `tests/test_project_history_archive.py`
+- `tests/test_project_initialization.py`
 - `tests/test_project_plot_backend.py`
 - `tests/test_project_solver_backend_inspect.py`
 - `tests/test_project_solver_backend_select.py`
