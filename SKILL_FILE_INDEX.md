@@ -186,6 +186,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `core/full_reading/volumes/128.md`
 - `core/full_reading/volumes/129.md`
 - `core/full_reading/volumes/130.md`
+- `core/full_reading/volumes/131.md`
 - `core/global_preprocessing_contract.yaml`
 - `core/hsk_core_policy.md`
 - `core/literature_research_contract.yaml`
