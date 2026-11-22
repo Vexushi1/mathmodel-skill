@@ -276,7 +276,7 @@ def _necessary_model_upstreams(
             )
     for cycle in dependency_cycles(subproblems):
         chain = set(cycle.split(" -> "))
-        if chain and chain.issubset(visited) and chain.intersection(origins):
+        if chain and chain.issubset(visited):
             issues.append(f"model prerequisite cycle requires joint-model review: {cycle}")
     return sorted(visited - origins, key=lambda q: int(q[1:])), list(dict.fromkeys(issues))
 
