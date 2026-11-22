@@ -355,7 +355,10 @@ def validate_state(
         if root is None:
             errors.append("model_challenge review receipts require an explicit project root")
         else:
-            for question in selected_questions:
+            # A model dependency is not approved merely because its State
+            # hashes agree; activated independent challenge receipts for every
+            # necessary upstream model remain part of the same existing gate.
+            for question in questions_to_validate:
                 try:
                     result = _evaluate_model_receipts(root, question)
                 except Exception as exc:
