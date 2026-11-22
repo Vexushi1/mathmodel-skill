@@ -35,6 +35,60 @@ def file_bytes(root):
 
 
 class HistoricalProjectionTests(unittest.TestCase):
+    def test_m2_source_identity_projection_never_ignores_tampering(self):
+        record = plan_evidence.worker(ROOT, 0)
+        candidate = plan_evidence.legacy_projection(record["plan"])
+        previous, registered = plan_evidence.runtime_consistency_predecessor(
+            record["id"], candidate, record["authority_versions"],
+        )
+        self.assertEqual(previous["version"], "10.26.3")
+        paths = [item["path"] for item in registered]
+        for path in (
+            "assurance.authority_fingerprint.sources.scripts/resolve_runtime.py",
+            "assurance.authority_fingerprint.sources.scripts/question_scheduler.py",
+        ):
+            self.assertIn(path, paths)
+
+        for mutation in ("scheduler_hash", "resolver_hash", "remove_scheduler",
+                         "insert_unknown", "reorder_sources"):
+            with self.subTest(mutation=mutation):
+                invalid = deepcopy(candidate)
+                rows = invalid["assurance"]["authority_fingerprint"]["sources"]
+                if mutation == "scheduler_hash":
+                    row = next(row for row in rows if row["path"] == "scripts/question_scheduler.py")
+                    row["sha256"] = "0" * 64
+                elif mutation == "resolver_hash":
+                    row = next(row for row in rows if row["path"] == "scripts/resolve_runtime.py")
+                    row["sha256"] = "0" * 64
+                elif mutation == "remove_scheduler":
+                    rows[:] = [row for row in rows if row["path"] != "scripts/question_scheduler.py"]
+                elif mutation == "insert_unknown":
+                    rows.append({"path": "scripts/unregistered.py", "sha256": "0" * 64})
+                else:
+                    rows.reverse()
+                self.assertEqual(
+                    plan_evidence.runtime_consistency_predecessor(
+                        record["id"], invalid, record["authority_versions"],
+                    ),
+                    (invalid, []),
+                )
+
+        real_read = Path.read_bytes
+        for drift_path in ("scripts/question_scheduler.py", "scripts/resolve_runtime.py",
+                           "core/runtime_assurance_contract.yaml"):
+            with self.subTest(path=drift_path):
+                absolute = ROOT / drift_path
+                with mock.patch.object(
+                    Path, "read_bytes",
+                    lambda target: real_read(target) + (b" mutated" if target == absolute else b""),
+                ):
+                    self.assertEqual(
+                        plan_evidence.runtime_consistency_predecessor(
+                            record["id"], candidate, record["authority_versions"],
+                        ),
+                        (candidate, []),
+                    )
+
     def test_registered_inverse_preserves_unregistered_differences(self):
         for index in (0, 9, 14, 18):
             after = plan_evidence.worker(ROOT, index)
