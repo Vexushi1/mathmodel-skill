@@ -167,6 +167,12 @@ class QuestionScopedSyncTests(unittest.TestCase):
             report = SYNC.synchronize(root, write=False, delivery_scope="code", question="Q1")
             self.assertEqual(report["status"], "failed")
             self.assertTrue(any("schema" in issue and "Q3" in issue for issue in report["issues"]), report)
+            before = path.read_bytes()
+            refused = SYNC.synchronize(root, write=True, delivery_scope="code", question="Q1")
+            self.assertEqual(refused["status"], "failed")
+            self.assertFalse(refused["write_performed"])
+            self.assertEqual(path.read_bytes(), before)
+
 
     def test_scoped_write_rechecks_target_files_after_observation(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -190,6 +196,33 @@ class QuestionScopedSyncTests(unittest.TestCase):
             self.assertTrue(changed[0])
             self.assertEqual(path.read_bytes(), before_state,
                              "concurrent source drift must not commit new State")
+
+    def test_untyped_dependency_may_be_diagnosed_but_never_written_as_current(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            path = three_question_project(root)
+            state = yaml.safe_load(path.read_text(encoding="utf-8"))
+            state["subproblems"]["Q2"]["depends_on"] = ["Q1"]
+            path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False),
+                            encoding="utf-8")
+            original = path.read_bytes()
+            report = SYNC.synchronize(root, write=True, delivery_scope="design", question="Q2")
+            self.assertEqual(report["status"], "failed")
+            self.assertTrue(any("legacy_untyped" in issue for issue in report["issues"]), report)
+            self.assertFalse(report["write_performed"])
+            self.assertEqual(path.read_bytes(), original)
+
+    def test_project_level_preprocessing_stays_project_scoped(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            path = three_question_project(root)
+            state = yaml.safe_load(path.read_text(encoding="utf-8"))
+            state["project"]["current_phase"] = "data_preprocessing"
+            state["preprocessing"]["decision"] = "project_level"
+            path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False),
+                            encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "preprocessing must synchronize globally"):
+                SYNC.synchronize(root, write=False, delivery_scope="code", question="Q1")
 
     def test_unknown_question_and_final_delivery_scope_fail_closed(self):
         with tempfile.TemporaryDirectory() as temp:
