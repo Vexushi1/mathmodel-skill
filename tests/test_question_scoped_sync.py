@@ -55,6 +55,42 @@ class QuestionScopedSyncTests(unittest.TestCase):
             self.assertNotIn("Q2", scoped["upstream_question_snapshots"])
             self.assertFalse(any("缺少标准主求解脚本" in item for item in scoped["issues"]), scoped)
 
+    def test_unrelated_solved_q3_missing_workbook_does_not_block_q1(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            path = three_question_project(root)
+            state = yaml.safe_load(path.read_text(encoding="utf-8"))
+            state["subproblems"]["Q3"].update(
+                status="solved", result_quality_status="pending",
+                result_summary_status="pending",
+                solution_workbook="问题三求解/问题三求解结果.xlsx",
+            )
+            path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False),
+                            encoding="utf-8")
+            full = SYNC.synchronize(root, write=False, delivery_scope="code")
+            self.assertTrue(any("Q3" in issue for issue in full["issues"]), full)
+            scoped = SYNC.synchronize(root, write=False, delivery_scope="code", question="Q1")
+            self.assertFalse(any("Q3" in issue and ("workbook" in issue or "result" in issue)
+                                 for issue in scoped["issues"]), scoped)
+            self.assertEqual(set(scoped["questions"]), {"Q1"})
+
+    def test_only_traversed_prerequisite_edges_form_scoped_cycle(self):
+        state = {
+            "requirements": {"total": 3, "pending": ["Q1", "Q2", "Q3"], "completed": []},
+            "subproblems": {
+                "Q1": {"depends_on": [{"question": "Q3", "kind": "result"}]},
+                "Q2": {"depends_on": [{"question": "Q1", "kind": "model"}]},
+                "Q3": {"depends_on": [{"question": "Q1", "kind": "result"}]},
+            },
+        }
+        numerics, roles, issues = SYNC._question_sync_selection(state, "Q2", "design")
+        self.assertEqual(numerics, ["Q2"])
+        self.assertEqual(roles["Q1"], ["model"])
+        self.assertFalse(any("cycle" in item for item in issues), issues)
+        state["subproblems"]["Q1"]["depends_on"] = [{"question": "Q2", "kind": "model"}]
+        numerics, roles, issues = SYNC._question_sync_selection(state, "Q2", "design")
+        self.assertTrue(any("cycle" in item for item in issues), issues)
+
     def test_result_dependency_observes_only_necessary_upstream_snapshot(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
