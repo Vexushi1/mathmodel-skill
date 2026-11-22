@@ -248,13 +248,28 @@ def validate_comparison_approval(
 def _necessary_model_upstreams(
     subproblems: Mapping[str, Any], targets: Iterable[str],
 ) -> tuple[list[str], list[str]]:
-    """Return model/legacy incoming closure without assuming numerical dependencies."""
+    """Return only typed model prerequisites; preserve legacy model read behavior.
+
+    Malformed dependency declarations are reported by the existing semantic
+    alignment authority. Normalize ONLY this traversal's temporary graph so
+    one malformed Qn cannot crash unrelated model approval validation.
+    Historical untyped strings remain readable here, but code-delivery's
+    separate execution-dependency gate still fails closed until typed.
+    """
     from state_transitions import dependency_cycles, dependency_edges
     incoming: dict[str, set[str]] = {}
     issues: list[str] = []
-    edges = dependency_edges(subproblems)
+    safe_graph = {
+        name: (
+            entry if isinstance(entry, Mapping)
+            and isinstance(entry.get("depends_on", []), list)
+            else {"depends_on": []}
+        )
+        for name, entry in subproblems.items()
+    }
+    edges = dependency_edges(safe_graph)
     for edge in edges:
-        if edge["kind"] in {"model", "legacy_untyped"}:
+        if edge["kind"] == "model":
             incoming.setdefault(edge["target"], set()).add(edge["source"])
     origins = set(targets)
     visited: set[str] = set()
@@ -268,13 +283,10 @@ def _necessary_model_upstreams(
             continue
         visited.add(question)
         queue.extend(incoming.get(question, ()))
-    for edge in edges:
-        if (edge["target"] in visited and edge["kind"] == "legacy_untyped"
-                and edge["source"] in visited):
-            issues.append(
-                f"{edge['target']}: {edge['source']}/legacy_untyped must be classified before current model delivery"
-            )
-    for cycle in dependency_cycles(subproblems):
+    # Historical string dependencies do not revoke a current mathematical
+    # Model Approval by themselves. Typed execution input qualification is
+    # enforced independently by question_dependency_gate at Code Delivery.
+    for cycle in dependency_cycles(safe_graph):
         chain = set(cycle.split(" -> "))
         if chain and chain.issubset(visited):
             issues.append(f"model prerequisite cycle requires joint-model review: {cycle}")
