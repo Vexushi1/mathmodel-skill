@@ -98,7 +98,6 @@ def inspect(
             kind = edge["kind"]
             tracked.add(upstream)
             reason = None
-            proceed = False
             if upstream not in entries:
                 reason = "unregistered upstream question"
             elif kind not in KINDS:
@@ -106,8 +105,7 @@ def inspect(
             elif kind == "model":
                 if "locked_model_spec" not in source(upstream)["verified_artifacts"]:
                     reason = "upstream current approved model is not file-backed verified"
-                else:
-                    proceed = False  # An approved model is the semantic prerequisite.
+            # A verified model lock is the semantic prerequisite; do not require its results.
             elif kind == "result":
                 if "validated_results" not in source(upstream)["verified_artifacts"]:
                     reason = "upstream validated_results is not current (including required 03B)"
@@ -172,14 +170,21 @@ def inspect(
                             **({"reason": reason} if reason else {})})
             if reason:
                 issues.append(f"{target}: {upstream}/{kind}: {reason}")
-            if proceed:
+                # Follow only unresolved inputs. Once a source is verified,
+                # unrelated prerequisites of that source are not reactivated.
                 pending.append(upstream)
 
-    cycles = TRANSITIONS.dependency_cycles(entries)
-    involved = {question, *tracked}
+    necessary_graph: dict[str, dict[str, Any]] = {
+        name: {"depends_on": [
+            {"question": row["upstream"], "kind": row["kind"]}
+            for row in checked if row["question"] == name and row["status"] == "blocked"
+            and row["upstream"] in entries
+        ]}
+        for name in inspected
+    }
+    cycles = TRANSITIONS.dependency_cycles(necessary_graph)
     for cycle in cycles:
-        if any(node in involved for node in cycle.split(" -> ")):
-            issues.append(f"{question}: dependent question cycle requires joint-model review: {cycle}")
+        issues.append(f"{question}: unresolved dependency cycle requires joint-model review: {cycle}")
     observed = _observed(root, state, tracked)
     current.assert_current(root)
     return {
