@@ -406,6 +406,7 @@ def contract_preflight_issues(
     *,
     candidate_state: Mapping[str, Any] | None = None,
     candidate_framework_text: str | None = None,
+    question_scope: Iterable[str] | None = None,
 ) -> list[str]:
     issues: list[str] = []
     scope_state = candidate_state
@@ -424,11 +425,12 @@ def contract_preflight_issues(
             f"项目状态校验: {item}"
             for item in (
                 STATE_VALIDATION.validate_state_payload(
-                    candidate_state, project_root=root,
+                    scope_state, project_root=root,
                     framework_text_override=candidate_framework_text,
                     allow_read_only_source_drift=allow_read_only_source_drift,
+                    question_scope=question_scope,
                 )
-                if candidate_state is not None
+                if candidate_state is not None or question_scope is not None
                 else STATE_VALIDATION.validate_state_file(
                     state_path, project_root=root,
                     allow_read_only_source_drift=allow_read_only_source_drift,
@@ -1389,17 +1391,95 @@ def inspect_mechanism_delivery(
             "observed_sources": observed, "semantic_visual_review": "not_assessed_by_machine"}
 
 
+QUESTION_SYNC_SCOPES = frozenset({"design", "code", "results", "figures"})
+
+
+def _question_sync_selection(
+    state: Mapping[str, Any], target: str, scope: str,
+) -> tuple[list[str], list[str], list[str]]:
+    """Return the exact numerical snapshot closure and non-numeric evidence names.
+
+    The State graph is observed whole.  Only result dependencies need upstream
+    *numerical* snapshots: model-only dependencies need current SIB/approval
+    evidence, and parameter/data dependencies use their own established source
+    contracts.  The State Transition Authority later propagates stale on the
+    original full graph, never on this selection.
+    """
+    if not isinstance(target, str) or not re.fullmatch(r"Q[1-9][0-9]*", target):
+        raise ValueError(f"question-scoped sync requires a canonical Qn: {target!r}")
+    if scope not in QUESTION_SYNC_SCOPES:
+        raise ValueError(f"{scope}: explicit Qn sync is not allowed for global/final/mechanism scope")
+    if "requirements" not in state:
+        raise ValueError("question-scoped sync requires a complete registered requirements roster")
+    entries = state.get("subproblems") or {}
+    if not isinstance(entries, Mapping) or target not in entries:
+        raise ValueError(f"{target}: question is not registered in the current State")
+    # A malformed unrelated entry must be identified by whole-State Schema,
+    # not allowed to cause TypeError during the scoped dependency traversal.
+    safe_graph = {
+        name: {"depends_on": row.get("depends_on", [])
+               if isinstance(row, Mapping) and isinstance(row.get("depends_on", []), list)
+               else []}
+        for name, row in entries.items()
+    }
+    incoming: dict[str, list[dict[str, Any]]] = {}
+    for edge in STATE_TRANSITIONS.dependency_edges(safe_graph):
+        incoming.setdefault(edge["target"], []).append(edge)
+    numeric = {target}
+    evidence: set[str] = set()
+    visited: set[tuple[str, str]] = set()
+    pending = [(target, "numeric")]
+    issues: list[str] = []
+    while pending:
+        current, mode = pending.pop()
+        if (current, mode) in visited:
+            continue
+        visited.add((current, mode))
+        for edge in incoming.get(current, ()):
+            source, kind = edge["source"], edge["kind"]
+            if source not in entries:
+                issues.append(f"{current}: dependency {source}/{kind} is not registered")
+                continue
+            if kind == "result" and mode == "numeric":
+                numeric.add(source)
+                pending.append((source, "numeric"))
+            elif kind == "model":
+                if source not in numeric:
+                    evidence.add(source)
+                pending.append((source, "model"))
+            elif kind in {"parameter", "data"}:
+                if source not in numeric:
+                    evidence.add(source)
+            elif kind == "legacy_untyped":
+                evidence.add(source)
+                issues.append(f"{current}: {source}/legacy_untyped requires dependency type review")
+    evidence.difference_update(numeric)
+    relevant = numeric | evidence
+    for cycle in STATE_TRANSITIONS.dependency_cycles(safe_graph):
+        if set(cycle.split(" -> ")).intersection(relevant):
+            issues.append(f"{target}: dependency cycle requires joint-model review: {cycle}")
+    return (
+        sorted(numeric, key=lambda q: int(q[1:])),
+        sorted(evidence, key=lambda q: int(q[1:])),
+        list(dict.fromkeys(issues)),
+    )
+
+
 def synchronize(
     project_root: Path,
     *,
     write: bool = False,
     strict: bool = False,
     delivery_scope: str | None = None,
+    question: str | None = None,
     mechanism_spec: str | None = None,
     mechanism_question: str | None = None,
     schema_path: Path = DEFAULT_SCHEMA_PATH,
     output_contract_path: Path = DEFAULT_OUTPUT_CONTRACT_PATH,
 ) -> dict[str, Any]:
+    if question is not None and (delivery_scope == "mechanism" or mechanism_spec is not None
+                                 or mechanism_question is not None):
+        raise ValueError("question-scoped sync does not apply to the independent mechanism scope")
     if mechanism_spec is not None and delivery_scope != "mechanism":
         raise ValueError("mechanism_spec requires explicit mechanism delivery scope")
     if mechanism_question is not None and (mechanism_spec is None or not isinstance(mechanism_question, str)
@@ -1437,8 +1517,13 @@ def synchronize(
     scope = delivery_scope or PHASE_SCOPE.get(phase, "design")
     if scope not in {"design", "code", "results", "figures", "docx", "latex", "submission"}:
         raise ValueError(f"未知delivery scope: {scope}")
+    scoped = question is not None
+    observed_qids, semantic_qids, scope_issues = (
+        _question_sync_selection(state, question, scope) if scoped else ([], [], [])
+    )
+    original_scoped_state = deepcopy(state) if scoped and write else None
 
-    issues: list[str] = []
+    issues: list[str] = list(scope_issues)
     warnings: list[str] = []
     policy_error = False
     claim_projection_write = False
@@ -1587,7 +1672,23 @@ def synchronize(
     conformance_read_set: dict[str, Any] = {"project": {}, "skill": {}}
     snapshots: dict[str, dict[str, Any]] = {}
     subproblems = state.get("subproblems") or {}
-    question_names = _question_names(root, state)
+    # Do not discover unrelated directories merely to qualify this Qn. Only
+    # explicitly relevant result ancestors need full numerical snapshots.
+    question_names = (
+        [chinese_question_name(q) for q in observed_qids]
+        if scoped else _question_names(root, state)
+    )
+    upstream_question_evidence: dict[str, dict[str, Any]] = {}
+    if scoped:
+        for name in semantic_qids:
+            hydration = RUNTIME_ASSURANCE.hydrate_project_context(
+                root, name, state_snapshot=state_snapshot,
+            )
+            upstream_question_evidence[name] = {
+                "verified_artifacts": hydration["verified_artifacts"],
+                "conflicts": hydration["conflicts"],
+                "ambiguities": hydration["ambiguities"],
+            }
     for chinese_name in question_names:
         key = question_key(chinese_name)
         entry = subproblems.get(key) or subproblems.get(chinese_name) or {}
@@ -1690,7 +1791,11 @@ def synchronize(
         snapshots[key] = snapshot
         issues.extend(f"{key}: {item}" for item in snapshot["issues"])
         warnings.extend(f"{key}: {item}" for item in snapshot["warnings"])
-    if explicit_delivery_scope and scope in {"results", "figures", "docx"} and not snapshots:
+    target_snapshots = (
+        {question: snapshots[question]} if scoped and question in snapshots
+        else snapshots
+    )
+    if explicit_delivery_scope and scope in {"results", "figures", "docx"} and not target_snapshots:
         issues.append("未发现任何小问结果目录或项目状态")
     stale_questions: list[str] = []
     stale_fragments: list[str] = []
@@ -1767,7 +1872,8 @@ def synchronize(
             header_stale = any_stale
     if not claim_projection_write and not (claim_policy_present and policy_error):
         issues.extend(contract_preflight_issues(
-            root, scope, state_path, framework_path, output_contract, candidate_state=transition_state,
+            root, scope, state_path, framework_path, output_contract,
+            candidate_state=transition_state, question_scope=observed_qids if scoped else None,
         ))
     formal_compile_read_set: dict[str, str | None] | None = None
     formal_compile_paths: set[Path] | None = None
@@ -1809,13 +1915,21 @@ def synchronize(
                 skill_profile.relative_to(SKILL_ROOT).as_posix(): PROJECT_TX.sha256_file(skill_profile)
             }})
     if explicit_delivery_scope and not (claim_policy_present and policy_error):
-        issues.extend(_scope_artifact_issues(root, scope, transition_state, snapshots, output_contract, warnings=warnings))
+        issues.extend(_scope_artifact_issues(
+            root, scope, transition_state, target_snapshots, output_contract, warnings=warnings,
+        ))
 
     claim_report_only = bool(
         write and state_present and claim_text_gate_requested and not policy_error
         and transition_state == claim_original_state
     )
-    if write and state_present and not claim_report_only:
+    # A no-op scoped sync still refreshes a diagnostic report, but must not
+    # advance State generation or rewrite the framework for an unchanged Qn.
+    scoped_report_only = bool(
+        scoped and write and state_present and not claim_report_only
+        and not policy_error and transition_state == original_scoped_state
+    )
+    if write and state_present and not (claim_report_only or scoped_report_only):
         framework["last_sync_scope"] = scope
         framework["last_synced_at"] = datetime.now(timezone.utc).isoformat()
         if claim_policy_present and policy_error:
@@ -1850,6 +1964,7 @@ def synchronize(
         issues.extend(contract_preflight_issues(
             root, scope, state_path, framework_path, output_contract,
             candidate_state=transition_state, candidate_framework_text=framework_text_for_write,
+            question_scope=observed_qids if scoped else None,
         ))
 
     if claim_text_gate_requested:
@@ -1960,7 +2075,16 @@ def synchronize(
             if framework_text_for_write is not None
             else sha256_file(framework_path) if framework_path.is_file() else None
         ),
-        "questions": snapshots,
+        "questions": target_snapshots,
+        **({
+            "target_question": question,
+            "upstream_question_snapshots": {
+                q: snapshots[q] for q in observed_qids if q != question and q in snapshots
+            },
+            "upstream_question_evidence": upstream_question_evidence,
+            "state_write_performed": bool(write and not policy_error and not scoped_report_only
+                                          and not claim_report_only and state_present),
+        } if scoped else {}),
         "stale_questions": sorted(set(stale_questions)),
         "stale_paper_fragments": stale_fragments,
         "state_transitions": transition_reports,
@@ -2001,8 +2125,9 @@ def synchronize(
     if write and not policy_error:
         state_snapshot.assert_current()
         report_text = yaml.safe_dump(report, allow_unicode=True, sort_keys=False)
-        if claim_report_only:
-            # Preserve the exact State/Framework bytes bound by the formal audit.
+        if claim_report_only or scoped_report_only:
+            # Preserve State/Framework bytes; write only a fresh diagnostic report
+            # after observing the same guarded sources under the project lock.
             # Only the sync report changes, under the same project lock and read set.
             with PROJECT_TX._project_lock(root):
                 PROJECT_TX._check_read_set(root, sync_read_set)
@@ -2059,6 +2184,7 @@ def main() -> int:
     parser.add_argument("project_root", nargs="?", default=".")
     parser.add_argument("--write", action="store_true")
     parser.add_argument("--strict", action="store_true")
+    parser.add_argument("--question", help="one registered Qn for design/code/results/figures sync")
     parser.add_argument("--mechanism-spec", help="project-relative path to the one nonnumerical draw.io Spec")
     parser.add_argument("--mechanism-question", help="expected question ID for the selected mechanism Spec")
     parser.add_argument(
@@ -2069,8 +2195,8 @@ def main() -> int:
     try:
         report = synchronize(
             Path(args.project_root), write=args.write, strict=args.strict,
-            delivery_scope=args.delivery_scope, mechanism_spec=args.mechanism_spec,
-            mechanism_question=args.mechanism_question,
+            delivery_scope=args.delivery_scope, question=args.question,
+            mechanism_spec=args.mechanism_spec, mechanism_question=args.mechanism_question,
         )
     except (ValueError, RUNTIME_ASSURANCE.ProjectStateReadError, PROJECT_TX.ProjectTransactionError) as exc:
         print(f"- {exc}")
