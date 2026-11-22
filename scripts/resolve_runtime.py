@@ -9,6 +9,7 @@ from typing import Any, Iterable
 import yaml
 import safe_yaml
 import stage_code as STAGE_CODE
+import question_scheduler as QUESTION_SCHEDULER
 
 from resolve_workflow import TAXONOMY_PATH, add_solver_resources, code_artifact_projection, legacy_to_axes, resolve_workflow, review_only_request, route_boundary_roles
 from reading_plan import build_reading_plan
@@ -492,6 +493,32 @@ def resolve_runtime(
         raise ValueError("explicit intent conflicts with review-only request; resolve review without write actions")
 
     state_snapshot = ProjectStateSnapshot.capture(project_root) if project_root else None
+    question_selection = None
+    if state_snapshot is not None and state_snapshot.raw is not None:
+        requested = set(selected_intents)
+        if (question is not None or requested.intersection(QUESTION_SCHEDULER.QUESTION_ROUTES)) and not (
+            question is None and requested.intersection(QUESTION_SCHEDULER.FINAL_ROUTES)
+        ):
+            state_for_selection = state_snapshot.payload()
+            registered = state_for_selection.get("subproblems") or {}
+            if not isinstance(registered, dict):
+                raise ValueError("project subproblems must be a mapping")
+            verified_by_question = {
+                name: hydrate_project_context(
+                    project_root, name, state_snapshot=state_snapshot,
+                ).get("verified_artifacts", [])
+                for name in registered
+            }
+            question_selection = QUESTION_SCHEDULER.select_question(
+                state_for_selection,
+                explicit_question=question,
+                selected_intents=selected_intents,
+                request=request or "",
+                verified_artifacts=verified_by_question,
+            )
+            if question is None and question_selection["scope_kind"] == "question":
+                question = question_selection["selected_question"]
+            state_snapshot.assert_current()
     hydration = (
         hydrate_project_context(project_root, question, state_snapshot=state_snapshot)
         if project_root
@@ -743,6 +770,13 @@ def resolve_runtime(
     }
     if solver_context is not None:
         plan["runtime_plan"]["solver_backend"] = solver_context
+    if question_selection is not None:
+        plan["runtime_plan"]["selected_question"] = question_selection["selected_question"]
+        plan["runtime_plan"]["scope_kind"] = question_selection["scope_kind"]
+        plan["runtime_plan"]["selection_reason"] = question_selection["selection_reason"]
+        plan["runtime_plan"]["waiting_action"] = question_selection["waiting_action"]
+        # Question selection never changes gate eligibility or qualifies numerical artifacts.
+        plan["question_selection"] = question_selection
     plan["assurance"] = {
         "schema_version": assurance_contract.get("version", "1.0.0"),
         "status": "review_required" if review_required else "pass",
@@ -751,6 +785,7 @@ def resolve_runtime(
             "project_root": hydration.get("project_root"),
             "state_path": hydration.get("state_path"),
             "question": question,
+            **({"question_selection": question_selection} if question_selection is not None else {}),
             "field_provenance": field_provenance,
             "conflicts": context_conflicts,
             "ambiguities": ambiguities,
