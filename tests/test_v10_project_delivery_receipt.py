@@ -251,7 +251,7 @@ class ProjectDeliveryReceiptTests(unittest.TestCase):
         self.approve_additional_question("Q2")
         self.approve_additional_question("Q3")
 
-        for question in ("Q1", "Q2", None):
+        for question in ("Q1", "Q2"):
             with self.subTest(question=question):
                 _, diagnostic = self.dependency_plan(question)
                 self.assertEqual(diagnostic["unresolved_result_cycles"], ["Q1 -> Q2 -> Q1"])
@@ -259,6 +259,9 @@ class ProjectDeliveryReceiptTests(unittest.TestCase):
                     [(row["question"], row["upstream"]) for row in diagnostic["result_dependencies"]],
                     [("Q1", "Q2"), ("Q2", "Q1")],
                 )
+        # There is no implicit project-wide choice for a numerical code route.
+        with self.assertRaisesRegex(ValueError, "--question Qn"):
+            self.dependency_plan(None)
         independent, diagnostic = self.dependency_plan("Q3")
         self.assertIsNone(diagnostic)
         self.assertIn("code_delivery", independent["runtime_plan"]["pre_delivery_gate_names"])

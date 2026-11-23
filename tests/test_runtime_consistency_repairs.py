@@ -35,19 +35,23 @@ def file_bytes(root):
 
 
 class HistoricalProjectionTests(unittest.TestCase):
+    def test_explicit_qn_sources_cannot_claim_frozen_m2_identity(self):
+        # The prior M2 inverse is intentionally byte-locked to the old,
+        # unmerged automatic question-selection implementation. Current
+        # explicit-Qn-only files must NOT pass as that historical source.
+        for path, approved_sha in plan_evidence.M2_CURRENT_SOURCE_SHA256.items():
+            current_sha = hashlib.sha256((ROOT / path).read_bytes()).hexdigest()
+            self.assertNotEqual(current_sha, approved_sha, path)
+
     def test_m2_source_identity_projection_never_ignores_tampering(self):
         record = plan_evidence.worker(ROOT, 0)
         candidate = plan_evidence.legacy_projection(record["plan"])
         previous, registered = plan_evidence.runtime_consistency_predecessor(
             record["id"], candidate, record["authority_versions"],
         )
-        self.assertEqual(previous["version"], "10.26.3")
-        paths = [item["path"] for item in registered]
-        for path in (
-            "assurance.authority_fingerprint.sources.scripts/resolve_runtime.py",
-            "assurance.authority_fingerprint.sources.scripts/question_scheduler.py",
-        ):
-            self.assertIn(path, paths)
+        # The physical source tuple changed when implicit Qn selection was
+        # removed. Fail-closed is now the ONLY correct historical projection.
+        self.assertEqual((previous, registered), (candidate, []))
 
         for mutation in ("scheduler_hash", "resolver_hash", "remove_scheduler",
                          "insert_unknown", "reorder_sources"):
@@ -95,8 +99,8 @@ class HistoricalProjectionTests(unittest.TestCase):
             candidate = plan_evidence.legacy_projection(after["plan"])
             predecessor, changes = plan_evidence.runtime_consistency_predecessor(
                 after["id"], candidate, after["authority_versions"])
-            self.assertTrue(changes, after["id"])
-            self.assertEqual(predecessor["version"], "10.26.3")
+            self.assertEqual((predecessor, changes), (candidate, []),
+                             "changed current-source identity must not inherit historical approval")
             saved = deepcopy(after)
             for mutation in (
                 "source_hash", "source_order", "output_contract_hash", "resolve_runtime_hash",
@@ -133,11 +137,11 @@ class HistoricalProjectionTests(unittest.TestCase):
                     projected, changes_after_mutation = plan_evidence.runtime_consistency_predecessor(
                         after["id"], plan_evidence.legacy_projection(plan),
                         altered["authority_versions"])
-                    self.assertNotEqual(projected, predecessor)
-                    if mutation in {"version", "authority_version", "source_hash",
-                                    "source_order", "output_contract_hash",
-                                    "resolve_runtime_hash", "resolve_workflow_hash"}:
-                        self.assertEqual(changes_after_mutation, [])
+                    self.assertEqual(
+                        (projected, changes_after_mutation),
+                        (plan_evidence.legacy_projection(plan), []),
+                        "unregistered source changes must remain visible and unapproved",
+                    )
             self.assertEqual(after, saved)
 
     def test_p3_default_tuple_rejects_mixed_reader_generations_and_opt_in(self):
@@ -168,8 +172,8 @@ class HistoricalProjectionTests(unittest.TestCase):
         current = plan_evidence.legacy_projection(after["plan"])
         old, approvals = plan_evidence.runtime_consistency_predecessor(
             after["id"], current, after["authority_versions"])
-        self.assertTrue(approvals)
-        self.assertEqual(old["version"], "10.26.3")
+        self.assertEqual((old, approvals), (current, []),
+                         "new explicit-Qn source must not inherit legacy model approval")
         changed = deepcopy(current)
         changed["load_order"].append("core/literature_research_contract.yaml")
         projected, changes = plan_evidence.runtime_consistency_predecessor(
@@ -213,8 +217,8 @@ class HistoricalProjectionTests(unittest.TestCase):
         contract_path = plan_evidence.V11_P4B_EXECUTION_CONTRACT["path"]
         contract = {"path": contract_path,
                     "sha256": plan_evidence.V11_P5_DEFAULT_SOURCE_HASHES[contract_path]}
-        self.assertIn((f"assurance.authority_fingerprint.sources.{contract['path']}", contract["sha256"]),
-                      [(change["path"], change.get("candidate")) for change in changes])
+        self.assertEqual((predecessor, changes), (current, []),
+                         "the historical execution-source projection must refuse modified M2 files")
         previous = deepcopy(current)
         entry = next(row for row in previous["assurance"]["authority_fingerprint"]["sources"]
                      if row["path"] == contract["path"])
@@ -247,12 +251,10 @@ class HistoricalProjectionTests(unittest.TestCase):
             return plan_evidence.runtime_consistency_predecessor(
                 record["id"], plan, record["authority_versions"])
 
-        _, changes = project(current)
+        unprojected, changes = project(current)
+        self.assertEqual((unprojected, changes), (current, []))
         for path, previous_hash in old.items():
             with self.subTest(source=path):
-                self.assertIn((f"assurance.authority_fingerprint.sources.{path}",
-                               plan_evidence.V11_P5_DEFAULT_SOURCE_HASHES[path]),
-                              [(change["path"], change.get("candidate")) for change in changes])
                 mixed = deepcopy(current)
                 row = next(row for row in mixed["assurance"]["authority_fingerprint"]["sources"]
                            if row["path"] == path)
@@ -277,11 +279,8 @@ class HistoricalProjectionTests(unittest.TestCase):
         predecessor, changes = project(current)
         artifacts = current["assurance"]["artifact_assurance"]
         self.assertEqual(artifacts["evidence"][0]["reason"], observed)
-        expected = deepcopy(artifacts)
-        expected["evidence"][0]["reason"] = previous
-        self.assertEqual(predecessor["assurance"]["artifact_assurance"], expected)
-        self.assertIn(("assurance.artifact_assurance.evidence.0.reason", previous, observed),
-                      [(item["path"], item.get("baseline"), item.get("candidate")) for item in changes])
+        self.assertEqual((predecessor, changes), (current, []),
+                         "without pinned M2 bytes, no historical artifact reason may be rewritten")
 
         for key, value in (("reason", previous), ("reason", observed + " and an unrelated change"),
                            ("artifact", "accepted_solution_workbook"), ("scope", "Q2"), ("status", "verified")):
@@ -315,8 +314,8 @@ class HistoricalProjectionTests(unittest.TestCase):
         original = deepcopy(candidate)
         predecessor, approved = plan_evidence.runtime_consistency_predecessor(
             old_carrier["id"], candidate, old_carrier["authority_versions"])
-        self.assertTrue(approved)
-        self.assertEqual(predecessor["version"], "10.26.3")
+        self.assertEqual((predecessor, approved), (candidate, []),
+                         "a changed current source cannot impersonate frozen v10.27")
         self.assertEqual(candidate, original)  # observer never mutates its inputs
         mismatch = deepcopy(old_carrier["authority_versions"])
         mismatch["project_state"] = "999.0.0"
