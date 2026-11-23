@@ -205,8 +205,20 @@ class SolverBackendRuntimeResumeTests(unittest.TestCase):
             self.assertIn("modules/05_writing/latex.md", final["modules"])
             self.assertIn("submission_package_validation",
                           [gate["name"] for gate in final["pre_delivery_gates"]])
-            unscoped = resolve_runtime("full_workflow", project_root=root)
-            self.assertEqual(unscoped["delivery_scope"], "submission")
+            # A loaded question-level workflow must name Qn. This rejection
+            # must not mutate State or silently choose an unfinished sibling.
+            state_before = state_path.read_bytes()
+            with self.assertRaisesRegex(ValueError, r"--question Qn"):
+                resolve_runtime("full_workflow", project_root=root)
+            self.assertEqual(state_path.read_bytes(), state_before)
+
+            # A scoped full_workflow (without an additional latex intent) can
+            # finalize only after every registered question is qualified.
+            scoped = resolve_runtime("full_workflow", project_root=root, question="Q1")
+            self.assertEqual(state_path.read_bytes(), state_before)
+            self.assertEqual(scoped["delivery_scope"], "submission")
+            self.assertIn("submission_package_validation",
+                          [gate["name"] for gate in scoped["pre_delivery_gates"]])
 
     def test_full_workflow_requires_project_evidence_before_finalizing(self):
         legacy = ("accepted_solution_workbook", "validated_results")
