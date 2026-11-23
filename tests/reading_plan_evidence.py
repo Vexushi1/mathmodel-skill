@@ -2041,6 +2041,15 @@ M2_CURRENT_SOURCE_SHA256 = {
     "core/runtime_assurance_contract.yaml": "9d2e192913ce0e1855424eea65549e0bd693f62ea8e73fb15c7959113114c2b1",
 }
 
+# PR #356, explicit-Qn-only successor to the still-frozen M2 source tuple.
+# These three physical source identities are reviewed together; this table
+# cannot carry a model approval, result qualification or general field waiver.
+EXPLICIT_QN_SUCCESSOR_SOURCE_SHA256 = {
+    "scripts/resolve_runtime.py": "9b2b437f441793280a0fda7d9fded6314b64a11cd21f7cfa8eca39a7c0f5ed4c",
+    "scripts/question_scheduler.py": "f4a17a8dabc3a424760cdf3073108f6659f29db95c9765f4357be680364a4933",
+    "core/runtime_assurance_contract.yaml": "f24feaf7159a64f771dceaaedb7b6ffb1b1dc665d2286e55cc937f5ed2448d0c",
+}
+
 
 def _registered_m2_source_predecessor(plan, authority_versions):
     """Project only exact M2 source identities; reject source drift on disk."""
@@ -2066,11 +2075,31 @@ def _registered_m2_source_predecessor(plan, authority_versions):
         if actual_paths not in (prior_paths, current_paths):
             return None, [], False
         root = HERE.parent.parent
-        for path, expected in M2_CURRENT_SOURCE_SHA256.items():
-            if hashlib.sha256((root / path).read_bytes()).hexdigest() != expected:
+        # Historical M2 source bytes remain immutable. The new successor must
+        # match a complete, separate, v11-only source tuple (never a mixture).
+        profiles = [("frozen_m2", M2_CURRENT_SOURCE_SHA256)]
+        if authority_versions == V11_DEFAULT_AUTHORITY_VERSIONS:
+            profiles.append(("explicit_qn_only", EXPLICIT_QN_SUCCESSOR_SOURCE_SHA256))
+        observed = {path: hashlib.sha256((root / path).read_bytes()).hexdigest()
+                    for path in M2_CURRENT_SOURCE_SHA256}
+        matches = [(name, pinned) for name, pinned in profiles if observed == pinned]
+        if len(matches) != 1:
+            return None, [], False
+        profile_name, source_hashes = matches[0]
+        if profile_name == "explicit_qn_only":
+            # legacy_projection normalizes the contract fingerprint; its real
+            # bytes are verified above. The two script entries remain exact.
+            expected_rows = {
+                "scripts/resolve_runtime.py": source_hashes["scripts/resolve_runtime.py"],
+                "scripts/question_scheduler.py": source_hashes["scripts/question_scheduler.py"],
+                "core/runtime_assurance_contract.yaml": "<EXPECTED_APPROVED_AUTHORITY_CHANGE>",
+            }
+            subset = {row["path"]: row["sha256"] for row in rows
+                      if row["path"] in expected_rows}
+            if actual_paths != current_paths or subset != expected_rows:
                 return None, [], False
         resolver = next(row for row in rows if row["path"] == "scripts/resolve_runtime.py")
-        new_digest = M2_CURRENT_SOURCE_SHA256["scripts/resolve_runtime.py"]
+        new_digest = source_hashes["scripts/resolve_runtime.py"]
         prior_digest = V11_P5_DEFAULT_SOURCE_HASHES["scripts/resolve_runtime.py"]
         old_candidate = next(row["sha256"]
                              for row in RUNTIME_CONSISTENCY_PROJECTION["fingerprint"]["candidate"]
@@ -2087,20 +2116,24 @@ def _registered_m2_source_predecessor(plan, authority_versions):
             changes.append({
                 "path": "assurance.authority_fingerprint.sources.scripts/resolve_runtime.py",
                 "baseline": prior_digest, "candidate": new_digest,
-                "approval": "M2 exact read-only resolver source identity transition",
+                "approval": ("PR #356 explicit-Qn exact resolver identity; no business-field waiver"
+                             if profile_name == "explicit_qn_only" else
+                             "M2 exact read-only resolver source identity transition"),
             })
         if actual_paths == current_paths:
             record = rows.pop(pivot)
             if record["path"] != "scripts/question_scheduler.py" or record["sha256"] != (
-                M2_CURRENT_SOURCE_SHA256["scripts/question_scheduler.py"]
+                source_hashes["scripts/question_scheduler.py"]
             ):
                 return None, [], False
             changes.append({
                 "path": "assurance.authority_fingerprint.sources.scripts/question_scheduler.py",
                 "baseline": None, "candidate": record["sha256"],
-                "approval": "M2 exact registered read-only scheduler source identity",
+                "approval": ("PR #356 explicit-Qn exact scheduler identity; no business-field waiver"
+                             if profile_name == "explicit_qn_only" else
+                             "M2 exact registered read-only scheduler source identity"),
             })
-        return candidate, changes, True
+        return candidate, changes, profile_name
     except (KeyError, TypeError, ValueError, OSError):
         return None, [], False
 
@@ -2115,7 +2148,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
     original = deepcopy(new)
     if "startup_reading" in original or "figure_composition" in original:
         return original, []
-    new, m2_changes, m2_bytes_verified = _registered_m2_source_predecessor(
+    new, m2_changes, m2_identity_profile = _registered_m2_source_predecessor(
         new, candidate_authority_versions,
     )
     if new is None:
@@ -2371,11 +2404,15 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
                 # The frozen v11 source identity is qualified only when the live
                 # M2 successor matches the separately pinned current raw bytes.
                 exact_m2_successor = (
-                    m2_bytes_verified
+                    m2_identity_profile in {"frozen_m2", "explicit_qn_only"}
                     and matched_carrier == V11_DEFAULT_AUTHORITY_VERSIONS
                     and path == "scripts/resolve_runtime.py"
                     and digest == V11_P5_DEFAULT_SOURCE_HASHES[path]
-                    and raw_digest == M2_CURRENT_SOURCE_SHA256[path]
+                    and raw_digest == (
+                        EXPLICIT_QN_SUCCESSOR_SOURCE_SHA256[path]
+                        if m2_identity_profile == "explicit_qn_only"
+                        else M2_CURRENT_SOURCE_SHA256[path]
+                    )
                 )
                 if (len(actual) != 1 or actual[0]["sha256"] != digest
                         or (raw_digest != digest and not exact_m2_successor)):
