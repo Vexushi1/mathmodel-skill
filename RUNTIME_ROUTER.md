@@ -29,7 +29,7 @@
 
 ## 项目级、逐问与全题收尾的衔接
 
-这三个层次共用同一份项目 State，而不是三套状态：首次 `proposed_model_spec` 后由 `scripts/initialize_project.py` 登记全部已确认 Qn；`scripts/resolve_runtime.py` 从真实 State 快照给出一个本次选择或等待点；每次代码交付仍需真正执行返回的 Semantic Governance / Model Approval / Code Delivery 等现有门禁，且题目专属数值任务只能由用户按原合同运行。
+这三个层次共用同一份项目 State，而不是三套状态：首次 `proposed_model_spec` 后由 `scripts/initialize_project.py` 登记全部已确认 Qn；问题级操作由用户明确提供 `scripts/resolve_runtime.py --question Qn`，不从 State、等待点或“继续”自动推导目标问；缺少 Qn 时不生成问题级执行计划。每次代码交付仍须执行现有 Semantic Governance / Model Approval / Code Delivery 门，题目专属数值代码由用户按原合同运行。
 
 `scripts/sync_project.py` 的默认范围仍是全项目。只对完整登记的现行项目及明确的小问，`--question Qn` 可用于 `--delivery-scope design|code|results|figures`：其报告区分目标问、必要上游证据和完整下游 stale；无关问缺少数值产物不自动阻断本问。项目根 backend、Schema、共享预处理和事务检查不缩小；`docx/latex/submission` 以及项目级预处理不得缩成 Qn。此同步状态仅表示本次产物核对，并不宣称上游已获 Model Approval 或已获得新的 `validated_results`；实际代码与回执资格仍由相应消费者检查。
 
@@ -158,17 +158,20 @@ pseudocode → 循环、分支、筛选、修复、接受/拒绝或终止逻辑�
 
 ```bash
 python scripts/resolve_runtime.py code_and_solution --project-root /path/to/project \
+  --question Q1 \
   --objective optimization \
   --structures stochastic \
   --competition CUMCM \
   --preprocessing-decision not_needed
 
 python scripts/resolve_runtime.py code_and_solution --project-root /path/to/project \
+  --question Q2 \
   --objective optimization \
   --competition CUMCM \
   --preprocessing-decision project_level
 
 python scripts/resolve_runtime.py result_analysis --project-root /path/to/project \
+  --question Q2 \
   --objective prediction \
   --structures temporal
 

@@ -54,7 +54,17 @@ def _capture_stage_inputs(
         return  # A malformed legacy/current entry is adjudicated by Runtime Assurance.
     if not isinstance(config, Mapping):
         return
-    for field in ("code_dependencies", "data_paths", "auxiliary_data_paths"):
+    # code_dependencies use structured {path, sha256} entries, unlike
+    # data_paths and auxiliary_data_paths. Pin their original bytes before
+    # Runtime Assurance qualifies the source bundle; never hash them late.
+    helpers = config.get("code_dependencies") or []
+    if not isinstance(helpers, list):
+        raise ValueError("upstream code_dependencies must be a list of path/sha256 mappings")
+    for item in helpers:
+        if not isinstance(item, Mapping) or not isinstance(item.get("path"), str):
+            raise ValueError("upstream code_dependencies item lacks a source path")
+        _capture_path(root, item["path"], observed)
+    for field in ("data_paths", "auxiliary_data_paths"):
         names = config.get(field)
         if isinstance(names, list):
             for name in names:

@@ -503,48 +503,16 @@ def resolve_runtime(
 
     requested_question = question
     state_snapshot = ProjectStateSnapshot.capture(project_root) if project_root else None
-    question_selection = None
-    if state_snapshot is not None and state_snapshot.raw is not None:
-        requested = set(selected_intents)
-        # M2 adds a default only when the caller did not name a Qn.
-        # Explicit --question retains the pre-M2 resolver envelope and gates.
-        if (question is None and requested.intersection(QUESTION_SCHEDULER.QUESTION_ROUTES)
-                and not requested.intersection(QUESTION_SCHEDULER.FINAL_ROUTES)):
-            state_for_selection = state_snapshot.payload()
-            registered = state_for_selection.get("subproblems") or {}
-            if not isinstance(registered, dict):
-                raise ValueError("project subproblems must be a mapping")
-            # Explicit Qn observes one target and its necessary incoming graph
-            # closure. Unrelated sibling artifacts must not be opened just to
-            # decide the requested target; the complete State snapshot is shared.
-            inspected = set(registered) if question is None else set()
-            if question is not None:
-                incoming = {}
-                for edge in dependency_edges(registered):
-                    incoming.setdefault(edge["target"], set()).add(edge["source"])
-                pending = [question]
-                while pending:
-                    target = pending.pop()
-                    if target in inspected or target not in registered:
-                        continue
-                    inspected.add(target)
-                    pending.extend(incoming.get(target, ()))
-            verified_by_question = {
-                name: hydrate_project_context(
-                    project_root, name, state_snapshot=state_snapshot,
-                ).get("verified_artifacts", [])
-                for name in sorted(inspected)
-            }
-            question_selection = QUESTION_SCHEDULER.select_question(
-                state_for_selection,
-                explicit_question=question,
-                selected_intents=selected_intents,
-                request=request or "",
-                verified_artifacts=verified_by_question,
-            )
-            if question is None and question_selection["scope_kind"] == "question":
-                question = question_selection["selected_question"]
-            state_snapshot.assert_current()
+    # Explicit-Qn-only flow. Do not inspect siblings, infer "next" Qn, or
+    # turn a resume keyword into authorization for another question.
+    if (state_snapshot is not None and state_snapshot.raw is not None and question is None
+            and set(selected_intents).intersection(QUESTION_SCHEDULER.QUESTION_ROUTES)
+            and not set(selected_intents).intersection(QUESTION_SCHEDULER.FINAL_ROUTES)):
+        state_snapshot.assert_current()
+        raise ValueError(
+            "当前问题级任务必须明确指定 --question Qn（例如 --question Q2）；"
+            "自动选择下一问已禁用，项目级审题/终审仍可不指定问题"
+        )
     hydration = (
         hydrate_project_context(project_root, question, state_snapshot=state_snapshot)
         if project_root
@@ -796,13 +764,6 @@ def resolve_runtime(
     }
     if solver_context is not None:
         plan["runtime_plan"]["solver_backend"] = solver_context
-    if question_selection is not None:
-        plan["runtime_plan"]["selected_question"] = question_selection["selected_question"]
-        plan["runtime_plan"]["scope_kind"] = question_selection["scope_kind"]
-        plan["runtime_plan"]["selection_reason"] = question_selection["selection_reason"]
-        plan["runtime_plan"]["waiting_action"] = question_selection["waiting_action"]
-        # Question selection never changes gate eligibility or qualifies numerical artifacts.
-        plan["question_selection"] = question_selection
     plan["assurance"] = {
         "schema_version": assurance_contract.get("version", "1.0.0"),
         "status": "review_required" if review_required else "pass",
@@ -811,7 +772,6 @@ def resolve_runtime(
             "project_root": hydration.get("project_root"),
             "state_path": hydration.get("state_path"),
             "question": question,
-            **({"question_selection": question_selection} if question_selection is not None else {}),
             "field_provenance": field_provenance,
             "conflicts": context_conflicts,
             "ambiguities": ambiguities,

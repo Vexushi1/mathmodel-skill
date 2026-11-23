@@ -18,186 +18,111 @@ from tests.test_v712_runtime_assurance import load_runtime
 
 
 def state_fixture() -> dict:
-    def question(name: str, depends_on=None):
-        return {
-            "status": "designed" if name == "Q1" else "audited",
-            "problem_contract_status": "frozen",
-            "model_challenge_status": "passed" if name == "Q1" else "pending",
-            "human_model_approval_status": "approved" if name == "Q1" else "pending",
-            "primary_execution_status": "pending",
-            "result_quality_status": "pending",
-            "result_analysis_status": "pending",
-            "depends_on": list(depends_on or ()),
-        }
     return {
         "subproblems": {
-            "Q1": question("Q1"),
-            "Q2": question("Q2", [{"question": "Q1", "kind": "result"}]),
-            "Q3": question("Q3"),
+            "Q1": {"status": "designed", "depends_on": []},
+            "Q2": {"status": "audited", "depends_on": [
+                {"question": "Q1", "kind": "result"}]},
+            "Q3": {"status": "audited", "depends_on": []},
         },
         "preprocessing": {"decision": "not_needed"},
     }
 
 
-def select(state: dict, *, question=None, request="", verified=None, intents=("full_solution",)):
+def select(state: dict, *, question=None, request="", intents=("full_solution",)):
     return SCHEDULER.select_question(
-        state, explicit_question=question, selected_intents=intents,
-        request=request, verified_artifacts=verified,
+        state, explicit_question=question, selected_intents=intents, request=request,
     )
 
 
-class QuestionSchedulerTests(unittest.TestCase):
-    def test_first_available_question_and_result_dependency_blocker(self):
-        source = state_fixture()
-        snapshot = deepcopy(source)
-        result = select(source, verified={"Q1": ["locked_model_spec"]})
+class ExplicitQuestionScopeTests(unittest.TestCase):
+    def test_no_question_never_selects_first_or_next_action(self):
+        state = state_fixture()
+        frozen = deepcopy(state)
+        result = select(state)
+        self.assertEqual(result["scope_kind"], "project")
+        self.assertIsNone(result["selected_question"])
+        self.assertEqual(result["selection_reason"], "explicit_question_required")
+        self.assertEqual(result["blocked_questions"], {})
+        self.assertEqual(result["waiting_action"], None)
+        self.assertEqual(state, frozen)
+
+    def test_resume_request_does_not_autoselect_waiting_question(self):
+        state = state_fixture()
+        state["subproblems"]["Q1"]["primary_execution_status"] = "awaiting_user_execution"
+        for request in ("继续", "恢复求解", "resume", "continue"):
+            with self.subTest(request=request):
+                result = select(state, request=request)
+                self.assertIsNone(result["selected_question"])
+                self.assertEqual(result["selection_reason"], "explicit_question_required")
+
+    def test_mixed_dependency_graph_does_not_choose_independent_sibling(self):
+        state = state_fixture()
+        state["subproblems"]["Q3"]["depends_on"] = [
+            {"question": "Q2", "kind": "model"}]
+        state["subproblems"]["Q1"]["depends_on"] = [
+            {"question": "Q3", "kind": "result"}]
+        result = select(state)
+        self.assertIsNone(result["selected_question"])
+        self.assertEqual(result["blocked_questions"], {})
+        self.assertEqual(result["prerequisite_closure"], [])
+
+    def test_explicit_question_is_only_target_and_does_not_recheck_siblings(self):
+        state = state_fixture()
+        state["subproblems"]["Q2"]["depends_on"] = [
+            {"question": "Q1", "kind": "model"}]
+        state["subproblems"]["Q1"]["depends_on"] = [
+            {"question": "Q3", "kind": "result"}]
+        original = deepcopy(state)
+        result = select(state, question="Q2")
         self.assertEqual(result["scope_kind"], "question")
-        self.assertEqual(result["selected_question"], "Q1")
-        self.assertEqual(result["selection_reason"], "first_unblocked_actionable")
-        self.assertEqual(result["candidate_questions"][0]["next_action"], "primary_code_delivery")
-        self.assertEqual(result["blocked_questions"]["Q2"][0]["kind"], "result")
-        self.assertEqual(result["blocked_questions"]["Q2"][0]["reason"],
-                         "upstream_validated_results_unverified")
-        self.assertNotIn("Q3", result["blocked_questions"])
-        self.assertEqual(source, snapshot)
-        self.assertTrue(result["diagnostic_only"])
-
-    def test_declared_model_approval_without_current_sib_evidence_is_not_code_ready(self):
-        source = state_fixture()
-        candidate = select(source)
-        self.assertEqual(candidate["selected_question"], "Q1")
-        self.assertEqual(candidate["candidate_questions"][0]["next_action"],
-                         "model_identity_requalification")
-        self.assertNotEqual(candidate["candidate_questions"][0]["next_action"],
-                            "primary_code_delivery")
-        eligible = select(source, verified={"Q1": ["locked_model_spec"]})
-        self.assertEqual(eligible["candidate_questions"][0]["next_action"],
-                         "primary_code_delivery")
-
-    def test_explicit_blocked_question_never_switches_to_independent_question(self):
-        result = select(state_fixture(), question="Q2")
         self.assertEqual(result["selected_question"], "Q2")
         self.assertEqual(result["selection_reason"], "explicit_question")
-        self.assertTrue(result["blocked_questions"]["Q2"])
-        self.assertEqual(result["prerequisite_closure"],
-                         [{"question": "Q2", "upstream": "Q1", "kind": "result"}])
+        self.assertEqual(result["blocked_questions"], {})
+        self.assertEqual(state, original)
 
-    def test_unregistered_question_does_not_get_implicitly_registered(self):
-        result = select(state_fixture(), question="Q4")
-        self.assertEqual(result["selected_question"], "Q4")
-        self.assertEqual(result["blocked_questions"]["Q4"][0]["reason"],
+    def test_unregistered_question_fails_scope_without_implicit_registration(self):
+        result = select(state_fixture(), question="Q9")
+        self.assertEqual(result["selected_question"], "Q9")
+        self.assertEqual(result["blocked_questions"]["Q9"][0]["reason"],
                          "question_not_registered")
 
-    def test_unique_user_wait_is_reported_without_claiming_execution(self):
-        source = state_fixture()
-        source["subproblems"]["Q1"]["primary_execution_status"] = "awaiting_user_execution"
-        result = select(source, request="继续", verified={"Q1": ["locked_model_spec"]})
-        self.assertEqual(result["selected_question"], "Q1")
-        self.assertEqual(result["selection_reason"], "resume_unique_wait")
-        self.assertEqual(result["waiting_action"], "user_execution")
-        # A generic next action can instead be the independent Q3 while Q1 awaits a run.
-        alternative = select(source, verified={"Q1": ["locked_model_spec"]})
-        self.assertEqual(alternative["selected_question"], "Q3")
-        self.assertEqual(source["subproblems"]["Q1"]["primary_execution_status"],
-                         "awaiting_user_execution")
-
-    def test_model_only_dependency_does_not_wait_for_numeric_results(self):
-        source = state_fixture()
-        source["subproblems"]["Q2"]["depends_on"] = [{"question": "Q1", "kind": "model"}]
-        result = select(source, question="Q2", verified={"Q1": ["locked_model_spec"]})
-        self.assertEqual(result["selected_question"], "Q2")
-        self.assertNotIn("Q2", result["blocked_questions"])
-        self.assertEqual(result["prerequisite_closure"][0]["kind"], "model")
-
-    def test_result_only_dependency_requires_verified_validated_results(self):
-        source = state_fixture()
-        result = select(source, verified={"Q1": ["accepted_solution_workbook"]}, question="Q2")
-        self.assertIn("Q2", result["blocked_questions"])
-        result = select(source, verified={"Q1": ["validated_results"]})
-        self.assertEqual(result["selected_question"], "Q2")
-        self.assertNotIn("Q2", result["blocked_questions"])
-
-    def test_parameter_data_and_legacy_edges_remain_ambiguous_not_auto_passed(self):
-        source = state_fixture()
-        for edge, expected in (
-            ({"question": "Q1", "kind": "parameter"}, "parameter_source_requires_review"),
-            ({"question": "Q1", "kind": "data"}, "data_source_requires_review"),
-            ("Q1", "legacy_dependency_kind_unresolved"),
-        ):
-            with self.subTest(edge=edge):
-                source["subproblems"]["Q2"]["depends_on"] = [edge]
-                result = select(source, question="Q2",
-                                verified={"Q1": ["validated_results", "locked_model_spec"]})
-                self.assertEqual(result["blocked_questions"]["Q2"][0]["reason"], expected)
-
-    def test_project_preprocessing_is_a_global_prerequisite_not_machine_proof(self):
-        source = state_fixture()
-        source["preprocessing"] = {"decision": "project_level", "status": "pending"}
-        source["subproblems"]["Q2"]["depends_on"] = [{"question": "Q1", "kind": "data"}]
-        blocked = select(source, question="Q2")
-        self.assertEqual(blocked["blocked_questions"]["Q2"][0]["reason"],
-                         "project_preprocessing_unverified")
-        source["execution"] = {"platform": "unreported", "python_version": "unreported"}
-        still = select(source, question="Q2")
-        self.assertEqual(still["blocked_questions"], blocked["blocked_questions"])
-        self.assertNotIn("platform", still)
-        self.assertNotIn("machine_verified", still)
-
-    def test_numeric_question_order_and_cycle_isolation(self):
-        source = state_fixture()
-        source["subproblems"] = {
-            "Q10": deepcopy(source["subproblems"]["Q3"]),
-            "Q2": deepcopy(source["subproblems"]["Q3"]),
-            "Q1": deepcopy(source["subproblems"]["Q1"]),
-        }
-        source["subproblems"]["Q1"]["status"] = "audited"
-        source["subproblems"]["Q1"]["model_challenge_status"] = "pending"
-        self.assertEqual(
-            [row["question"] for row in select(source)["candidate_questions"]],
-            ["Q1", "Q2", "Q10"],
-        )
-        source["subproblems"]["Q1"]["depends_on"] = [{"question": "Q2", "kind": "model"}]
-        source["subproblems"]["Q2"]["depends_on"] = [{"question": "Q1", "kind": "model"}]
-        result = select(source)
-        self.assertEqual(result["selected_question"], "Q10")
-        self.assertTrue(any(row["kind"] == "cycle" for row in result["blocked_questions"]["Q1"]))
-        self.assertTrue(any(row["kind"] == "cycle" for row in result["blocked_questions"]["Q2"]))
-        self.assertNotIn("Q10", result["blocked_questions"])
-
-    def test_all_verified_results_switch_to_finalization_without_writing_state(self):
-        source = state_fixture()
-        original = deepcopy(source)
-        verified = {"Q1": ["validated_results"], "Q2": ["validated_results"],
-                    "Q3": ["validated_results"]}
-        result = select(source, verified=verified)
-        self.assertEqual(result["scope_kind"], "finalization")
-        self.assertIsNone(result["selected_question"])
-        self.assertEqual(result["selection_reason"], "all_required_results_verified")
-        self.assertEqual(source, original)
-
-    def test_project_routes_remain_project_scoped(self):
-        source = state_fixture()
+    def test_project_routes_stay_project_scoped(self):
         for intent in ("problem_analysis", "project_sync", "full_submission", "review"):
             with self.subTest(intent=intent):
-                result = select(source, intents=(intent,))
+                result = select(state_fixture(), intents=(intent,))
                 self.assertEqual(result["scope_kind"], "project")
                 self.assertIsNone(result["selected_question"])
+                self.assertEqual(result["selection_reason"], "project_level_route")
 
-    def test_real_resolver_autoselects_question_without_aggregating_classification(self):
+    def test_question_listing_uses_natural_number_order_without_selection(self):
+        state = state_fixture()
+        state["subproblems"] = {
+            "Q10": state["subproblems"]["Q3"], "Q2": state["subproblems"]["Q2"],
+            "Q1": state["subproblems"]["Q1"],
+        }
+        result = select(state)
+        self.assertEqual([x["question"] for x in result["candidate_questions"]],
+                         ["Q1", "Q2", "Q10"])
+        self.assertIsNone(result["selected_question"])
+
+    def test_loaded_resolver_requires_explicit_q_before_any_artifact_hydration(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             build_three_question_project(root)
             runtime = load_runtime()
-            plan = runtime.resolve_runtime("full_solution", project_root=root)
-            self.assertEqual(plan["assurance"]["context"]["question"], "Q1")
-            self.assertEqual(plan["classification"]["objective"], "optimization")
-            self.assertEqual(plan["runtime_plan"]["selected_question"], "Q1")
-            self.assertEqual(plan["runtime_plan"]["scope_kind"], "question")
-            self.assertEqual(plan["question_selection"]["blocked_questions"]["Q2"][0]["kind"], "result")
-            self.assertTrue(plan["question_selection"]["diagnostic_only"])
-            self.assertFalse(plan["solver_backend"]["environment_verified"])
+            for request in (None, "继续求解"):
+                with self.subTest(request=request):
+                    with patch.object(
+                        runtime, "hydrate_project_context",
+                        side_effect=AssertionError("must not hydrate siblings"),
+                    ):
+                        with self.assertRaisesRegex(ValueError, "question Qn"):
+                            runtime.resolve_runtime(
+                                "full_solution", request=request, project_root=root,
+                            )
 
-    def test_explicit_q1_does_not_read_unrelated_question_artifacts(self):
+    def test_loaded_resolver_explicit_q1_does_not_read_unrelated_artifacts(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             build_three_question_project(root)
@@ -205,36 +130,36 @@ class QuestionSchedulerTests(unittest.TestCase):
             original = runtime.hydrate_project_context
             visited = []
 
-            def observed_hydration(project_root, question=None, **kwargs):
+            def scoped(project_root, question=None, **kwargs):
                 visited.append(question)
                 if question in {"Q2", "Q3"}:
-                    raise AssertionError("Q1 continuation must not hydrate unrelated Q2/Q3 files")
+                    raise AssertionError("unrelated question artifacts hydrated")
                 return original(project_root, question, **kwargs)
 
-            with patch.object(runtime, "hydrate_project_context",
-                              side_effect=observed_hydration):
+            with patch.object(runtime, "hydrate_project_context", side_effect=scoped):
                 plan = runtime.resolve_runtime(
                     "full_solution", project_root=root, question="Q1",
                 )
             self.assertEqual(plan["assurance"]["context"]["question"], "Q1")
             self.assertEqual(set(visited), {"Q1"})
             self.assertNotIn("question_selection", plan)
-            self.assertIn("code_delivery", plan["runtime_plan"]["pre_delivery_gate_names"])
+            self.assertIn("code_delivery",
+                          plan["runtime_plan"]["pre_delivery_gate_names"])
 
-    def test_real_resolver_explicit_blocked_q2_retains_its_scope(self):
+    def test_loaded_project_level_request_remains_available_without_q(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             build_three_question_project(root)
             runtime = load_runtime()
-            plan = runtime.resolve_runtime("full_solution", project_root=root, question="Q2")
-            self.assertEqual(plan["assurance"]["context"]["question"], "Q2")
+            plan = runtime.resolve_runtime("problem_analysis", project_root=root)
+            self.assertIsNone(plan["assurance"]["context"]["question"])
             self.assertNotIn("question_selection", plan)
-            dependency = plan["assurance"]["context"]["dependency_diagnostics"]
-            self.assertEqual(
-                [(row["question"], row["upstream"]) for row in dependency["result_dependencies"]],
-                [("Q2", "Q1")],
-            )
-            self.assertIn("code_delivery", plan["runtime_plan"]["pre_delivery_gate_names"])
+
+    def test_stateless_generic_question_level_planning_remains_available(self):
+        runtime = load_runtime()
+        plan = runtime.resolve_runtime("full_solution", objective="optimization",
+                                       structures=[])
+        self.assertFalse(plan["assurance"]["context"]["project_state_loaded"])
 
 
 if __name__ == "__main__":

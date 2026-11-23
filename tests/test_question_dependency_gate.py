@@ -246,6 +246,52 @@ class TypedQuestionDependencyGateTests(unittest.TestCase):
         finally:
             case.doCleanups()
 
+    def test_structured_upstream_helper_path_is_captured_before_qualification(self):
+        import project_transaction as PROJECT_TX
+
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "问题一求解").mkdir(parents=True)
+            entrypoint = root / "问题一求解/问题一求解.py"
+            helper = root / "问题一求解/helper.py"
+            data = root / "问题一求解/input.csv"
+            entrypoint.write_text("print('synthetic')\n", encoding="utf-8")
+            helper.write_text("VALUE = 1\n", encoding="utf-8")
+            data.write_text("x\n1\n", encoding="utf-8")
+            config = {
+                "code_dependencies": [{
+                    "path": "问题一求解/helper.py", "sha256": "0" * 64,
+                }],
+                "data_paths": ["问题一求解/input.csv"],
+                "auxiliary_data_paths": [],
+            }
+            observed = {}
+            with patch.object(GATE.STAGE_CODE, "parse_stage_config",
+                              return_value=("python", config)):
+                GATE._capture_stage_inputs(root, "问题一求解/问题一求解.py", observed)
+            self.assertIn("问题一求解/helper.py", observed)
+            self.assertIn("问题一求解/input.csv", observed)
+            self.assertEqual(observed["问题一求解/helper.py"],
+                             hashlib.sha256(helper.read_bytes()).hexdigest())
+            # This is the same read-set semantics used by the project commit.
+            PROJECT_TX._check_read_set(root, observed)
+            helper.write_text("VALUE = 2\n", encoding="utf-8")
+            with self.assertRaisesRegex(PROJECT_TX.ReadSetConflictError, "helper.py"):
+                PROJECT_TX._check_read_set(root, observed)
+
+    def test_malformed_helper_mapping_never_silently_skips_source_capture(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            entrypoint = root / "entry.py"
+            entrypoint.write_text("print(1)\n", encoding="utf-8")
+            for invalid in ([{"sha256": "0" * 64}], ["helper.py"], "helper.py"):
+                with self.subTest(invalid=invalid):
+                    config = {"code_dependencies": invalid}
+                    with patch.object(GATE.STAGE_CODE, "parse_stage_config",
+                                      return_value=("python", config)):
+                        with self.assertRaisesRegex(ValueError, "code_dependencies"):
+                            GATE._capture_stage_inputs(root, "entry.py", {})
+
     def test_unbound_raw_data_dependency_is_not_approved_by_filenames(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
