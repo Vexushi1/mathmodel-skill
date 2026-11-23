@@ -24,7 +24,8 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.measurement = load_measurement()
-        cls.fixture = ROOT / "tests/fixtures/v11_candidate_source_spans.json"
+        cls.fixture = ROOT / "tests/fixtures/v1110_release_source_spans.json"
+        cls.frozen_v11 = ROOT / "tests/fixtures/v11_candidate_source_spans.json"
         cls.frozen_v10353 = ROOT / "tests/fixtures/v10353_approved_source_spans.json"
         cls.frozen_v10352 = ROOT / "tests/fixtures/v10352_approved_source_spans.json"
         cls.frozen_v10351 = ROOT / "tests/fixtures/v10351_approved_source_spans.json"
@@ -155,12 +156,20 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "candidate bytes changed"):
             self.measurement.approved_source_span_migrations(self.frozen_v10353)
 
+    def test_v11_original_candidate_remains_frozen_and_rejected_after_release(self):
+        original = json.loads(self.frozen_v11.read_text(encoding="utf-8"))
+        self.assertEqual(original["version"], "11.0.0")
+        self.assertEqual(original["scope"], "v11_candidate_legacy_stage_scoped_spans")
+        # A new Skill release cannot inherit source-byte approval for v11.0.0.
+        with self.assertRaisesRegex(ValueError, "candidate bytes changed"):
+            self.measurement.approved_source_span_migrations(self.frozen_v11)
+
     def cases(self):
         manifest = self.measurement.approved_source_span_migrations(self.fixture)
         before = {"id": "pure_model_design", "behavior": {"read_now": [], "load_order": []},
                   "source_identity": {"skill_version": "10.27.0", "sources": []}}
         after = {"id": "pure_model_design", "behavior": {"read_now": [], "load_order": []},
-                 "source_identity": {"skill_version": "11.0.0", "sources": []}}
+                 "source_identity": {"skill_version": "11.1.0", "sources": []}}
         for item in manifest["migrations"]:
             original = {
                 "origin": "skill", "path": item["path"],
@@ -187,7 +196,7 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
 
     def test_exact_current_bytes_and_spans_project_without_mutating_actual_evidence(self):
         fixture, old, new = self.cases()
-        self.assertEqual(fixture["version"], "11.0.0")
+        self.assertEqual(fixture["version"], "11.1.0")
         preserved = deepcopy(new)
         projected, evidence = self.measurement.project_exact_approved_source_spans(
             old, new, fixture)

@@ -204,8 +204,10 @@ def approved_source_span_migrations(path: Path | None, *, source_root: Path | No
     data = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(data, dict):
         raise ValueError("unsupported source span migration manifest")
-    candidate_profile = (data.get("scope"), data.get("version")) == (
-        "v11_candidate_legacy_stage_scoped_spans", "11.0.0")
+    candidate_profile = (data.get("scope"), data.get("version")) in {
+        ("v11_candidate_legacy_stage_scoped_spans", "11.0.0"),
+        ("v11_1_0_release_legacy_stage_scoped_spans", "11.1.0"),
+    }
     model_intake_carrier = candidate_profile or (data.get("scope"), data.get("version")) in {
         ("v10.29.0_p2_exact_literature_intake_migration", "10.29.0"),
         ("v10.30.0_p3_metadata_only_adapter_carrier", "10.30.0"),
@@ -228,9 +230,9 @@ def approved_source_span_migrations(path: Path | None, *, source_root: Path | No
         fields.add("legacy_profile_read_shifts")
     if model_intake_carrier:
         fields.add("model_intake")
-    if data.get("version") in {"10.34.0", "10.35.0", "10.35.1", "10.35.2", "10.35.3", "11.0.0"}:
+    if data.get("version") in {"10.34.0", "10.35.0", "10.35.1", "10.35.2", "10.35.3", "11.0.0", "11.1.0"}:
         fields.add("pqs_full_source_spans")
-    if data.get("version") in {"10.31.0", "10.32.0", "10.32.1", "10.32.2", "10.33.0", "10.34.0", "10.35.0", "10.35.1", "10.35.2", "10.35.3", "11.0.0"}:
+    if data.get("version") in {"10.31.0", "10.32.0", "10.32.1", "10.32.2", "10.33.0", "10.34.0", "10.35.0", "10.35.1", "10.35.2", "10.35.3", "11.0.0", "11.1.0"}:
         fields.update(("output_read_shift", "output_conditional_shift"))
     if (set(data) != fields or data.get("schema_version") != SCHEMA
             or not (first_span_carrier or model_intake_carrier)
@@ -284,7 +286,7 @@ def approved_source_span_migrations(path: Path | None, *, source_root: Path | No
             actual = digest((root / source["path"]).read_bytes())
             if actual != source["candidate_sha256"]:
                 raise ValueError("literature intake source bytes changed")
-    if data.get("version") in {"10.31.0", "10.32.0", "10.32.1", "10.32.2", "10.33.0", "10.34.0", "10.35.0", "10.35.1", "10.35.2", "10.35.3", "11.0.0"}:
+    if data.get("version") in {"10.31.0", "10.32.0", "10.32.1", "10.32.2", "10.33.0", "10.34.0", "10.35.0", "10.35.1", "10.35.2", "10.35.3", "11.0.0", "11.1.0"}:
         shift = data["output_read_shift"]
         expected_ids = ["review_word_readonly", "natural_language_two_actions_probe"]
         if (not isinstance(shift, dict)
@@ -305,7 +307,7 @@ def approved_source_span_migrations(path: Path | None, *, source_root: Path | No
                     or not isinstance(item["historical_ranges"], list)
                     or item["current_ranges"] == item["historical_ranges"]):
                 raise ValueError("output read shift scope or range invalid")
-    if data.get("version") in {"10.31.0", "10.32.0", "10.32.1", "10.32.2", "10.33.0", "10.34.0", "10.35.0", "10.35.1", "10.35.2", "10.35.3", "11.0.0"}:
+    if data.get("version") in {"10.31.0", "10.32.0", "10.32.1", "10.32.2", "10.33.0", "10.34.0", "10.35.0", "10.35.1", "10.35.2", "10.35.3", "11.0.0", "11.1.0"}:
         conditional = data["output_conditional_shift"]
         if (not isinstance(conditional, dict)
                 or set(conditional) != {"path", "candidate_sha256", "current_ranges",
@@ -320,10 +322,10 @@ def approved_source_span_migrations(path: Path | None, *, source_root: Path | No
                     "two_carrier_legacy_protected", "explicit_figure_scope"
                 ]):
             raise ValueError("conditional output source migration must match four historical reads")
-    if data.get("version") in {"10.34.0", "10.35.0", "10.35.1", "10.35.2", "10.35.3", "11.0.0"}:
+    if data.get("version") in {"10.34.0", "10.35.0", "10.35.1", "10.35.2", "10.35.3", "11.0.0", "11.1.0"}:
         paths = ["core/user_execution_contract.yaml",
                  "core/numerical_verification_contract.yaml"]
-        if data["version"] in {"10.35.0", "10.35.1", "10.35.2", "10.35.3", "11.0.0"}:
+        if data["version"] in {"10.35.0", "10.35.1", "10.35.2", "10.35.3", "11.0.0", "11.1.0"}:
             paths.append("core/workbook_schema.yaml")
         declared = data["pqs_full_source_spans"]
         if (not isinstance(declared, list)
