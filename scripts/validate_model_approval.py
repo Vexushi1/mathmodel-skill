@@ -283,10 +283,19 @@ def _necessary_model_upstreams(
             continue
         visited.add(question)
         queue.extend(incoming.get(question, ()))
-    # Historical string dependencies do not revoke a current mathematical
-    # Model Approval by themselves. Typed execution input qualification is
-    # enforced independently by question_dependency_gate at Code Delivery.
-    for cycle in dependency_cycles(safe_graph):
+    # Approval cycles are a property of the necessary MODEL subgraph, not
+    # the full dependency graph. A reverse result/data/parameter edge does
+    # not make an otherwise valid model prerequisite into a model cycle.
+    # Historical untyped edges remain excluded from model prerequisites;
+    # their numerical qualification stays with the Code Delivery gate.
+    model_graph = {
+        name: {"depends_on": [
+            {"question": source, "kind": "model"}
+            for source in sorted(incoming.get(name, ()))
+        ]}
+        for name in safe_graph
+    }
+    for cycle in dependency_cycles(model_graph):
         chain = set(cycle.split(" -> "))
         if chain and chain.issubset(visited):
             issues.append(f"model prerequisite cycle requires joint-model review: {cycle}")

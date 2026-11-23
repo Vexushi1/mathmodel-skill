@@ -286,6 +286,68 @@ class TypedQuestionDependencyGateTests(unittest.TestCase):
             state_path.write_text(yaml.safe_dump(current, allow_unicode=True, sort_keys=False), encoding="utf-8")
             self.assertEqual(APPROVAL.validate_state(state_path, ["Q2"], project_root=root), [])
 
+    def test_mixed_model_result_cycle_does_not_block_explicit_q2_model_approval(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            state_path, _ = build_three_question_project(root)
+            # Q2 needs Q1's approved MODEL; Q1 consumes Q2's RESULT later.
+            # No model-only cycle exists, so the numerical ordering does not
+            # require an extra Human Model Approval or a different question.
+            set_dependency(root, "Q2", "Q1", "model")
+            set_dependency(root, "Q1", "Q2", "result")
+            before = state_path.read_bytes()
+            self.assertEqual(APPROVAL.validate_state(
+                state_path, ["Q2"], project_root=root,
+            ), [])
+            eligible = GATE.inspect(root, "Q2")
+            self.assertEqual(eligible["status"], "passed", eligible)
+            self.assertEqual(APPROVAL.validate_state(
+                state_path, ["Q3"], project_root=root,
+            ), [])
+            self.assertEqual(state_path.read_bytes(), before)
+
+    def test_real_model_only_cycle_still_blocks_q2_without_blocking_q3(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            state_path, _ = build_three_question_project(root)
+            set_dependency(root, "Q2", "Q1", "model")
+            set_dependency(root, "Q1", "Q2", "model")
+            failures = APPROVAL.validate_state(state_path, ["Q2"], project_root=root)
+            self.assertTrue(any("model prerequisite cycle" in issue
+                                for issue in failures), failures)
+            self.assertEqual(APPROVAL.validate_state(
+                state_path, ["Q3"], project_root=root,
+            ), [])
+
+    def test_mixed_cycle_does_not_waive_unapproved_upstream_model(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            state_path, _ = build_three_question_project(root)
+            set_dependency(root, "Q2", "Q1", "model")
+            set_dependency(root, "Q1", "Q2", "result")
+            state = yaml.safe_load(state_path.read_text(encoding="utf-8"))
+            state["subproblems"]["Q1"]["human_model_approval_status"] = "pending"
+            state_path.write_text(yaml.safe_dump(
+                state, allow_unicode=True, sort_keys=False), encoding="utf-8")
+            failures = APPROVAL.validate_state(state_path, ["Q2"], project_root=root)
+            self.assertTrue(any("Q1" in issue and "human_model_approval_status" in issue
+                                for issue in failures), failures)
+            self.assertFalse(any("model prerequisite cycle" in issue
+                                 for issue in failures), failures)
+
+    def test_result_only_cycle_is_not_an_approval_cycle_but_blocks_code_delivery(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            state_path, _ = build_three_question_project(root)
+            set_dependency(root, "Q2", "Q1", "result")
+            set_dependency(root, "Q1", "Q2", "result")
+            self.assertEqual(APPROVAL.validate_state(
+                state_path, ["Q2"], project_root=root,
+            ), [])
+            blocked = GATE.inspect(root, "Q2")
+            self.assertEqual(blocked["status"], "failed", blocked)
+            self.assertTrue(any("Q1/result" in issue for issue in blocked["issues"]), blocked)
+
     def test_legacy_dependency_keeps_model_approval_read_compatibility_but_blocks_delivery(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
