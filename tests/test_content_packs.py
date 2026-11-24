@@ -141,8 +141,10 @@ class TestContentPacks(unittest.TestCase):
         reasoning = yaml.safe_load((ROOT / "core/writing_reasoning_contract.yaml").read_text(encoding="utf-8"))
         proposition = reasoning["proposition_governance"]
         self.assertEqual(proposition["default_budget"], [0, 4])
-        self.assertFalse(proposition["automatic_rejection_over_budget"])
-        self.assertEqual(proposition["over_budget_action"], "justification_required")
+        self.assertTrue(proposition["automatic_rejection_over_budget"])
+        self.assertEqual(proposition["over_budget_action"], "revise_body_plan_required")
+        self.assertEqual(proposition["maximum_body_propositions"], 4)
+        self.assertEqual(proposition["count_scope"], "full_paper_body")
 
         paths = [
             ROOT / "modules/05_writing/docx.md",
@@ -260,9 +262,9 @@ class TestContentPacks(unittest.TestCase):
         self.assertEqual(proposition["latex_outer_environment"], "hskproposition")
         self.assertEqual(proposition["display_numbering"], "arabic_section_dot_arabic_proposition")
         self.assertEqual(proposition["default_budget"], [0, 4])
-        self.assertEqual(proposition["over_budget_action"], "justification_required")
-        self.assertFalse(proposition["automatic_rejection_over_budget"])
-        self.assertNotIn("maximum_per_paper", proposition)
+        self.assertEqual(proposition["over_budget_action"], "revise_body_plan_required")
+        self.assertTrue(proposition["automatic_rejection_over_budget"])
+        self.assertEqual(proposition["count_scope"], "full_paper_body")
 
     def test_caption_template_has_no_copyable_fixed_sentence_and_requires_body_reference(self):
         text = (ROOT / "templates/writing/caption_explanation.md").read_text(encoding="utf-8")
