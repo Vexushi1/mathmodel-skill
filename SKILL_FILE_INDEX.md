@@ -821,6 +821,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 ## Historical Maintenance Provenance
 
 - `docs/ai_cleanup_prose_only_implementation_audit.md`
+- `docs/competition_runtime_and_answer_coverage_plan.md`
 - `docs/cumcm_cross_file_handoff_c_consumer_audit.md`
 - `docs/cumcm_paper_writing_compliance_narrative_refactor_plan.md`
 - `docs/cumcm_problem_analysis_appendix_heading_hierarchy_plan.md`
