@@ -124,7 +124,7 @@ class TestV760WritingGovernance(unittest.TestCase):
         self.assertTrue(
             any("exceeds full-paper body limit 4" in issue for issue in issues), issues
         )
-        four_rows = "\\n".join(
+        four_rows = "\n".join(
             f"| P{i} | Q1 | 命题{i} | 条件 | 结论 | B | 降维 | 边界 | current |"
             for i in range(1, 5)
         )
