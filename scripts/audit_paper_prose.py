@@ -605,9 +605,14 @@ def audit_text(text: str) -> list[Finding]:
             if len(bg_paragraphs) >= 2 and re.search(r"全文|后文|章节|依次|本文结构|文章结构", bg_paragraphs[1]):
                 findings.append(Finding("warning", "background_management_paragraph", "问题背景后段出现较多文章结构管理信息；请确认该段仍在收束研究对象。", bg_paragraphs[1][:120]))
 
-    analysis = _section_content(main, "问题分析")
-    if analysis is not None and re.search(r"\\begin\{(?:equation|align|gather)\*?\}|\\\[|\$[^$]+\$", analysis):
-        findings.append(Finding("review_required", "formula_in_problem_analysis", "默认不在“问题分析”中放正式数学公式；若特殊题型需要极简定义，请人工确认。"))
+    analysis = _section_content(_main_text_before_appendix(active_body), "问题分析")
+    math_start = re.compile(
+        r"\\(?:\[|\(|ensuremath\b|begin\s*\{(?:math|displaymath|equation|align|alignat|flalign|gather|multline|eqnarray)\*?\})|\$"
+    )
+    if analysis is not None and any(
+        _active_command(analysis, match.start()) for match in math_start.finditer(analysis)
+    ):
+        findings.append(Finding("review_required", "formula_in_problem_analysis", "问题分析采用纯文本，不出现数学公式或数学表达式。"))
 
     question_count = 0
     for heading, content in _question_sections(main):

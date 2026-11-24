@@ -73,10 +73,10 @@ class CUMCMWritingBTests(unittest.TestCase):
         self.assertIn("不改 accepted 工作簿", self.cleanup)
 
     def test_evaluation_budget_is_not_a_hard_quota(self):
-        rule = self.reasoning["model_evaluation"]
-        self.assertEqual(rule["strengths_usual_target"], 3)
-        self.assertFalse(rule["count_relation_required"])
-        self.assertIn("不机械增加推广小节", rule["rule"])
+        self.assertEqual(self.reasoning["model_evaluation"], {"authority": "modules/05_writing/paper_writing_protocol.md#15-模型评价逐问结论与附录"})
+        self.assertIn("简要说明模型自身的优点与不足，通常列3项优点、1–2项不足。改进方向和推广按实际情况简述。", self.protocol)
+        self.assertIn("模型评价不能替代", self.protocol)
+        self.assertNotIn("模型评价中优点和缺点的数量按模型实际决定", self.protocol)
 
 
 if __name__ == "__main__":

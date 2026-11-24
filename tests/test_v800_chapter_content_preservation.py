@@ -88,7 +88,9 @@ class TestV800ChapterContentPreservation(unittest.TestCase):
     def test_remaining_chapter_capabilities_are_explicit(self):
         for heading_or_rule in (
             "### 6.3 模型假设与符号说明",
-            "说明它影响模型的哪个部分",
+            "问题分析采用纯文本，不出现数学公式或数学表达式。",
+            "模型假设直接分条陈述，简明扼要，无须逐条说明原因、来源或影响",
+            "简要说明模型自身的优点与不足，通常列3项优点、1–2项不足。改进方向和推广按实际情况简述。",
             "## 15. 模型评价、逐问结论与附录",
             "不新增模型、数据、推导或未经验证的主张",
             "正文必须保留理解模型与结论所需的",

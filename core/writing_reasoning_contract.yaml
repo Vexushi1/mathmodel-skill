@@ -1771,20 +1771,10 @@ prose_style:
       - fixed_phrase_rotation_for_human_impression
 
 problem_background:
-  governance_level: recommendation
-  default: one_paragraph
-  allow_second_short_paragraph_when: reality_background_to_specific_research_object_needs_semantic_narrowing
-  second_paragraph_must: narrow_object_or_core_conflict
-  forbidden_second_paragraph: document_structure_or_chapter_management_only
+  authority: modules/05_writing/paper_writing_protocol.md#6.1-问题重述
 
 model_evaluation:
-  governance_level: recommendation
-  strengths_typical: [2, 4]
-  strengths_usual_target: 3
-  weaknesses_typical: [1, 2]
-  count_relation_required: false
-  concise_transfer_rule: 仅在确有迁移对象时简述可继承的结构、需要重新标定的参数或约束和适用边界，避免空泛应用罗列。
-  rule: 优点结合真实模型结构与求解性质，局限说明受影响的结果及范围；数量按实际模型决定，不检查“优点必须多于缺点”，也不机械增加推广小节。
+  authority: modules/05_writing/paper_writing_protocol.md#15-模型评价逐问结论与附录
 
 machine_audit_boundary:
   report_only_for_semantic_style_risks: true

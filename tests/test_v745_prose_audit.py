@@ -200,6 +200,29 @@ H1. 数据满足要求。
         self.assertTrue(any(row.code == "missing_ref_label" and row.severity == "blocking"
                             for row in findings), findings)
 
+    def test_problem_analysis_uses_pure_text_and_active_math_is_reported(self):
+        prefix = r"\begin{document}\section{问题分析}\subsection{问题一的分析}"
+        suffix = r"\section{模型建立}后续模型使用 $x=1$。\end{document}"
+        for formula in (
+            r"$x=1$", r"\(x=1\)", r"\[x=1\]", r"$x=1$",
+            r"\begin{equation}x=1\end{equation}",
+            r"\begin{align*}x&=1\end{align*}",
+            r"\begin{multline}x=1\end{multline}", r"\ensuremath{x=1}",
+        ):
+            with self.subTest(formula=formula):
+                findings = self.audit.audit_text(prefix + formula + suffix)
+                self.assertTrue(any(row.code == "formula_in_problem_analysis"
+                                    and row.severity == "review_required" for row in findings))
+        for plain in (
+            "依据题目给定的3组数据，分析误差变化趋势。",
+            r"成本为 \$3，随后比较不同方案。",
+            "% 注释里的 $x=1$\n采用纯文本分析。",
+            r"\verb|$x=1$| 作为字面示例。",
+        ):
+            with self.subTest(plain=plain):
+                self.assertFalse(any(row.code == "formula_in_problem_analysis"
+                                     for row in self.audit.audit_text(prefix + plain + suffix)))
+
     def test_unreferenced_main_figure_is_warning(self):
         tex = r"""
 \begin{document}

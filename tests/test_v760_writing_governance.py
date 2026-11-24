@@ -29,7 +29,7 @@ class TestV760WritingGovernance(unittest.TestCase):
         self.assertFalse(contract["proposition_governance"]["automatic_rejection_over_budget"])
         self.assertEqual(contract["proposition_governance"]["default_budget"], [0, 4])
         self.assertIn("citation_evidence", contract)
-        self.assertFalse(contract["model_evaluation"]["count_relation_required"])
+        self.assertEqual(contract["model_evaluation"], {"authority": "modules/05_writing/paper_writing_protocol.md#15-模型评价逐问结论与附录"})
         self.assertEqual(
             set(contract["adaptive_core_model_summary"]["modes"]),
             {"required", "inline", "not_applicable"},

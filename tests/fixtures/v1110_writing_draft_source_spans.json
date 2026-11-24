@@ -2,7 +2,7 @@
   "schema_version": 1,
   "scope": "v11_1_0_writing_draft_legacy_stage_scoped_spans",
   "version": "11.1.0",
-  "authorizing_reason": "PR #357 approved writing draft through A05/C03/F02/J01. Preserve released v11.1.0 fixture and exact other sources, selectors and behavior; register only actual changed Protocol and Reasoning source hashes and ranges. Not a release or test pass.",
+  "authorizing_reason": "PR #357 approved draft A01–A07/C03/F02–F04/G03/J01–J04/K01–K05/L01/L04/L05. Released v11.1.0 fixture and all other source identities, selectors and behavior remain frozen; only actual changed Protocol and Reasoning hashes/ranges are updated. Not a release or test pass.",
   "required_case_ids": [
     "pure_model_design",
     "pure_python_figures",
@@ -434,7 +434,7 @@
     {
       "path": "modules/05_writing/paper_writing_protocol.md",
       "baseline_sha256": "5ddc999475401d2cad726e3111d97e0e60b332a78f6d5cf958fc1f0593480f26",
-      "candidate_sha256": "b8d9adc564f82a412166ec932e07164aea3361be84a37507a183f78d58073391",
+      "candidate_sha256": "ac01353100a71e103faa474a1256679157ce553b942a62f9494d1c1a22860c56",
       "spans": [
         {
           "before": [
@@ -466,11 +466,11 @@
             ],
             [
               221,
-              664
+              666
             ],
             [
-              716,
-              784
+              718,
+              786
             ]
           ]
         },
@@ -527,8 +527,8 @@
               6
             ],
             [
-              665,
-              715
+              667,
+              717
             ]
           ]
         }
@@ -558,7 +558,7 @@
     {
       "path": "core/writing_reasoning_contract.yaml",
       "baseline_sha256": "d64b0ce75987d5581ce9342800a2e73b0fccc9184cce613f12699aaf3a723bd1",
-      "candidate_sha256": "5017b8a57ea4df5ba353e85b9dbb50bf518855c3697202f1e4e27895ca506533",
+      "candidate_sha256": "192646bcbefa7a43615b6f94f8f9617a75897b1a2b014b586bb791c85f65fa89",
       "spans": [
         {
           "before": [
@@ -570,7 +570,7 @@
           "after": [
             [
               1,
-              1912
+              1902
             ]
           ]
         }
