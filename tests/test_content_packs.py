@@ -221,7 +221,8 @@ class TestContentPacks(unittest.TestCase):
         self.assertIn("Citation Evidence", checklist)
         self.assertIn("表题是否位于表格正上方", checklist)
         self.assertIn("图题位于图片正下方", checklist)
-        self.assertIn("优缺点条目数量是否由实际模型决定", checklist)
+        self.assertIn("模型评价是否按 Protocol §15 简要说明实际优点与不足", checklist)
+        self.assertNotIn("优缺点条目数量是否由实际模型决定", checklist)
 
     def test_cumcm_hsk_template_has_budgeted_boxed_proposition_environment(self):
         template = ROOT / "templates/latex/cumcm/hsk"

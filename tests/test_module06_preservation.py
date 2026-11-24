@@ -12,6 +12,7 @@ from module06_sources import (
     assert_preserved_review, baseline_text, historical_review_text, review_text,
     split_sections,
 )
+from writing_slimming_reference import prior_writing_slimming_text
 
 
 class Module06PreservationTests(unittest.TestCase):
@@ -35,7 +36,17 @@ class Module06PreservationTests(unittest.TestCase):
                 )
 
     def test_old_business_sections_are_not_duplicated_in_compatibility_stubs(self):
-        combined = review_text()
+        # Verify current canonical ownership before the historical projection.
+        # A duplicated approved hunk, an unchanged duplicated section, or an
+        # unauthorized rewrite must still fail the original preservation checks.
+        live = review_text()
+        for heading, owner in SECTION_SOURCES:
+            with self.subTest(current_heading=heading):
+                _, owned = split_sections((ROOT / owner).read_text(encoding="utf-8"))
+                matches = [body for key, body in owned if key == heading]
+                self.assertEqual(len(matches), 1)
+                self.assertEqual(live.count(matches[0]), 1)
+        combined = prior_writing_slimming_text(CONTENT, live)
         _, sections = split_sections(baseline_text())
         for heading, body in sections:
             with self.subTest(heading=heading):

@@ -223,7 +223,6 @@ class TestV718ModelSolutionWritingStyle(unittest.TestCase):
             "report_like_model_listing",
             "formula_without_need_or_consequence",
             "solver_first_narrative",
-            "generic_heading_density",
             "management_transition",
             "detached_result_interpretation",
             "repeated_problem_analysis_in_model_section",
@@ -233,6 +232,7 @@ class TestV718ModelSolutionWritingStyle(unittest.TestCase):
         review_or_warn = set(audit["may_review"]) | set(audit["may_warn"])
         self.assertTrue(narrative_risks <= review_or_warn)
         self.assertTrue(narrative_risks.isdisjoint(set(audit["may_block"])))
+        self.assertNotIn("generic_heading_density", review_or_warn | set(audit["may_block"]))
         # CUMCM D: Cleanup no longer independently judges mathematical narrative.
         self.assertIn("机器审计不得自动重写正文", self.cleanup)
         self.assertIn("仅编辑普通自然语言的表达层，不编辑其承载的数学、数值或证据实体", self.cleanup)

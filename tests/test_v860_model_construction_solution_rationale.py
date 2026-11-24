@@ -148,7 +148,8 @@ class ModelConstructionRationaleContractTests(unittest.TestCase):
         for phrase in (
             "不是当前项目事实、算法推荐表或固定句式库",
             "Model Construction Rationale 是重要选择的闭环，不是所有题的扩写器",
-            "不设置标题硬字数限制",
+            "见 Paper Writing Protocol §2.1",
+            "不以标题字数、第一人称数量、理由句数量或小节数量评分",
             "启发式不能写成",
         ):
             self.assertIn(phrase, self.examples)

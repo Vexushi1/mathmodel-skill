@@ -121,7 +121,9 @@ class TestV770PaperSemanticGovernance(unittest.TestCase):
         self.assertIn("不预设其熟悉当前题目的行业术语", protocol)
         self.assertIn("不得为了“更简洁”删成裸术语/裸缩写", cleanup)
         self.assertIn("首次实质出现处是否有准确、简短、邻近", review)
-        self.assertIn("不能为了“更通俗”把标题改成", review)
+        self.assertIn("简化显示名称不能改变模型类别、定义、量纲、符号、数据字段或算法角色", protocol)
+        self.assertIn("三级标题应准确、清楚、易懂，让读者看出研究对象与任务。", protocol)
+        self.assertIn("三级标题的准确、清楚、易懂及正常使用按 Protocol §2.1、§2.2 复核", review)
 
     def test_high_precision_numeric_profile_rejects_unjustified_low_abstract_precision(self):
         good = {"numeric_profile": [{
