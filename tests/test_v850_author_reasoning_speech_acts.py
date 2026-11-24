@@ -71,21 +71,16 @@ class AuthorReasoningContractTests(unittest.TestCase):
             "prose_claim_strength_must_not_exceed_evidence_strength",
         )
 
-    def test_reasoning_necessity_and_problem_specificity_are_semantic_checks(self):
-        self.assertEqual(
-            set(self.trace["necessity_tests"]),
-            {"reasoning_necessity", "problem_specificity"},
-        )
+    def test_author_expression_uses_general_paragraph_necessity(self):
+        self.assertNotIn("necessity_tests", self.trace)
+        self.assertNotIn("necessity_rule", self.trace)
         section = self.protocol.split("### 7.3 作者视角与建模解释", 1)[1].split("## 8.", 1)[0]
-        for phrase in (
-            "Author Reasoning Speech Acts",
-            "Question Closure",
-            "Reasoning Necessity",
-            "Problem-Specificity",
-            "不按代词频率",
-            "不判断作者身份",
-        ):
+        self.assertIn("论文中可以使用“我们”，也可以使用“本文”，根据语境自然选择，不限制使用比例。", section)
+        for phrase in ("Author Reasoning Speech Acts", "Question Closure", "不判断作者身份"):
             self.assertIn(phrase, section)
+        for removed in ("Reasoning Necessity", "Problem-Specificity"):
+            self.assertNotIn(removed, section)
+            self.assertNotIn(removed, self.review)
 
     def test_cleanup_and_review_consume_authority_and_explicitly_reject_voice_scoring(self):
         for text in (self.cleanup, self.review):
@@ -97,9 +92,8 @@ class AuthorReasoningContractTests(unittest.TestCase):
             self.assertIn("AI_like_score", text)
             self.assertIn("不得", text)
         self.assertIn("Keep / Compress / Re-subject / Delete", self.cleanup)
-        # Problem-Specificity remains a semantic Protocol check; Cleanup consumes
-        # that Authority but does not execute a second semantic review.
-        self.assertIn("Problem-Specificity", self.protocol)
+        # General paragraph necessity remains; no first-person-specific test.
+        self.assertNotIn("Problem-Specificity", self.protocol)
         self.assertIn("Paragraph Necessity、Model Rationale 与 Detail Allocation", self.cleanup)
         self.assertNotIn("Problem-Specificity", self.cleanup)
         for phrase in ("Author Reasoning Semantic Review", "Question Closure"):

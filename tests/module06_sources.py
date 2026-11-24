@@ -10,6 +10,8 @@ import hashlib
 import re
 from pathlib import Path
 
+from writing_slimming_reference import prior_writing_slimming_text
+
 
 ROOT = Path(__file__).resolve().parents[1]
 ENTRY = "modules/06_review_delivery.md"
@@ -81,7 +83,7 @@ PHASE_C_CONTENT_REVIEW_REWRITES = (
 
 def historical_review_text(root: Path = ROOT) -> str:
     """Reconstruct the old business document from the current canonical owners."""
-    documents = {path: split_sections((root / path).read_text(encoding="utf-8"))
+    documents = {path: split_sections(prior_writing_slimming_text(path, (root / path).read_text(encoding="utf-8")))
                  for path in CANONICAL_PATHS}
     parts = [documents[ENTRY][0]]
     for heading, path in SECTION_SOURCES:

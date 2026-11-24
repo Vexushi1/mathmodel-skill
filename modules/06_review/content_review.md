@@ -33,7 +33,7 @@
 
 ### Author Reasoning Semantic Review
 
-只消费 Protocol §7.3 与 reasoning Authority。检查 Reasoning Necessity、Problem-Specificity、Question Closure 与 Claim Strength；不做“人工感”评分，不用第一人称/连接词频率推断作者身份；明确禁止 `first_person_ratio`、`human_like_score`、`AI_like_score`。必要理由可以保留“我们”，客观事实可以重设为对象主语；不得由表面自然度牺牲公式来源、证明、Algorithm Trace 或证据边界。
+只消费 Protocol §7.3 与 reasoning Authority，核对 Question Closure 与 Claim Strength；段落必要性按 Protocol §5。明确禁止 `first_person_ratio`、`human_like_score`、`AI_like_score`，不根据作者声音判断身份。
 
 ### Formula-Rich Narrative Readability Review
 

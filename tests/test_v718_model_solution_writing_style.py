@@ -263,9 +263,10 @@ class TestV718ModelSolutionWritingStyle(unittest.TestCase):
         anti_template = "\n".join(
             self.contract["model_establishment_solution_narrative"]["anti_template_boundary"]
         )
-        for token in ("PSO", "GA", "DE", "二分法", "坐标搜索"):
-            self.assertIn(token, anti_template)
-        self.assertIn("不复制任何优秀论文的固定句子", anti_template)
+        self.assertEqual(anti_template, "见 scope.anti_template_boundary。")
+        self.assertEqual(self.contract["scope"]["anti_template_boundary"], ["正文避免无必要地连续重复句式；摘要已规定的固定句式除外。"])
+        self.assertIn("first_use_chain", self.contract["solver_justification"])
+        self.assertIn("alternative_method_rule", self.contract["solver_justification"])
         combined = self.contract_text + "\n" + self.protocol + "\n" + self.cleanup
         self.assertNotIn("A066", combined)
         self.assertNotIn("A196", combined)
