@@ -44,7 +44,7 @@
 | 主结果是否包含关键数值/图表、比较、机制和题目回答 |  |  |
 | 深化证据是否明确 target claim，并记录 `support / modify / reject` 与 required action |  |  |
 | 多方法验证是否同时检查适用的数值一致性与结构一致性 |  |  |
-| 独立结论章、特殊章节等 Default 偏离是否在框架中有依据 |  |  |
+| 一级章节是否符合实际采用的模板 |  |  |
 
 ## 3. Algorithm Trace、命题与证明
 

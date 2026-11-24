@@ -572,11 +572,44 @@ def _audit_cumcm_heading_structure(main: str, body: str) -> list[Finding]:
     return findings
 
 
-def audit_text(text: str) -> list[Finding]:
+def _audit_selected_template_structure(main: str, template_manifest: Path) -> list[Finding]:
+    """Check the existing two structure findings against the adopted template."""
+    manifest = yaml.safe_load(template_manifest.read_text(encoding="utf-8")) or {}
+    slots = manifest.get("paper_skeleton", {}).get("ordered_slots", [])
+    section_re = re.compile(r"\\section\*?\s*(?:\[[^\]]*\]\s*)?\{([^{}]+)\}")
+    declared: dict[str, list[str]] = {}
+    for slot in slots:
+        source = slot.get("source")
+        if not isinstance(source, str) or not source.endswith(".tex"):
+            continue
+        source_path = template_manifest.parent / source
+        if not source_path.is_file():
+            continue
+        active, _ = _mask_nonprose(source_path.read_text(encoding="utf-8-sig"))
+        declared[slot["id"]] = section_re.findall(_document_body(active))
+    expected = {title for titles in declared.values() for title in titles}
+    if not expected:
+        return []
+    active_main, _ = _mask_nonprose(main)
+    observed = section_re.findall(active_main)
+    findings: list[Finding] = []
+    if "结论" in observed and "结论" not in expected:
+        findings.append(Finding("review_required", "standalone_conclusion",
+                                "一级结论章不在实际采用的模板结构中，请按该模板复核。"))
+    if declared.get("assumptions") == ["模型假设"] and declared.get("symbols") == ["符号说明"]:
+        if "模型假设与符号说明" in observed and "模型假设与符号说明" not in expected:
+            findings.append(Finding("review_required", "merged_assumption_symbol_section",
+                                    "实际采用的模板将模型假设与符号说明分为两章，请按该模板复核。"))
+    return findings
+
+
+def audit_text(text: str, *, template_manifest: Path | None = None) -> list[Finding]:
     body = _document_body(text)
     main = _main_text_before_appendix(body)
     findings: list[Finding] = []
     findings.extend(_audit_cumcm_heading_structure(main, body))
+    if template_manifest is not None:
+        findings.extend(_audit_selected_template_structure(main, template_manifest))
 
     active_body, _ = _mask_nonprose(text)
     active_body = _document_body(active_body)
@@ -584,10 +617,6 @@ def audit_text(text: str) -> list[Finding]:
     findings.extend(_audit_float_caption_positions(main))
     findings.extend(_audit_abstract_and_keywords(body))
 
-    if re.search(r"\\section\{结论\}", main):
-        findings.append(Finding("review_required", "standalone_conclusion", "中文国赛默认不设置全文独立“结论”一级章；若比赛模板或当前论文确需，请保留明确理由。"))
-    if re.search(r"\\section\{模型假设与符号说明\}", main):
-        findings.append(Finding("review_required", "merged_assumption_symbol_section", "默认将“模型假设”和“符号说明”拆开；若特殊模板要求合并，请说明依据。"))
     if re.search(r"(?:^|[\s；;。])(?:H|A)\d+[\.、：:]", _remove_non_prose_blocks(main), flags=re.M):
         findings.append(Finding("warning", "visible_assumption_contract_id", "正文出现 H1/A1 等内部合同编号，请确认是否误把内部标识带入终稿。"))
 

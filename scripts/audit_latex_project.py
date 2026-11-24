@@ -392,6 +392,25 @@ def audit_cumcm_2026_compliance(main_file: Path, flattened: str) -> list[Finding
     return findings
 
 
+def _adopted_template_manifest(main_file: Path, files: list[Path]) -> Path | None:
+    """Resolve an actual local template or the recognizable HSK modular template."""
+    root = main_file.parent
+    local = root / "template_manifest.yaml"
+    if local.is_file():
+        return local
+    canonical = Path(__file__).resolve().parents[1] / "templates/latex/cumcm/hsk/template_manifest.yaml"
+    manifest = yaml.safe_load(canonical.read_text(encoding="utf-8")) or {}
+    slots = {slot["id"]: slot for slot in manifest["paper_skeleton"]["ordered_slots"]}
+    active = set(path.resolve() for path in files)
+    identifying = ("problem_statement", "problem_analysis")
+    if not all((root / slots[key]["source"]).resolve() in active for key in identifying):
+        return None
+    pattern = slots["question_sections"]["source_pattern"]
+    if not any(path.resolve() in active for path in root.glob(pattern)):
+        return None
+    return canonical
+
+
 def audit_project(
     main_file: Path,
     *,
@@ -411,7 +430,7 @@ def audit_project(
     if formal:
         findings.extend(audit_cumcm_2026_compliance(main_file, source))
     findings.extend(audit_formal_heading_depth(flattened))
-    findings.extend(audit_text(flattened))
+    findings.extend(audit_text(flattened, template_manifest=_adopted_template_manifest(main_file, files)))
 
     effective_bib = bib_path
     if effective_bib is None and (project_root / "references.bib").is_file():

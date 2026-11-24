@@ -126,8 +126,12 @@ H1. 数据满足要求。
         warning_codes = {item.code for item in findings if item.severity == "warning"}
         self.assertIn("missing_problem_statement", review_codes)
         self.assertIn("legacy_problem_requirement", review_codes)
-        self.assertIn("merged_assumption_symbol_section", review_codes)
-        self.assertIn("standalone_conclusion", review_codes)
+        self.assertNotIn("merged_assumption_symbol_section", review_codes)
+        self.assertNotIn("standalone_conclusion", review_codes)
+        manifest = ROOT / "templates/latex/cumcm/hsk/template_manifest.yaml"
+        selected = self.audit.audit_text(tex, template_manifest=manifest)
+        self.assertIn("merged_assumption_symbol_section", {item.code for item in selected})
+        self.assertIn("standalone_conclusion", {item.code for item in selected})
         self.assertIn("visible_assumption_contract_id", warning_codes)
         self.assertNotIn("no_named_core_model_summary", warning_codes)
         self.assertEqual(self.audit.overall_status(findings), "review_required")
@@ -309,10 +313,26 @@ H1. 数据满足要求。
         findings = self.audit.audit_text(tex)
         self.assertTrue(any(x.code == "background_management_paragraph" for x in findings), findings)
 
+    def test_adopted_template_owns_top_level_structure(self):
+        tex = r"\begin{document}\section{模型假设与符号说明}说明。\section{结论}结论。\end{document}"
+        codes = {"standalone_conclusion", "merged_assumption_symbol_section"}
+        self.assertFalse(codes.intersection(item.code for item in self.audit.audit_text(tex)))
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "assumptions.tex").write_text(r"\section{模型假设与符号说明}", encoding="utf-8")
+            (root / "conclusion.tex").write_text(r"\section{结论}", encoding="utf-8")
+            manifest = root / "template_manifest.yaml"
+            manifest.write_text(yaml.safe_dump({"paper_skeleton": {"ordered_slots": [
+                {"id": "assumptions", "source": "assumptions.tex"},
+                {"id": "conclusion", "source": "conclusion.tex"},
+            ]}}), encoding="utf-8")
+            self.assertFalse(codes.intersection(item.code for item in
+                self.audit.audit_text(tex, template_manifest=manifest)))
+
     def test_strict_status_can_distinguish_warning_review_and_blocking(self):
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp) / "main.tex"
-            path.write_text(r"\begin{document}\section{结论}重复总结。\end{document}", encoding="utf-8")
+            path.write_text(r"\begin{document}\section{问题分析}设 $x=1$。\end{document}", encoding="utf-8")
             findings = self.audit.audit_file(path)
             self.assertEqual(self.audit.overall_status(findings), "review_required")
 
