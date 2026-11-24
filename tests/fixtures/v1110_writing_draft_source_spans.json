@@ -2,7 +2,7 @@
   "schema_version": 1,
   "scope": "v11_1_0_writing_draft_legacy_stage_scoped_spans",
   "version": "11.1.0",
-  "authorizing_reason": "PR #357 approved draft A01–A07/C03/F02–F04/G03/J01–J04/K01–K05/L01/L04/L05. Released v11.1.0 fixture and all other source identities, selectors and behavior remain frozen; only actual changed Protocol and Reasoning hashes/ranges are updated. Not a release or test pass.",
+  "authorizing_reason": "PR #357 approved draft A01–A07/C03/F02–F04/G03/J01–J04/K01–K05/L01/L04/L05. Released v11.1.0 fixture and all other source identities, selectors and behavior remain frozen; only actual changed Protocol, Reasoning and Runtime hashes/ranges are updated. Not a release or test pass.",
   "required_case_ids": [
     "pure_model_design",
     "pure_python_figures",
@@ -296,7 +296,7 @@
     {
       "path": "core/writing_runtime_contract.yaml",
       "baseline_sha256": "af9c4c57a018468f7046e7835f1a8063f072fbee4c8788f504507c109fa0f3e7",
-      "candidate_sha256": "00c42790e9f2ee18201b17f9c109076eeebe8c53c88eaffb77c87a3889d4d725",
+      "candidate_sha256": "f30a6133ab1a8c3f97fc6a26e873518e303fae0c2a8a1bd7dac48cd62fdb6e57",
       "spans": [
         {
           "before": [

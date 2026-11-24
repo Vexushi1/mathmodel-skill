@@ -189,6 +189,12 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
         projected["authorizing_reason"] = original["authorizing_reason"]
         index = projected["legacy_profile_read_shifts"].index(after)
         projected["legacy_profile_read_shifts"][index] = deepcopy(before)
+        runtime_path = "core/writing_runtime_contract.yaml"
+        old_runtime = next(x for x in original["legacy_profile_read_shifts"] if x["path"] == runtime_path)
+        new_runtime = next(x for x in projected["legacy_profile_read_shifts"] if x["path"] == runtime_path)
+        self.assertEqual(old_runtime["candidate_sha256"], "00c42790e9f2ee18201b17f9c109076eeebe8c53c88eaffb77c87a3889d4d725")
+        self.assertEqual(new_runtime, {**old_runtime, "candidate_sha256": "f30a6133ab1a8c3f97fc6a26e873518e303fae0c2a8a1bd7dac48cd62fdb6e57"})
+        projected["legacy_profile_read_shifts"][projected["legacy_profile_read_shifts"].index(new_runtime)] = deepcopy(old_runtime)
         reasoning = projected["legacy_profile_read_shifts"].pop()
         self.assertEqual(reasoning, {
             "path": "core/writing_reasoning_contract.yaml",

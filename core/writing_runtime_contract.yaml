@@ -394,7 +394,7 @@ template_first_progressive_authoring:
         - current_classification_and_cross_question_dependencies
       write_now:
         - templates/latex/cumcm/hsk/sections/02_problem_analysis.tex
-      gate: 形成对象/条件 → 困难 → 数学抓手 → 建模转化 → 准备建立的结构 → 跨问关系的连续论证，不得写成散乱清单或软件流水线。
+      gate: 形成对象/条件 → 困难 → 数学抓手 → 建模转化 → 准备建立的结构 → 跨问关系的连续论证，不得写成散乱清单或软件流水线。问题分析采用纯文本，不出现数学公式或数学表达式。
     - id: assumptions_symbols_and_preparation
       read_now:
         - modules/05_writing/paper_writing_protocol.md#6.3-模型假设与符号说明
@@ -406,7 +406,7 @@ template_first_progressive_authoring:
         - templates/latex/cumcm/hsk/sections/04_symbols.tex
         - templates/latex/cumcm/hsk/sections/05_data.tex when project facts activate it
         - templates/latex/cumcm/hsk/sections/05_model_preparation.tex when project facts activate it
-      gate: 假设、符号、数据处理和共享关系均有真实依据；未激活的条件章节保持关闭。
+      gate: 模型假设按 Protocol §6.3 分条陈述；假设、符号、数据处理和共享关系均有真实依据；未激活的条件章节保持关闭。
     - id: question_model_solution_result_validation
       repeat_for_each_question_in_template_order: true
       before_write_preflight:
@@ -490,7 +490,7 @@ template_first_progressive_authoring:
       write_now:
         - templates/latex/cumcm/hsk/frontmatter/abstract.tex
         - current_template_metadata_title_and_keywords
-      gate: 摘要逐问闭合任务—模型—目标/条件—方法—结果—真实检验—结论，标题和关键词均有正文及结果证据，不虚构敏感性或鲁棒性。
+      gate: 摘要按 Protocol §14 撰写，逐问闭合任务—模型—目标/条件—方法—结果—真实检验—结论，标题和关键词均有正文及结果证据，不虚构敏感性或鲁棒性。
     - id: draft_semantic_review
       read_now:
         - core/writing_reasoning_contract.yaml
@@ -536,7 +536,7 @@ template_first_progressive_authoring:
         - resolved_draft_review_findings
       write_now:
         - cleaned_paper_text
-      gate: 只清除普通自然语言中的模板感、空话及纯重复；公式、中文推导、证明、伪代码、算法、数值及显示格式、术语定义、引用、图表实体、章节标题与层级均只读。数学或证据问题返回既有前置审查，不在 Cleanup 改写；改后在原有 Review 中复核受保护内容，不新增门禁。
+      gate: 只清除普通自然语言中的模板感、空话及纯重复；摘要、公式、中文推导、证明、伪代码、算法、数值及显示格式、术语定义、引用、图表实体、章节标题与层级均只读。数学或证据问题返回既有前置审查，不在 Cleanup 改写；改后在原有 Review 中复核受保护内容，不新增门禁。
     - id: latex_assembly_audit_and_compile
       read_now:
         - modules/05_writing/latex.md
@@ -601,7 +601,7 @@ semantic_capabilities:
     - abstract_per_question_information_closure
     - problem_restatement_without_prompt_copying
     - coherent_problem_analysis
-    - assumption_rationale_and_failure_impact
+    - concise_assumptions
     - symbol_cross_artifact_consistency
     - data_preprocessing_and_shared_foundation_boundary
     - model_construction_rationale_and_local_applicability

@@ -42,3 +42,36 @@ def prior_writing_slimming_text(relative: str, text: str) -> str:
             raise ValueError(f"{relative}: approved writing hunk missing or duplicated: {current[:80]!r}")
         text = text.replace(current, prior, 1)
     return text
+
+
+WRITING_STAGE_GATE_REWRITES = {
+    "problem_analysis": ("形成对象/条件 → 困难 → 数学抓手 → 建模转化 → 准备建立的结构 → 跨问关系的连续论证，不得写成散乱清单或软件流水线。问题分析采用纯文本，不出现数学公式或数学表达式。", "形成对象/条件 → 困难 → 数学抓手 → 建模转化 → 准备建立的结构 → 跨问关系的连续论证，不得写成散乱清单或软件流水线。"),
+    "assumptions_symbols_and_preparation": ("模型假设按 Protocol §6.3 分条陈述；假设、符号、数据处理和共享关系均有真实依据；未激活的条件章节保持关闭。", "假设、符号、数据处理和共享关系均有真实依据；未激活的条件章节保持关闭。"),
+    "abstract_title_and_keywords": ("摘要按 Protocol §14 撰写，逐问闭合任务—模型—目标/条件—方法—结果—真实检验—结论，标题和关键词均有正文及结果证据，不虚构敏感性或鲁棒性。", "摘要逐问闭合任务—模型—目标/条件—方法—结果—真实检验—结论，标题和关键词均有正文及结果证据，不虚构敏感性或鲁棒性。"),
+    "ai_cleanup": ("只清除普通自然语言中的模板感、空话及纯重复；摘要、公式、中文推导、证明、伪代码、算法、数值及显示格式、术语定义、引用、图表实体、章节标题与层级均只读。数学或证据问题返回既有前置审查，不在 Cleanup 改写；改后在原有 Review 中复核受保护内容，不新增门禁。", "只清除普通自然语言中的模板感、空话及纯重复；公式、中文推导、证明、伪代码、算法、数值及显示格式、术语定义、引用、图表实体、章节标题与层级均只读。数学或证据问题返回既有前置审查，不在 Cleanup 改写；改后在原有 Review 中复核受保护内容，不新增门禁。"),
+}
+
+
+def prior_writing_slimming_plan(plan):
+    """Project exact approved gate text only; retain all other plan fields."""
+    from copy import deepcopy
+
+    predecessor = deepcopy(plan)
+    deltas = []
+    for prefix in (("writing_runtime",), ("runtime_plan", "writing_runtime")):
+        node = predecessor
+        for key in prefix:
+            node = node.get(key) if isinstance(node, dict) else None
+        if not isinstance(node, dict):
+            continue
+        stages = node.get("authoring_sequence", [])
+        for stage_id, (current, prior) in WRITING_STAGE_GATE_REWRITES.items():
+            matches = [(i, stage) for i, stage in enumerate(stages)
+                       if isinstance(stage, dict) and stage.get("id") == stage_id]
+            if len(matches) == 1 and matches[0][1].get("gate") == current:
+                index, stage = matches[0]
+                stage["gate"] = prior
+                deltas.append({"path": ".".join((*prefix, "authoring_sequence", str(index), "gate")),
+                               "baseline": prior, "candidate": current,
+                               "approval": "PR #357 approved writing stage text"})
+    return predecessor, deltas

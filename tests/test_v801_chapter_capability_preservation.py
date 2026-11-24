@@ -73,7 +73,7 @@ class TestV801ChapterCapabilityPreservation(unittest.TestCase):
             "abstract_per_question_information_closure",
             "problem_restatement_without_prompt_copying",
             "coherent_problem_analysis",
-            "assumption_rationale_and_failure_impact",
+            "concise_assumptions",
             "symbol_cross_artifact_consistency",
             "data_preprocessing_and_shared_foundation_boundary",
             "model_construction_rationale_and_local_applicability",

@@ -16,6 +16,7 @@ TESTS = str(Path(__file__).resolve().parent)
 if TESTS not in sys.path:
     sys.path.insert(0, TESTS)
 
+from writing_slimming_reference import WRITING_STAGE_GATE_REWRITES, prior_writing_slimming_plan
 from reading_plan_evidence import (
     BODY_READING_AUTHORITY_VERSIONS,
     FIGURE_HANDOFF_AUTHORITY_VERSIONS,
@@ -145,7 +146,24 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
             (ROOT / "tests/fixtures/phase_g_cumcm_runtime_golden.yaml").read_text(encoding="utf-8")
         )
 
+    def test_writing_draft_gate_projection_is_exact(self):
+        plan = {"writing_runtime": {"authoring_sequence": [
+            {"id": stage, "gate": pair[0], "read_now": ["unchanged"]}
+            for stage, pair in WRITING_STAGE_GATE_REWRITES.items()
+        ]}}
+        projected, changes = prior_writing_slimming_plan(plan)
+        self.assertEqual(len(changes), len(WRITING_STAGE_GATE_REWRITES))
+        for stage in projected["writing_runtime"]["authoring_sequence"]:
+            self.assertEqual(stage["gate"], WRITING_STAGE_GATE_REWRITES[stage["id"]][1])
+            self.assertEqual(stage["read_now"], ["unchanged"])
+        altered = copy.deepcopy(plan)
+        altered["writing_runtime"]["authoring_sequence"][0]["gate"] += "unauthorized"
+        projected, _ = prior_writing_slimming_plan(altered)
+        self.assertEqual(projected["writing_runtime"]["authoring_sequence"][0],
+                         altered["writing_runtime"]["authoring_sequence"][0])
+
     def _projection(self, plan):
+        plan, _ = prior_writing_slimming_plan(plan)
         if plan.get("version") in {
             RUNTIME_P6_PAIRED_EVALUATION_RELEASE_VERSIONS["skill"],
             RUNTIME_PREPROCESSING_REDELIVERY_RELEASE_VERSIONS["skill"],

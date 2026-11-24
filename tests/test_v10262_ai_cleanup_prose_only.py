@@ -202,7 +202,7 @@ class ProseOnlyCleanupContractTests(unittest.TestCase):
             "modules/05_writing/paper_writing_protocol.md#7.3-作者视角与建模解释",
             "resolved_draft_review_findings",
         ])
-        for protected in ("公式、中文推导", "数值及显示格式", "章节标题与层级均只读"):
+        for protected in ("摘要、公式、中文推导", "数值及显示格式", "章节标题与层级均只读"):
             self.assertIn(protected, cleanup_stage["gate"])
         self.assertNotIn("run_now", cleanup_stage)
 
