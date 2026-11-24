@@ -1622,7 +1622,8 @@ class ContractAndDriftTests(unittest.TestCase):
                 elif relative == "core/project_state.schema.yaml":
                     from claim_schema_reference import previous_d2_schema
 
-                    text = prior_w3_proposition_text(relative, path.read_text(encoding="utf-8"))
+                    source_text = path.read_text(encoding="utf-8")
+                    text = prior_w3_proposition_text(relative, source_text)
                     # Revert only the optional Figure schema extension, byte-for-byte.
                     # Keep every original pinned predecessor hash and assertion.
                     edition_addition = (
@@ -1659,7 +1660,9 @@ class ContractAndDriftTests(unittest.TestCase):
                     schema = yaml.safe_load(text)
                     if schema["version"] == "8.16.0":
                         from claim_schema_reference import previous_comparison_schema
-                        schema = previous_comparison_schema(schema)
+                        # The text route already reversed W3 and plotting. The strict
+                        # object route must independently start from the current source.
+                        schema = previous_comparison_schema(yaml.safe_load(source_text))
                         begin = "# analysis comparison definitions BEGIN\n"
                         end = "# analysis comparison definitions END\n"
                         self.assertEqual(text.count(begin), 1)
@@ -1671,9 +1674,10 @@ class ContractAndDriftTests(unittest.TestCase):
                         self.assertEqual(text.count(reference), 1)
                         self.assertEqual(text.count("version: 8.16.0\n"), 1)
                         text = text.replace(reference, "", 1).replace("version: 8.16.0\n", "version: 8.15.0\n", 1)
+                        self.assertEqual(yaml.safe_load(text), schema)
                     if schema["version"] == "8.15.0":
                         # Only the pinned D2 additions may project back to the frozen C2 bytes.
-                        previous_d2_schema(schema)
+                        expected_schema = previous_d2_schema(schema)
                         start = text.index("  case_references:\n")
                         end = text.index("  review_receipt_policy:\n", start)
                         text = text[:start] + text[end:]
@@ -1681,6 +1685,7 @@ class ContractAndDriftTests(unittest.TestCase):
                         self.assertEqual(text.count(reference), 1)
                         self.assertEqual(text.count("version: 8.15.0\n"), 1)
                         text = text.replace(reference, "", 1).replace("version: 8.15.0\n", "version: 8.14.0\n", 1)
+                        self.assertEqual(yaml.safe_load(text), expected_schema)
                     data = text.encode("utf-8")
                     actual = hashlib.sha1(
                         b"blob " + str(len(data)).encode("ascii") + b"\0" + data
