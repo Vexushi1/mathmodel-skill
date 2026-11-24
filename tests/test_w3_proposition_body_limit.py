@@ -4,10 +4,13 @@ Only the existing State/Framework validators are invoked. The tests do not
 simulate numerical execution, model approval, or infer a PDF review PASS.
 """
 from pathlib import Path
+from copy import deepcopy
 import importlib.util
 import sys
 import unittest
 import yaml
+
+from tests.claim_schema_reference import previous_w3_proposition_schema
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT / "scripts") not in sys.path:
@@ -103,6 +106,32 @@ class W3PropositionBodyLimitTests(unittest.TestCase):
         issues, ids, _ = STATE._validate_propositions(historical, framework_sync="current")
         self.assertEqual(issues, [])
         self.assertEqual(ids, {"P3", "P5", "P9"})
+
+    def test_w3_schema_inverse_is_exact_and_rejects_unapproved_mutations(self):
+        schema = yaml.safe_load(
+            (ROOT / "core/project_state.schema.yaml").read_text(encoding="utf-8")
+        )
+        previous = previous_w3_proposition_schema(schema)
+        before = previous["properties"]["paper_framework"]["properties"]
+        self.assertNotIn("maximum", before["proposition_count"])
+        self.assertNotIn("maxItems", before["propositions"])
+        self.assertNotIn("description", before["proposition_budget_status"])
+        self.assertNotIn("description", before["proposition_budget_reason"])
+        self.assertEqual(
+            schema["properties"]["paper_framework"]["properties"]["proposition_count"]["maximum"],
+            4,
+        )
+        for field, patch in (
+            ("proposition_count", {"maximum": 5}),
+            ("propositions", {"maxItems": 5}),
+            ("proposition_budget_status", {"description": "changed"}),
+            ("proposition_budget_reason", {"description": "changed"}),
+        ):
+            with self.subTest(field=field):
+                changed = deepcopy(schema)
+                changed["properties"]["paper_framework"]["properties"][field].update(patch)
+                with self.assertRaisesRegex(AssertionError, "W3 proposition schema inverse rejected"):
+                    previous_w3_proposition_schema(changed)
 
     def test_framework_plans_have_hard_limit_in_lenient_and_strict_modes(self):
         for strict in (False, True):

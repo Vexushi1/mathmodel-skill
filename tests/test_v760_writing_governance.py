@@ -76,7 +76,7 @@ class TestV760WritingGovernance(unittest.TestCase):
         self.assertIn("核心模型收束：`required / inline / not_applicable`", text)
         self.assertNotIn("命题准入检查：", text)
 
-    def test_framework_validator_allows_five_propositions_when_justified(self):
+    def test_framework_validator_rejects_fifth_proposition_even_with_justification(self):
         rows = "\n".join(
             f"| P{i} | Q1 | 命题{i} | 条件 | 结论 | B | 降维 | 边界 | current |"
             for i in range(1, 6)
@@ -121,7 +121,15 @@ class TestV760WritingGovernance(unittest.TestCase):
 ## 同步检查
 """
         issues = FRAMEWORK.validate_framework_text(text, strict=True, mode="full")
-        self.assertEqual(issues, [])
+        self.assertTrue(
+            any("exceeds full-paper body limit 4" in issue for issue in issues), issues
+        )
+        four_rows = "\\n".join(
+            f"| P{i} | Q1 | 命题{i} | 条件 | 结论 | B | 降维 | 边界 | current |"
+            for i in range(1, 5)
+        )
+        accepted = text.replace("- 当前计划命题数：5", "- 当前计划命题数：4").replace(rows, four_rows)
+        self.assertEqual(FRAMEWORK.validate_framework_text(accepted, strict=True, mode="full"), [])
 
     def test_bib_audit_blocks_missing_and_duplicate_keys_but_only_warns_unused(self):
         tex = r"""\documentclass{article}
