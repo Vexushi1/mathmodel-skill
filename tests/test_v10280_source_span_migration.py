@@ -170,7 +170,7 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
         original = json.loads(self.frozen_v1110.read_text(encoding="utf-8"))
         self.assertEqual(original["scope"], "v11_1_0_release_legacy_stage_scoped_spans")
         self.assertEqual(original["version"], "11.1.0")
-        with self.assertRaisesRegex(ValueError, "legacy profile candidate bytes changed"):
+        with self.assertRaisesRegex(ValueError, "output read shift source bytes changed"):
             self.measurement.approved_source_span_migrations(self.frozen_v1110)
 
         w1 = json.loads(self.frozen_w1_draft.read_text(encoding="utf-8"))
@@ -179,7 +179,7 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
         self.assertEqual(next(x for x in w1["legacy_profile_read_shifts"]
                               if x["path"] == "modules/05_writing/paper_writing_protocol.md")["candidate_sha256"],
                          "a2f82d2f9caf391594b4083950a8b9899caefd491f9fe48571be156bbee631b1")
-        with self.assertRaisesRegex(ValueError, "legacy profile candidate bytes changed"):
+        with self.assertRaisesRegex(ValueError, "output read shift source bytes changed"):
             self.measurement.approved_source_span_migrations(self.frozen_w1_draft)
 
         draft = self.measurement.approved_source_span_migrations(self.fixture)
