@@ -31,8 +31,6 @@ from claim_tex import _active_command, _balanced_group, _mask_nonprose
 from audit_v8_writing_surface import audit_text as audit_v8_surface_text
 
 SEVERITY_ORDER = {"pass": 0, "warning": 1, "review_required": 2, "blocking": 3}
-CONTRAST_RE = re.compile(r"但(?:是)?|然而|不过|并非|不是|不能|只能|而不是|却")
-PARAGRAPH_START_RE = re.compile(r"^(?:本文|本问|该模型)(?:认为|采用|建立|使用|通过|将|对|在|根据|从|以|中|所)?")
 QUESTION_SECTION_RE = re.compile(r"\\section\{问题[一二三四五六七八九十百0-9]+模型建立及求解\}")
 SECTION_RE = re.compile(r"\\section\{([^{}]+)\}")
 SUBSECTION_RE = re.compile(r"\\subsection\{([^{}]+)\}")
@@ -41,8 +39,6 @@ NOTE_START = re.compile(r"\s*\[")
 REFERENCE_COMMAND = re.compile(r"\\(?:ref|autoref|cref|Cref|eqref)(?![A-Za-z@])\*?")
 CITATION_COMMAND = re.compile(r"\\(?:cite|citep|citet|parencite|textcite)(?![A-Za-z@])\*?")
 NOCITE_ALL_RE = re.compile(r"\\nocite\s*\{\s*\*\s*\}")
-DERIVATION_STOCK_PATTERNS = ("进一步可得", "同理可得", "容易得到", "不难得到")
-META_NAV_PATTERNS = ("本节主要", "下面将", "下文将", "为了便于", "为了更好地")
 STRONG_CLAIM_PATTERNS = {
     "global_optimum_wording": re.compile(r"全局最优"),
     "significance_wording": re.compile(r"显著(?:提高|降低|改善|优于|提升|下降)"),
@@ -292,17 +288,6 @@ def _audit_abstract_and_keywords(body: str) -> list[Finding]:
         items = [item.strip() for item in re.split(r"[，,；;、]", plain) if item.strip()]
         if not 3 <= len(items) <= 6:
             findings.append(Finding("review_required", "keyword_count", f"检测到关键词数量约为 {len(items)}；中文国赛默认 3--6 个。", ", ".join(items[:8])))
-    return findings
-
-
-def _caption_length_warnings(main: str) -> list[Finding]:
-    findings: list[Finding] = []
-    captions = re.findall(r"\\caption\{([^{}]{1,500})\}", main)
-    for caption in captions:
-        plain = re.sub(r"\\[A-Za-z@]+|[$\\{}]", "", caption)
-        if len(plain.strip()) > 90:
-            findings.append(Finding("warning", "long_caption", "检测到较长图表题注；请确认正式 caption 只承担编号与核心语义，详细解释留在正文。", plain.strip()[:120]))
-            break
     return findings
 
 
@@ -598,7 +583,6 @@ def audit_text(text: str) -> list[Finding]:
     findings.extend(_audit_cross_references(active_body))
     findings.extend(_audit_float_caption_positions(main))
     findings.extend(_audit_abstract_and_keywords(body))
-    findings.extend(_caption_length_warnings(main))
 
     if re.search(r"\\section\{结论\}", main):
         findings.append(Finding("review_required", "standalone_conclusion", "中文国赛默认不设置全文独立“结论”一级章；若比赛模板或当前论文确需，请保留明确理由。"))
@@ -618,8 +602,6 @@ def audit_text(text: str) -> list[Finding]:
         background = _subsection_content(restatement, "问题背景")
         if background is not None:
             bg_paragraphs = _plain_paragraphs(background)
-            if len(bg_paragraphs) > 2:
-                findings.append(Finding("warning", "long_problem_background", "“问题背景”超过 2 个自然段，请确认每段都推进研究对象而非扩写通用背景。", f"{len(bg_paragraphs)} paragraphs"))
             if len(bg_paragraphs) >= 2 and re.search(r"全文|后文|章节|依次|本文结构|文章结构", bg_paragraphs[1]):
                 findings.append(Finding("warning", "background_management_paragraph", "问题背景后段出现较多文章结构管理信息；请确认该段仍在收束研究对象。", bg_paragraphs[1][:120]))
 
@@ -661,17 +643,6 @@ def audit_text(text: str) -> list[Finding]:
         findings.append(formula_finding)
 
     prose_main = _remove_non_prose_blocks(main)
-    for phrase in DERIVATION_STOCK_PATTERNS:
-        count = prose_main.count(phrase)
-        limit = 3 if phrase == "进一步可得" else 2
-        if count > limit:
-            findings.append(Finding("warning", "repeated_derivation_connector", f"推导连接语“{phrase}”出现 {count} 次；请确认它没有替代真正的机制/推理说明。", phrase))
-            break
-
-    meta_count = sum(prose_main.count(phrase) for phrase in META_NAV_PATTERNS)
-    if meta_count >= 4:
-        findings.append(Finding("warning", "repeated_meta_navigation", "“本节主要/下面将/为了便于”等管理型元话语较多，建议直接进入对象、关系或证据。", f"{meta_count} occurrences"))
-
     for code, pattern in STRONG_CLAIM_PATTERNS.items():
         match = pattern.search(prose_main)
         if match:
@@ -688,51 +659,6 @@ def audit_text(text: str) -> list[Finding]:
         context = _remove_non_prose_blocks(main[left:right])
         if not PARAM_EVIDENCE_HINT_RE.search(context):
             findings.append(Finding("warning", "numeric_parameter_evidence", "检测到疑似直接指定数值参数，但邻近正文未出现题面来源、收敛/误差/验证等依据。", re.sub(r"\s+", " ", match.group(0))[:100]))
-            break
-
-    paragraphs = _plain_paragraphs(main)
-    contrast_flags = [bool(CONTRAST_RE.search(p)) for p in paragraphs]
-    for i in range(max(0, len(contrast_flags) - 2)):
-        if all(contrast_flags[i:i + 3]):
-            excerpt = " | ".join(p[:45] for p in paragraphs[i:i + 3])
-            findings.append(Finding("warning", "consecutive_contrast_paragraphs", "连续 3 个自然段均使用明显否定/转折结构，请确认是否存在真实逻辑冲突。", excerpt))
-            break
-    for paragraph in paragraphs:
-        if len(CONTRAST_RE.findall(paragraph)) >= 3:
-            findings.append(Finding("warning", "dense_contrast_paragraph", "单个自然段中否定/转折较密，请复查是否存在不必要的先否定再肯定。", paragraph[:120]))
-            break
-
-    start_flags = [bool(PARAGRAPH_START_RE.search(p)) for p in paragraphs]
-    if len(paragraphs) >= 6 and sum(start_flags) / len(paragraphs) >= 0.35:
-        findings.append(Finding("warning", "repeated_paper_subject_start", "“本文/本问/该模型”作为段首主语的比例偏高。", f"{sum(start_flags)}/{len(paragraphs)} paragraphs"))
-    for i in range(max(0, len(start_flags) - 2)):
-        if all(start_flags[i:i + 3]):
-            findings.append(Finding("warning", "consecutive_paper_subject_start", "连续 3 段以“本文/本问/该模型”起句，句法同构风险较高。"))
-            break
-
-    template_patterns = {
-        "本文不是…而是…": re.compile(r"本文不是.{0,60}?而是"),
-        "由于…因此本文不能…": re.compile(r"由于.{0,80}?因此本文不能"),
-        "不能…只能…": re.compile(r"不能.{0,60}?只能"),
-    }
-    prose = "\n".join(paragraphs)
-    for name, pattern in template_patterns.items():
-        count = len(pattern.findall(prose))
-        if count >= 2:
-            findings.append(Finding("warning", "repeated_negation_template", f"“{name}”结构重复出现 {count} 次，建议改为对象/条件→处理→结论边界。", name))
-
-    phrase_limits = {"由图可知": 2, "由表可知": 2, "见表": 4, "首先": 3, "其次": 3, "最后": 3}
-    for phrase, limit in phrase_limits.items():
-        count = prose.count(phrase)
-        if count > limit:
-            findings.append(Finding("warning", "repeated_stock_phrase", f"固定短语“{phrase}”出现 {count} 次，超过建议复查阈值 {limit}。", phrase))
-
-    for i in range(max(0, len(paragraphs) - 1)):
-        left_tokens = set(re.findall(r"[\u4e00-\u9fff]{2,}|[A-Za-z]{3,}", paragraphs[i]))
-        right_tokens = set(re.findall(r"[\u4e00-\u9fff]{2,}|[A-Za-z]{3,}", paragraphs[i + 1]))
-        union = left_tokens | right_tokens
-        if union and len(left_tokens & right_tokens) / len(union) >= 0.72 and min(len(paragraphs[i]), len(paragraphs[i + 1])) >= 70:
-            findings.append(Finding("warning", "possible_redundant_paragraph", "相邻段落词项高度重复；请执行 Paragraph Necessity Test，确认是否可删除、合并或移附录。", paragraphs[i][:90]))
             break
 
     for item in audit_v8_surface_text(main):

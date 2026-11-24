@@ -11,6 +11,11 @@ WRITING_SLIMMING_REWRITES = {
         ("- **摘要**：AI Cleanup 不得修改摘要。\n", ""),
         ("改动后在**现有** draft/final Review 流程和版本对照中检查：摘要、公式与中文推导", "改动后在**现有** draft/final Review 流程和版本对照中检查：公式与中文推导"),
     ),
+    "core/writing_reasoning_contract.yaml": (
+        ("        - terminology_drift_check\n        - paragraph_necessity_check\n", "        - terminology_drift_check\n        - caption_length_check\n        - paragraph_necessity_check\n"),
+        ("    may_warn:\n      - generic_algorithm_exposition_without_local_variable_or_constraint_terms\n      - repeated_result_number_sentence\n    must_not_do:\n", "    may_warn:\n      - highly_similar_adjacent_paragraphs\n      - generic_algorithm_exposition_without_local_variable_or_constraint_terms\n      - repeated_result_number_sentence\n      - repeated_meta_summary\n    must_not_do:\n"),
+        ("machine_audit_boundary:\n  report_only_for_semantic_style_risks: true\n  may_warn:\n    - dense_formula_blocks_with_little_prose\n    - repeated_cross_question_redefinition\n    - unexplained_numeric_parameter_assignment\n    - unused_bibliography_entry\n    - terminology_drift\n    - numeric_style_drift\n    - unreferenced_label_or_equation\n    - raw_python_like_pseudocode\n    - management_transition\n  may_review:\n", "machine_audit_boundary:\n  report_only_for_semantic_style_risks: true\n  may_warn:\n    - dense_formula_blocks_with_little_prose\n    - repeated_further_obtain_or_similarly_obtain\n    - repeated_meta_navigation\n    - repeated_cross_question_redefinition\n    - unexplained_numeric_parameter_assignment\n    - repeated_identical_question_opening_pattern\n    - unused_bibliography_entry\n    - terminology_drift\n    - numeric_style_drift\n    - unreferenced_label_or_equation\n    - unusually_long_caption\n    - paragraph_redundancy_risk\n    - raw_python_like_pseudocode\n    - management_transition\n  may_review:\n"),
+    ),
 }
 
 

@@ -20,7 +20,6 @@ ROOT = Path(__file__).resolve().parents[1]
 PATTERN_PATH = ROOT / "config" / "prose_audit_patterns.yaml"
 QUESTION_SECTION_RE = re.compile(r"\\section\{(问题[一二三四五六七八九十百0-9]+模型建立及求解)\}")
 SUBSECTION_RE = re.compile(r"\\subsection\{([^{}]+)\}")
-FIGURE_ENV_RE = re.compile(r"\\begin\{figure\*?\}.*?\\end\{figure\*?\}", flags=re.S)
 
 
 @dataclass(frozen=True)
@@ -213,31 +212,6 @@ def audit_solver_entry(text: str, policy: dict) -> list[Finding]:
     return findings
 
 
-def audit_consecutive_figures(text: str, policy: dict) -> list[Finding]:
-    settings = policy.get("figure_adjacency", {}) or {}
-    threshold = int(settings.get("minimum_explanatory_characters", 24))
-    findings = []
-    scoped_bodies = [body for _, body in question_sections(text)] or [text]
-    for body in scoped_bodies:
-        figures = list(FIGURE_ENV_RE.finditer(body))
-        for left, right in zip(figures, figures[1:]):
-            gap = body[left.end():right.start()]
-            gap = re.sub(r"%[^\n]*", " ", gap)
-            gap = re.sub(r"\\(?:section|subsection|subsubsection|paragraph)\*?\{[^{}]*\}", " ", gap)
-            gap = re.sub(r"\\(?:label|ref|eqref|cite|citep|citet|parencite|textcite)\*?(?:\[[^\]]*\])?\{[^{}]*\}", " ", gap)
-            gap = re.sub(r"\\[A-Za-z@]+\*?(?:\[[^\]]*\])?", " ", gap)
-            explanatory = re.sub(r"[^A-Za-z\u4e00-\u9fff]", "", gap)
-            if len(explanatory) < threshold:
-                findings.append(Finding(
-                    settings.get("severity", "warning"),
-                    "consecutive_figures_without_local_interpretation",
-                    "检测到同一问题章节内连续图环境之间几乎没有自然语言；请确认核心图是否缺少邻近作用、特征和设问含义解释。",
-                    re.sub(r"\s+", " ", gap)[:120],
-                ))
-                return findings
-    return findings
-
-
 def audit_text(text: str, policy: dict | None = None) -> list[Finding]:
     policy = policy or load_policy()
     findings = []
@@ -247,7 +221,6 @@ def audit_text(text: str, policy: dict | None = None) -> list[Finding]:
     findings.extend(audit_result_validation_bridge(text, policy))
     findings.extend(audit_question_stage_order(text, policy))
     findings.extend(audit_solver_entry(text, policy))
-    findings.extend(audit_consecutive_figures(text, policy))
     return findings
 
 

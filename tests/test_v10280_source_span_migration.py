@@ -189,7 +189,34 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
         projected["authorizing_reason"] = original["authorizing_reason"]
         index = projected["legacy_profile_read_shifts"].index(after)
         projected["legacy_profile_read_shifts"][index] = deepcopy(before)
+        reasoning = projected["legacy_profile_read_shifts"].pop()
+        self.assertEqual(reasoning, {
+            "path": "core/writing_reasoning_contract.yaml",
+            "baseline_sha256": "d64b0ce75987d5581ce9342800a2e73b0fccc9184cce613f12699aaf3a723bd1",
+            "candidate_sha256": "e4138927c1e9c1608ef3f231b79202d3b791e53712585167af9ab968beea88e1",
+            "spans": [{"before": [[1, 1950]], "after": [[1, 1942]]}],
+        })
         self.assertEqual(projected, original)
+
+    def test_writing_draft_reasoning_range_projects_only_exact_identity(self):
+        fixture, old, new = self.cases()
+        rule = fixture["legacy_profile_read_shifts"][-1]
+        original = {"origin": "skill", "path": rule["path"],
+                    "resolution": "exact", "ranges": [[1, 1950]],
+                    "selectors": {}, "when": None}
+        current = {**original, "ranges": [[1, 1942]]}
+        for case, row, key in ((old, original, "baseline_sha256"),
+                               (new, current, "candidate_sha256")):
+            case["behavior"]["read_now"].append(deepcopy(row))
+            case["source_identity"]["sources"].append({"path": rule["path"], "sha256": rule[key]})
+        projected, _ = self.measurement.project_exact_approved_source_spans(old, new, fixture)
+        self.assertEqual(projected["read_now"][-1], original)
+        new["behavior"]["read_now"][-1]["selectors"] = {"yaml_paths": ["unreviewed"]}
+        projected, _ = self.measurement.project_exact_approved_source_spans(old, new, fixture)
+        self.assertEqual(projected["read_now"][-1], new["behavior"]["read_now"][-1])
+        new["source_identity"]["sources"][-1]["sha256"] = "0" * 64
+        with self.assertRaisesRegex(ValueError, "source span identity drift"):
+            self.measurement.project_exact_approved_source_spans(old, new, fixture)
 
     def cases(self):
         manifest = self.measurement.approved_source_span_migrations(self.fixture)

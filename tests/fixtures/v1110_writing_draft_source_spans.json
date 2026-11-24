@@ -2,7 +2,7 @@
   "schema_version": 1,
   "scope": "v11_1_0_writing_draft_legacy_stage_scoped_spans",
   "version": "11.1.0",
-  "authorizing_reason": "PR #357 A01–A04 approved abstract revision on the unversioned 11.1.0 development branch. The released v11.1.0 fixture is immutable. Only the exact current paper-writing protocol SHA-256 and its changed physical ranges are registered here; every other approved selector, range, source and behavior remains unchanged. This draft carrier is not a release or test pass.",
+  "authorizing_reason": "PR #357 approved A01–A04/A06/A07, J02–J04, K01–K03, K05 background count, L01/L04 writing changes on the unversioned 11.1.0 draft. The released v11.1.0 fixture is immutable. Register only the actual changed Protocol and Reasoning source hashes and physical spans; all other approved selectors, ranges, sources and behavior remain unchanged. This draft carrier is not a release or test pass.",
   "required_case_ids": [
     "pure_model_design",
     "pure_python_figures",
@@ -550,6 +550,27 @@
             [
               1,
               78
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "path": "core/writing_reasoning_contract.yaml",
+      "baseline_sha256": "d64b0ce75987d5581ce9342800a2e73b0fccc9184cce613f12699aaf3a723bd1",
+      "candidate_sha256": "e4138927c1e9c1608ef3f231b79202d3b791e53712585167af9ab968beea88e1",
+      "spans": [
+        {
+          "before": [
+            [
+              1,
+              1950
+            ]
+          ],
+          "after": [
+            [
+              1,
+              1942
             ]
           ]
         }

@@ -71,7 +71,6 @@ rule_governance:
         - short_proof_length_budget
         - proposition_default_budget
         - terminology_drift_check
-        - caption_length_check
         - paragraph_necessity_check
   machine_mapping:
     hard: blocking
@@ -1685,10 +1684,8 @@ paragraph_necessity:
     - explanation_of_formula_with_no_downstream_use
   machine_audit_scope:
     may_warn:
-      - highly_similar_adjacent_paragraphs
       - generic_algorithm_exposition_without_local_variable_or_constraint_terms
       - repeated_result_number_sentence
-      - repeated_meta_summary
     must_not_do:
       - automatically_delete_text
       - infer_paragraph_semantic_necessity_from_regex_only
@@ -1823,17 +1820,12 @@ machine_audit_boundary:
   report_only_for_semantic_style_risks: true
   may_warn:
     - dense_formula_blocks_with_little_prose
-    - repeated_further_obtain_or_similarly_obtain
-    - repeated_meta_navigation
     - repeated_cross_question_redefinition
     - unexplained_numeric_parameter_assignment
-    - repeated_identical_question_opening_pattern
     - unused_bibliography_entry
     - terminology_drift
     - numeric_style_drift
     - unreferenced_label_or_equation
-    - unusually_long_caption
-    - paragraph_redundancy_risk
     - raw_python_like_pseudocode
     - management_transition
   may_review:

@@ -270,16 +270,17 @@ class TestV801ChapterCapabilityPreservation(unittest.TestCase):
         findings = self.surface.audit_text(tex)
         self.assertFalse(any(item.code == "solver_first_narrative" for item in findings), findings)
 
-    def test_consecutive_figures_without_local_explanation_are_reported(self):
+    def test_consecutive_figures_are_not_judged_by_explanatory_character_count(self):
         tex = r"""
 \begin{figure}\includegraphics{a}\caption{图一}\end{figure}
 \begin{figure}\includegraphics{b}\caption{图二}\end{figure}
 """
-        findings = self.surface.audit_text(tex)
-        self.assertTrue(
-            any(item.code == "consecutive_figures_without_local_interpretation" for item in findings),
-            findings,
-        )
+        for policy in (None, {"figure_adjacency": {"minimum_explanatory_characters": 1000}}):
+            findings = self.surface.audit_text(tex, policy=policy)
+            self.assertFalse(
+                any(item.code == "consecutive_figures_without_local_interpretation" for item in findings),
+                findings,
+            )
 
     def test_figures_in_different_question_sections_are_not_treated_as_consecutive(self):
         tex = r"""

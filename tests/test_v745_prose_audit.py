@@ -132,7 +132,7 @@ H1. 数据满足要求。
         self.assertNotIn("no_named_core_model_summary", warning_codes)
         self.assertEqual(self.audit.overall_status(findings), "review_required")
 
-    def test_repeated_negation_is_warning_not_word_ban(self):
+    def test_repeated_negation_is_not_a_mechanical_warning(self):
         ordinary = r"""
 \begin{document}
 \section{问题重述}
@@ -155,8 +155,50 @@ H1. 数据满足要求。
 """
         findings = self.audit.audit_text(dense)
         codes = {item.code for item in findings}
-        self.assertTrue({"repeated_negation_template", "consecutive_contrast_paragraphs"} & codes, findings)
-        self.assertEqual(self.audit.overall_status(findings), "warning")
+        self.assertTrue({"repeated_negation_template", "consecutive_contrast_paragraphs",
+                         "dense_contrast_paragraph"}.isdisjoint(codes), findings)
+        self.assertEqual(self.audit.overall_status(findings), "pass")
+
+    def test_normal_academic_word_frequencies_are_not_diagnostic_thresholds(self):
+        paragraph = (
+            "本文首先建立当前对象的关系，其次进一步可得该对象的变化规律，"
+            "最后由图可知结果与研究对象相对应。由表可知计算结果满足要求，见表。"
+            "本节主要介绍实际过程，为了便于解释，下面将给出下一步。"
+            "然而该关系并非完全独立，不能直接合并，只能按实际条件判断。"
+        )
+        text = r"\begin{document}" + "\n\n".join([paragraph] * 8) + r"\end{document}"
+        removed = {
+            "repeated_paper_subject_start", "consecutive_paper_subject_start",
+            "repeated_derivation_connector", "repeated_stock_phrase",
+            "repeated_negation_template", "repeated_meta_navigation",
+            "consecutive_contrast_paragraphs", "dense_contrast_paragraph",
+            "possible_redundant_paragraph",
+        }
+        self.assertTrue(removed.isdisjoint({row.code for row in self.audit.audit_text(text)}))
+
+    def test_background_paragraph_count_is_not_a_warning(self):
+        text = (
+            r"\begin{document}\section{问题重述}\subsection{问题背景}"
+            + "\n\n".join(["城市交通系统受到需求波动和有限道路容量的共同影响。"] * 4)
+            + r"\subsection{问题提出}确定路径流量。\end{document}"
+        )
+        codes = {row.code for row in self.audit.audit_text(text)}
+        self.assertNotIn("long_problem_background", codes)
+        self.assertNotIn("missing_problem_background", codes)
+
+    def test_long_caption_still_requires_real_references_not_character_counts(self):
+        text = (
+            r"\begin{document}比较结果见图~\ref{fig:real}。"
+            r"\begin{figure}\caption{" + "实际研究对象的结果及其适用范围" * 8
+            + r"}\label{fig:real}\end{figure}\end{document}"
+        )
+        codes = {row.code for row in self.audit.audit_text(text)}
+        self.assertNotIn("long_caption", codes)
+        self.assertNotIn("unreferenced_figure_table", codes)
+        missing = text.replace(r"\ref{fig:real}", r"\ref{fig:absent}")
+        findings = self.audit.audit_text(missing)
+        self.assertTrue(any(row.code == "missing_ref_label" and row.severity == "blocking"
+                            for row in findings), findings)
 
     def test_unreferenced_main_figure_is_warning(self):
         tex = r"""
