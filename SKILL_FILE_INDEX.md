@@ -832,6 +832,8 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `docs/literature_p6_historical_case_catalog.json`
 - `docs/literature_p6b_real_case_preflight.md`
 - `docs/main-branch-protection-hardening-plan.md`
+- `docs/mathmodel_skill_disclaimer_cutlist.md`
+- `docs/mathmodel_skill_repository_slimming_review.md`
 - `docs/matlab_publication_rendering_v91_plan.md`
 - `docs/modeling_intelligence_a0_decisions.md`
 - `docs/modeling_intelligence_a2_execution_plan.md`
