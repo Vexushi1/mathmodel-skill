@@ -24,7 +24,8 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.measurement = load_measurement()
-        cls.fixture = ROOT / "tests/fixtures/v1110_w2_numeric_source_spans.json"
+        cls.fixture = ROOT / "tests/fixtures/v1110_w3_proposition_source_spans.json"
+        cls.frozen_w2 = ROOT / "tests/fixtures/v1110_w2_numeric_source_spans.json"
         cls.frozen_w1_draft = ROOT / "tests/fixtures/v1110_writing_draft_source_spans.json"
         cls.frozen_v1110 = ROOT / "tests/fixtures/v1110_release_source_spans.json"
         cls.frozen_v11 = ROOT / "tests/fixtures/v11_candidate_source_spans.json"
@@ -166,42 +167,43 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "candidate bytes changed"):
             self.measurement.approved_source_span_migrations(self.frozen_v11)
 
-    def test_v1110_release_and_w1_draft_fixtures_remain_frozen(self):
-        original = json.loads(self.frozen_v1110.read_text(encoding="utf-8"))
-        self.assertEqual(original["scope"], "v11_1_0_release_legacy_stage_scoped_spans")
-        self.assertEqual(original["version"], "11.1.0")
-        with self.assertRaisesRegex(ValueError, "output read shift source bytes changed"):
-            self.measurement.approved_source_span_migrations(self.frozen_v1110)
+    def test_v1110_release_w1_w2_fixtures_remain_frozen(self):
+        for path, expected_scope in (
+            (self.frozen_v1110, "v11_1_0_release_legacy_stage_scoped_spans"),
+            (self.frozen_w1_draft, "v11_1_0_writing_draft_legacy_stage_scoped_spans"),
+            (self.frozen_w2, "v11_1_0_w2_numeric_display_source_spans"),
+        ):
+            previous = json.loads(path.read_text(encoding="utf-8"))
+            self.assertEqual(previous["scope"], expected_scope)
+            self.assertEqual(previous["version"], "11.1.0")
+            with self.assertRaisesRegex(ValueError, "source span migration candidate bytes changed"):
+                self.measurement.approved_source_span_migrations(path)
 
-        w1 = json.loads(self.frozen_w1_draft.read_text(encoding="utf-8"))
-        self.assertEqual(w1["scope"], "v11_1_0_writing_draft_legacy_stage_scoped_spans")
-        self.assertEqual(w1["version"], "11.1.0")
-        self.assertEqual(next(x for x in w1["legacy_profile_read_shifts"]
-                              if x["path"] == "modules/05_writing/paper_writing_protocol.md")["candidate_sha256"],
-                         "a2f82d2f9caf391594b4083950a8b9899caefd491f9fe48571be156bbee631b1")
-        with self.assertRaisesRegex(ValueError, "output read shift source bytes changed"):
-            self.measurement.approved_source_span_migrations(self.frozen_w1_draft)
-
-        draft = self.measurement.approved_source_span_migrations(self.fixture)
-        self.assertEqual(draft["scope"], "v11_1_0_w2_numeric_display_source_spans")
-        for key in ("required_case_ids", "migrations", "model_intake", "pqs_full_source_spans"):
-            self.assertEqual(draft[key], w1[key])
-        before = next(x for x in original["legacy_profile_read_shifts"]
-                      if x["path"] == "modules/05_writing/paper_writing_protocol.md")
-        after = next(x for x in draft["legacy_profile_read_shifts"]
-                     if x["path"] == "modules/05_writing/paper_writing_protocol.md")
-        self.assertEqual(before["candidate_sha256"], "38aedaf39393da999827ca1147ca4295d8070ca375c765dd020722b24ab7c645")
-        self.assertEqual(after["candidate_sha256"], "ec5e1b95336dd6fc72114a2e2a62c5c96f2f2bbec48533c353adec158693e2a8")
-        self.assertEqual(after["spans"][1]["after"], [[1, 767]])
-        self.assertEqual(draft["output_read_shift"]["cases"][0]["current_ranges"], [[465, 511]])
-        self.assertEqual(draft["output_read_shift"]["cases"][1]["current_ranges"], [[1, 634]])
-        self.assertEqual(draft["output_conditional_shift"]["current_ranges"], [[1, 634]])
-        reasoning = draft["legacy_profile_read_shifts"][-1]
-        self.assertEqual(reasoning["candidate_sha256"], "d34d95e774c3f61bbff8cd5c56e22e5acfe42a8202f7530c292413d5415d1b98")
-        self.assertEqual(reasoning["spans"], [{"before": [[1, 1950]], "after": [[1, 1725]]}])
-        cleanup = next(x for x in draft["legacy_profile_read_shifts"]
+        w2 = json.loads(self.frozen_w2.read_text(encoding="utf-8"))
+        current = self.measurement.approved_source_span_migrations(self.fixture)
+        self.assertEqual(current["scope"], "v11_1_0_w3_proposition_cap_source_spans")
+        for field in ("required_case_ids", "model_intake", "pqs_full_source_spans"):
+            self.assertEqual(current[field], w2[field])
+        self.assertEqual(current["migrations"][:3], w2["migrations"][:3])
+        design = current["migrations"][-1]
+        self.assertEqual(design["path"], "modules/02_model_design.md")
+        self.assertEqual(design["candidate_sha256"], "ca5c299e4cbeea9caff80fbbaba2e3711262081ffe258ef5ca51e0ee7fcaf306")
+        self.assertEqual(design["new_ranges"], [[1, 715]])
+        self.assertEqual(current["output_read_shift"]["cases"][0]["current_ranges"], [[468, 514]])
+        self.assertEqual(current["output_read_shift"]["cases"][1]["current_ranges"], [[1, 637]])
+        self.assertEqual(current["output_conditional_shift"]["current_ranges"], [[1, 637]])
+        self.assertEqual(current["output_read_shift"]["candidate_sha256"], "11a647712355a29de942062fa26c09d21baa5bfe3360c79df90d34021a78be05")
+        protocol = next(x for x in current["legacy_profile_read_shifts"]
+                        if x["path"] == "modules/05_writing/paper_writing_protocol.md")
+        self.assertEqual(protocol["candidate_sha256"], "09994c876bc02cacd320d6898429eb95e4e2c095cb2900739dc815ab8deb0094")
+        self.assertEqual(protocol["spans"][1]["after"], [[1, 763]])
+        reasoning = current["legacy_profile_read_shifts"][-1]
+        self.assertEqual(reasoning["candidate_sha256"], "56246364a74bb8a5ec014d1882e9ae2ad12f13d183815a0f5ee6f6a9a029c2e6")
+        self.assertEqual(reasoning["spans"], [{"before": [[1, 1950]], "after": [[1, 1729]]}])
+        cleanup = next(x for x in current["legacy_profile_read_shifts"]
                        if x["path"] == "modules/05_writing/ai_cleanup.md")
-        self.assertEqual(cleanup["candidate_sha256"], "10f5e9b6c8a315bb888893eca03fecb9a772a0f4397cedbee669e8b2014fecf6")
+        self.assertEqual(cleanup["candidate_sha256"],
+                         "10f5e9b6c8a315bb888893eca03fecb9a772a0f4397cedbee669e8b2014fecf6")
         self.assertEqual(cleanup["spans"], [{"before": [[1, 51]], "after": [[1, 52]]}])
 
     def test_writing_draft_cleanup_g2_full_read_projects_only_pinned_span(self):
@@ -259,7 +261,7 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
         original = {"origin": "skill", "path": rule["path"],
                     "resolution": "exact", "ranges": [[1, 1950]],
                     "selectors": {}, "when": None}
-        current = {**original, "ranges": [[1, 1725]]}
+        current = {**original, "ranges": [[1, 1729]]}
         for case, row, key in ((old, original, "baseline_sha256"),
                                (new, current, "candidate_sha256")):
             case["behavior"]["read_now"].append(deepcopy(row))
@@ -505,11 +507,11 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "source span identity drift"):
             self.measurement.project_exact_approved_source_spans(old, new, fixture)
 
-    def test_w2_snapshot_rejects_mutated_authority_identity(self):
+    def test_w3_snapshot_rejects_mutated_authority_identity(self):
         manifest = self.measurement.approved_source_span_migrations(self.fixture)
         rule = next(x for x in manifest["legacy_profile_read_shifts"]
                     if x["path"] == "core/writing_reasoning_contract.yaml")
-        self.assertEqual(rule["candidate_sha256"], "d34d95e774c3f61bbff8cd5c56e22e5acfe42a8202f7530c292413d5415d1b98")
+        self.assertEqual(rule["candidate_sha256"], "56246364a74bb8a5ec014d1882e9ae2ad12f13d183815a0f5ee6f6a9a029c2e6")
         mutated = json.loads(self.fixture.read_text(encoding="utf-8"))
         next(x for x in mutated["legacy_profile_read_shifts"]
              if x["path"] == "core/writing_reasoning_contract.yaml")["candidate_sha256"] = "0" * 64

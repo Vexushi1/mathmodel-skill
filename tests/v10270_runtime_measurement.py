@@ -209,6 +209,7 @@ def approved_source_span_migrations(path: Path | None, *, source_root: Path | No
         ("v11_1_0_release_legacy_stage_scoped_spans", "11.1.0"),
         ("v11_1_0_writing_draft_legacy_stage_scoped_spans", "11.1.0"),
         ("v11_1_0_w2_numeric_display_source_spans", "11.1.0"),
+        ("v11_1_0_w3_proposition_cap_source_spans", "11.1.0"),
     }
     model_intake_carrier = candidate_profile or (data.get("scope"), data.get("version")) in {
         ("v10.29.0_p2_exact_literature_intake_migration", "10.29.0"),
@@ -316,7 +317,11 @@ def approved_source_span_migrations(path: Path | None, *, source_root: Path | No
                                         "historical_ranges", "when", "case_ids"}
                 or conditional["path"] != "core/output_contract.yaml"
                 or conditional["candidate_sha256"] != data["output_read_shift"]["candidate_sha256"]
-                or conditional["current_ranges"] != [[1, (634 if data.get("scope") == "v11_1_0_w2_numeric_display_source_spans" else (635 if candidate_profile else 634))]]
+                or conditional["current_ranges"] != [[1, (
+                    637 if data.get("scope") == "v11_1_0_w3_proposition_cap_source_spans"
+                    else (634 if data.get("scope") == "v11_1_0_w2_numeric_display_source_spans"
+                          else (635 if candidate_profile else 634))
+                )]]
                 or conditional["historical_ranges"] != [[1, 612]]
                 or conditional["when"] != "current_delivery_scope_or_file_layout_requires_definition"
                 or conditional["case_ids"] != [
@@ -354,6 +359,7 @@ def approved_source_span_migrations(path: Path | None, *, source_root: Path | No
             writing_draft=data["scope"] in {
                 "v11_1_0_writing_draft_legacy_stage_scoped_spans",
                 "v11_1_0_w2_numeric_display_source_spans",
+                "v11_1_0_w3_proposition_cap_source_spans",
             },
         )
     return data
