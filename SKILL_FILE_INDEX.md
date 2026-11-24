@@ -477,6 +477,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/fixtures/v10352_approved_source_spans.json`
 - `tests/fixtures/v10353_approved_source_spans.json`
 - `tests/fixtures/v1110_release_source_spans.json`
+- `tests/fixtures/v1110_writing_draft_source_spans.json`
 - `tests/fixtures/v11_business_baseline.yaml`
 - `tests/fixtures/v11_candidate_source_spans.json`
 - `tests/fixtures/v11_web_app_cases.yaml`
@@ -785,6 +786,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/v11_plot_observations.py`
 - `tests/v11_reading_baseline.py`
 - `tests/v11_web_app_packet.py`
+- `tests/writing_slimming_reference.py`
 
 ## Current Maintenance Records
 
