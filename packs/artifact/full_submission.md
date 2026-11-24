@@ -79,6 +79,6 @@ internal_metadata/
 4. resolver 返回的同步与包级 gate 按顺序通过；
 5. 官方包按当前 verified rules 裁剪，复现包保持内部完整性并只收集 current 状态实际要求的 03B 产物；
 6. `Algorithm Trace` 与论文算法呈现闭合：`stepwise/pseudocode` 可追溯到当前模型/公式/命题/约束、真实代码实现和工作簿结果或验证证据；`not_needed` 不保留装饰性算法框；
-7. 命题 0--4 仅是默认正文阅读预算；P5+ 若保留，已完成必要性审查并记录 justification，不把默认预算恢复成 Hard 上限。
+7. 全文正文正式命题最多 4 个，全部小问合并计数，无超额豁免；旧 P5+ 稳定 ID 可继续用于历史追踪，但不能依靠 justification 放行第五个正文命题。核心证明仍须完整可恢复，详见 `core/writing_reasoning_contract.yaml#proposition_governance`。
 
 新项目不得创建 `结果数据表/`、`Python求解/`、`MATLAB绘图/` 等平行数值目录；每问只保留一个 `问题X求解/`。内部检查表和复现元数据不得机械进入论文正文。

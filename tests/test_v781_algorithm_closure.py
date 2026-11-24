@@ -134,10 +134,11 @@ class TestV781AlgorithmClosure(unittest.TestCase):
         for name in ("docx", "review", "full_submission"):
             self.assertIn("modules/05_writing/latex.md", routing[name]["load"], name)
 
-    def test_submission_no_longer_restores_hard_proposition_cap(self):
-        self.assertNotIn("命题数量允许为 0 且最多 4 个", self.full_submission)
-        self.assertIn("0--4 仅是默认正文阅读预算", self.full_submission)
-        self.assertIn("P5+", self.full_submission)
+    def test_submission_preserves_w3_four_body_proposition_limit_and_historical_ids(self):
+        self.assertIn("全文正文正式命题最多 4 个", self.full_submission)
+        self.assertIn("无超额豁免", self.full_submission)
+        self.assertIn("P5+ 稳定 ID", self.full_submission)
+        self.assertIn("核心证明仍须完整可恢复", self.full_submission)
 
     def test_final_review_explicitly_consumes_algorithm_trace(self):
         for text in (self.review_module, self.review_pack):

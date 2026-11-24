@@ -180,7 +180,7 @@ class TestContentPacks(unittest.TestCase):
         self.assertNotIn("把技术引理移附录", model_design)
 
         protocol = (ROOT / "modules/05_writing/paper_writing_protocol.md").read_text(encoding="utf-8")
-        self.assertIn("证明位置服从数学作用而不是长度", protocol)
+        self.assertIn("全文正文数量、准入、证明等级与位置服从", protocol)
         self.assertIn("核心证明不能仅因篇幅较长", protocol)
 
         cleanup = (ROOT / "modules/05_writing/ai_cleanup.md").read_text(encoding="utf-8")
