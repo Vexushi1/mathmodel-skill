@@ -17,6 +17,7 @@ import yaml
 
 from writing_slimming_reference import prior_writing_slimming_text
 from w2_numeric_display_reference import prior_w2_numeric_display_text
+from w3_proposition_reference import prior_w3_proposition_text
 
 ROOT = Path(__file__).resolve().parents[1]
 PROTOCOL = "modules/05_writing/paper_writing_protocol.md"
@@ -147,7 +148,7 @@ class WritingReasoningScopeTests(unittest.TestCase):
 
         for path, digest in frozen.items():
             with self.subTest(path=path):
-                self.assertEqual(git_blob_sha1(read(path)), digest)
+                self.assertEqual(git_blob_sha1(prior_w3_proposition_text(path, read(path))), digest)
 
         # v8.7.1 R6 intentionally reopens only active release-label/provenance lines.
         # Normalize those exact lines back to the pre-R6 representation, then keep the
