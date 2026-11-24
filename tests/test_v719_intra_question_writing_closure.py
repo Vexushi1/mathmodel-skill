@@ -78,11 +78,10 @@ class TestV719IntraQuestionWritingClosure(unittest.TestCase):
     def test_adaptive_separation_protects_navigation_without_reordering(self):
         architecture = self.narrative["within_question_subsection_architecture"]
         adaptive = architecture["adaptive_separation"]
-        self.assertIn("independent_structural_reduction", adaptive["separate_when_any"])
-        self.assertIn("independent_numerical_parameter_evidence", adaptive["separate_when_any"])
-        self.assertIn("same_argument_chain", adaptive["keep_continuous_when_all"])
-        self.assertIn("Adaptive Subsection Separation", self.protocol)
-        self.assertIn("Split 不能由字数触发，Merge 不能由标题数量触发", self.cleanup)
+        self.assertEqual(adaptive, {"authority": "Paper Writing Protocol §2.2"})
+        self.assertIn("三级标题可正常使用，用于使论文结构与论述更加清晰。", self.protocol)
+        self.assertFalse(architecture["scope_boundary"]["may_reorder_top_level_sections"])
+        self.assertIn("Cleanup 连按其他理由主动拆合标题也没有权限", self.cleanup)
 
     def test_data_and_shared_sections_are_internal_only(self):
         architecture = self.narrative["within_question_subsection_architecture"]

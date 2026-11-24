@@ -2,7 +2,7 @@
   "schema_version": 1,
   "scope": "v11_1_0_writing_draft_legacy_stage_scoped_spans",
   "version": "11.1.0",
-  "authorizing_reason": "PR #357 approved draft A01–A07/C03/F02–F04/G03/J01–J04/K01–K05/L01/L04/L05. Released v11.1.0 fixture and all other source identities, selectors and behavior remain frozen; only actual changed Protocol, Reasoning and Runtime hashes/ranges are updated. Not a release or test pass.",
+  "authorizing_reason": "PR #357 approved draft A01–A07/B01–B03/C03/F02–F04/G03/J01–J04/K01–K05/L01/L04/L05. Released v11.1.0 fixture and all other source identities, selectors and behavior remain frozen; only actual changed Protocol, Reasoning and Runtime hashes/ranges are updated. Not a release or test pass.",
   "required_case_ids": [
     "pure_model_design",
     "pure_python_figures",
@@ -434,7 +434,7 @@
     {
       "path": "modules/05_writing/paper_writing_protocol.md",
       "baseline_sha256": "5ddc999475401d2cad726e3111d97e0e60b332a78f6d5cf958fc1f0593480f26",
-      "candidate_sha256": "ac01353100a71e103faa474a1256679157ce553b942a62f9494d1c1a22860c56",
+      "candidate_sha256": "a2f82d2f9caf391594b4083950a8b9899caefd491f9fe48571be156bbee631b1",
       "spans": [
         {
           "before": [
@@ -462,15 +462,15 @@
             ],
             [
               36,
-              175
+              131
             ],
             [
-              221,
-              666
+              177,
+              622
             ],
             [
-              718,
-              786
+              674,
+              742
             ]
           ]
         },
@@ -484,7 +484,7 @@
           "after": [
             [
               1,
-              811
+              767
             ]
           ]
         },
@@ -505,8 +505,8 @@
               6
             ],
             [
-              176,
-              220
+              132,
+              176
             ]
           ]
         },
@@ -527,8 +527,8 @@
               6
             ],
             [
-              667,
-              717
+              623,
+              673
             ]
           ]
         }
@@ -558,7 +558,7 @@
     {
       "path": "core/writing_reasoning_contract.yaml",
       "baseline_sha256": "d64b0ce75987d5581ce9342800a2e73b0fccc9184cce613f12699aaf3a723bd1",
-      "candidate_sha256": "192646bcbefa7a43615b6f94f8f9617a75897b1a2b014b586bb791c85f65fa89",
+      "candidate_sha256": "b25bb618385b3d6da148b5cbf11ec9183044218956d2b0a25b1491d3da91f08f",
       "spans": [
         {
           "before": [
@@ -570,7 +570,7 @@
           "after": [
             [
               1,
-              1902
+              1736
             ]
           ]
         }

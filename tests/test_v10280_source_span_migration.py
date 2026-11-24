@@ -178,11 +178,11 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
         after = next(x for x in draft["legacy_profile_read_shifts"]
                      if x["path"] == "modules/05_writing/paper_writing_protocol.md")
         self.assertEqual(before["candidate_sha256"], "38aedaf39393da999827ca1147ca4295d8070ca375c765dd020722b24ab7c645")
-        self.assertEqual(after["candidate_sha256"], "ac01353100a71e103faa474a1256679157ce553b942a62f9494d1c1a22860c56")
+        self.assertEqual(after["candidate_sha256"], "a2f82d2f9caf391594b4083950a8b9899caefd491f9fe48571be156bbee631b1")
         self.assertEqual(before["spans"][0]["after"][-1], [728, 794])
-        self.assertEqual(after["spans"][0]["after"], [[1,6],[36,175],[221,666],[718,786]])
+        self.assertEqual(after["spans"][0]["after"], [[1,6],[36,131],[177,622],[674,742]])
         self.assertEqual(before["spans"][1]["after"], [[1, 821]])
-        self.assertEqual(after["spans"][1]["after"], [[1,811]])
+        self.assertEqual(after["spans"][1]["after"], [[1,767]])
         # Compare all unchanged paths, selectors and approval fields.
         projected = deepcopy(draft)
         projected["scope"] = original["scope"]
@@ -199,8 +199,8 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
         self.assertEqual(reasoning, {
             "path": "core/writing_reasoning_contract.yaml",
             "baseline_sha256": "d64b0ce75987d5581ce9342800a2e73b0fccc9184cce613f12699aaf3a723bd1",
-            "candidate_sha256": "192646bcbefa7a43615b6f94f8f9617a75897b1a2b014b586bb791c85f65fa89",
-            "spans": [{"before": [[1, 1950]], "after": [[1, 1902]]}],
+            "candidate_sha256": "b25bb618385b3d6da148b5cbf11ec9183044218956d2b0a25b1491d3da91f08f",
+            "spans": [{"before": [[1, 1950]], "after": [[1, 1736]]}],
         })
         self.assertEqual(projected, original)
 
@@ -210,7 +210,7 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
         original = {"origin": "skill", "path": rule["path"],
                     "resolution": "exact", "ranges": [[1, 1950]],
                     "selectors": {}, "when": None}
-        current = {**original, "ranges": [[1, 1902]]}
+        current = {**original, "ranges": [[1, 1736]]}
         for case, row, key in ((old, original, "baseline_sha256"),
                                (new, current, "candidate_sha256")):
             case["behavior"]["read_now"].append(deepcopy(row))

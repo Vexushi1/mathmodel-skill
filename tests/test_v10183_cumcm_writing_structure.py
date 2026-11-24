@@ -40,43 +40,23 @@ class CUMCMQuestionWritingStructureTests(unittest.TestCase):
             self.assertIn(section, self.writing)
 
     def test_second_level_stays_functional_and_third_level_is_reader_facing(self):
-        heading = self.narrative["professional_heading_semantics"]["cumcm_heading_level_precedence"]
-        self.assertEqual(heading["readability_primary_target"], "third_level_heading")
-        self.assertIn("不因为 Heading Compression", heading["second_level_role"])
-        self.assertIn("三级标题", heading["third_level_role"])
-        self.assertIn("充分例外", heading["second_level_exception_boundary"])
-        self.assertIn("不能因为", self.policy["non_arbitrary_rename_rule"])
-        self.assertIn("正常情况保持", self.policy["heading_choice_rule"])
-        self.assertIn("模型求解结果与分析", self.policy["normal_title_preservation"])
-        self.assertEqual(len(self.policy["documented_exception_categories"]), 4)
-        self.assertIn("常规复杂问优先保留", self.writing)
-        self.assertIn("二级导航稳定，三级任务可读", self.writing)
+        self.assertEqual(self.policy["normal_title_preservation"], "见 Paper Writing Protocol §3.1。")
+        self.assertIn("保留以上二级标题原文和顺序，不随意改动", self.writing)
+        self.assertNotIn("documented_exception_categories", self.policy)
+        self.assertNotIn("exception_trace_rule", self.policy)
 
     def test_tertiary_titles_reveal_tasks_without_erasing_technical_accuracy(self):
         r = self.architecture["third_level_judge_readability"]
-        self.assertEqual(r["reader_assumption"], "mathematical_modeling_literate_not_domain_specialist")
-        self.assertEqual(r["priority"], "task_recoverability_before_jargon_display_or_shortest_wording")
-        self.assertEqual(r["selection_sequence"][0],
-                         "decide_whether_an_independent_mathematical_task_needs_a_third_level_heading")
-        self.assertIn("对象", r["judge_readability_question"])
-        self.assertIn("KKT", r["necessary_terminology_exception"])
-        self.assertIn("不对首选二级", r["title_compression_order"])
-        self.assertIn("仅概括", r["accuracy_boundary"])
-        self.assertIn("不建立强制替换词表", self.writing)
-        self.assertEqual(
-            self.reasoning["subsection_granularity"]["cumcm_third_level_readability_authority"],
-            "model_establishment_solution_narrative.within_question_subsection_architecture.third_level_judge_readability"
-        )
+        self.assertEqual(r["authority"], "Paper Writing Protocol §2.1")
+        self.assertIn("三级标题应准确、清楚、易懂，让读者看出研究对象与任务。", self.writing)
+        self.assertNotIn("selection_sequence", r)
+        self.assertEqual(self.reasoning["subsection_granularity"]["cumcm_third_level_readability_authority"],
+                         "model_establishment_solution_narrative.within_question_subsection_architecture.third_level_judge_readability")
 
     def test_tertiary_examples_are_conditional_not_fixed_replacement_dictionary(self):
         r = self.architecture["third_level_judge_readability"]
-        examples = {e["original"]: e for e in r["examples"]}
-        self.assertEqual(examples["FV-BDF-Radau 一致性"]["preferred"], "状态方程求解结果的一致性检验")
-        self.assertEqual(examples["Sobol 全局敏感性分解"]["preferred"], "关键参数对最终结果的影响")
-        self.assertEqual(examples["数据处理"]["preferred"], "观测时间的统一")
-        for case in examples.values():
-            self.assertTrue(case["condition"], case)
-        self.assertIn("不能拿", self.writing)
+        self.assertNotIn("examples", r)
+        self.assertIn("三级标题可正常使用，用于使论文结构与论述更加清晰。", self.writing)
         self.assertFalse(self.reasoning["subsection_granularity"]["hard_title_length_limit"])
 
     def test_no_comparator_does_not_imply_comparison_heading(self):
@@ -84,17 +64,12 @@ class CUMCMQuestionWritingStructureTests(unittest.TestCase):
         self.assertIn("同一数学模型的不同算法", self.policy["comparison_naming_rule"])
         self.assertIn("accepted evidence", self.policy["comparison_naming_rule"])
         self.assertIn("不设置", self.policy["optional_validation_rule"])
-        self.assertIn(
-            "simple_analytic_or_direct_computation_no_independent_solve",
-            self.policy["documented_exception_categories"],
-        )
-        self.assertIn("不要求使用完全相同字面标题", self.policy["heading_choice_rule"])
+        self.assertEqual(self.policy["heading_choice_rule"], "见 Paper Writing Protocol §3.1。")
+        self.assertIn("简单解析题可以只保留模型关系和结果", self.writing)
 
     def test_result_subheadings_and_detail_priority_are_adaptive(self):
-        self.assertIn(
-            "independent_result_task_with_distinct_answer_or_interpretation",
-            self.architecture["adaptive_separation"]["separate_when_any"],
-        )
+        self.assertEqual(self.architecture["adaptive_separation"]["authority"], "Paper Writing Protocol §2.2")
+        self.assertNotIn("separate_when_any", self.architecture["adaptive_separation"])
         self.assertIn("模型求解结果与分析", self.reasoning["subsection_granularity"]["result_third_level_rule"])
         self.assertFalse(self.reasoning["subsection_granularity"]["hard_count_limit"])
         self.assertFalse(self.reasoning["subsection_granularity"]["hard_title_length_limit"])
