@@ -449,8 +449,8 @@
     },
     {
       "path": "core/full_reading/volumes/089.md",
-      "bytes": 6154,
-      "sha256": "781e589b99ce479b4dfb8d59cdd9fab8ccb085af0420c148b1842ac76aaae8f6"
+      "bytes": 6300,
+      "sha256": "34524af34c0688bc3cc17967d8b63ca4352d52e5cc6e99e716b85a76682702bb"
     },
     {
       "path": "core/full_reading/volumes/090.md",
@@ -2415,19 +2415,19 @@
       "path": "packs/artifact/full_submission.md",
       "role": "conditional_pack",
       "aliases": [],
-      "bytes": 6035,
-      "sha256": "7630e2f11736bbc13c33b1b64d41696b393ba1653a279dbfe296636161e4b9d5",
-      "git_blob_sha1": "bdb1ad994ff07e8d198e686b3d770ab5ecf422da",
+      "bytes": 6181,
+      "sha256": "22c0f9a0906c0bd18eba2fa46b85837037ddf7d7ff9cec983268e313e699bc01",
+      "git_blob_sha1": "94c5b7e9e98e2d349dc717ab67bb15f7d43a78cc",
       "parts": [
         {
           "volume": "core/full_reading/volumes/089.md",
           "start": 0,
-          "end": 6035,
+          "end": 6181,
           "line_start": 1,
           "line_end": 84,
           "volume_start": 119,
-          "volume_end": 6154,
-          "sha256": "7630e2f11736bbc13c33b1b64d41696b393ba1653a279dbfe296636161e4b9d5"
+          "volume_end": 6300,
+          "sha256": "22c0f9a0906c0bd18eba2fa46b85837037ddf7d7ff9cec983268e313e699bc01"
         }
       ]
     },
