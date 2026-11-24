@@ -134,48 +134,48 @@
     },
     {
       "path": "core/full_reading/volumes/026.md",
-      "bytes": 12281,
-      "sha256": "ed14768be0fe1da67921b51aed24cbabacd17c2b804ced34796d4d843e923c9f"
+      "bytes": 12283,
+      "sha256": "8ab683c31c89b296c3e67d71fcbdd767938542fe3cb000b83fdaa7e420d49372"
     },
     {
       "path": "core/full_reading/volumes/027.md",
-      "bytes": 12218,
-      "sha256": "0ea46c72940be3c8831e72ab9ea1c11222214945fdfa1dd9fedbe805fc9f5a90"
+      "bytes": 12283,
+      "sha256": "a124aeae6464059b322d17164155e4ad3b7f0ba1afda8de78aa4ce7b114d1dc1"
     },
     {
       "path": "core/full_reading/volumes/028.md",
-      "bytes": 12227,
-      "sha256": "2fbd9a2d88a1ba705fbcbe297aef7aa70905eaa681aa636323adb56756b90537"
+      "bytes": 12267,
+      "sha256": "56ff4ef9f454787f767201de0f0efe15c4e4f948c700afdf33cc088d0a090a79"
     },
     {
       "path": "core/full_reading/volumes/029.md",
-      "bytes": 12273,
-      "sha256": "c36e37f8c82dc47fa33e986f44a35357bb4b2ab89aeebcafaf3896db53f8cd9d"
+      "bytes": 12278,
+      "sha256": "2654017d52bdd2cca329640ba7e8e52bd2623cfd365ef5876c35b79e0bd7f9b3"
     },
     {
       "path": "core/full_reading/volumes/030.md",
-      "bytes": 12216,
-      "sha256": "7dd232acf7f52a2a1aa6f9a6a535f39dad9ef062caea5e708857e468666a61ef"
+      "bytes": 12223,
+      "sha256": "4eda44624b903c8842e23b4b1f02d341aace3b54c3d1686c94da6ec3e0cea510"
     },
     {
       "path": "core/full_reading/volumes/031.md",
-      "bytes": 12248,
-      "sha256": "05bb42f1175fbc6d5de1690683fe0d264fb07450286540cde3e211300de0bd51"
+      "bytes": 12209,
+      "sha256": "4f6b9a930b982650a45eb782fce96d38ec8665abd3f347e07a080b5ff04b6e73"
     },
     {
       "path": "core/full_reading/volumes/032.md",
-      "bytes": 12132,
-      "sha256": "7ddd09d5bf6f39ebfb0a067d314abf7899916e2c6a770d76abdde0fe4cde3e08"
+      "bytes": 12267,
+      "sha256": "9f16eb40d78128ae5a6c237bdd41de244f6b6a50f079dc2e7a70af853903b97a"
     },
     {
       "path": "core/full_reading/volumes/033.md",
-      "bytes": 12278,
-      "sha256": "230fc64c18ce5292d46b6f61591133ff73df0569e211d5e2eeaf1debe0bcd46c"
+      "bytes": 12248,
+      "sha256": "099c94d554b33570345337e2610a6e9c6da3d5f7fde6e5e899b024438524659d"
     },
     {
       "path": "core/full_reading/volumes/034.md",
-      "bytes": 6704,
-      "sha256": "8aa7feb3a3014d6aed8447f5655d0e523c61d51e8c85172e567b144a7e755d9c"
+      "bytes": 6991,
+      "sha256": "3b53b99b78ecaf27d7bd8efaee5c67657a7e8efda239f0c2d92440d2aead51b9"
     },
     {
       "path": "core/full_reading/volumes/035.md",
@@ -279,18 +279,18 @@
     },
     {
       "path": "core/full_reading/volumes/055.md",
-      "bytes": 12256,
-      "sha256": "887ff71407e99865bfb26fe0e7e8a5d34351478fb92208d8712ab58f2c569060"
+      "bytes": 12276,
+      "sha256": "6ca27323074fd32b2488972ec733caa32c71edb19e92480e77bb33eb174d2a42"
     },
     {
       "path": "core/full_reading/volumes/056.md",
-      "bytes": 12259,
-      "sha256": "5aab0f0ae590f3dd21166a25e4a6b055a3464926ecae9fae7c1f26957d5c6e12"
+      "bytes": 12254,
+      "sha256": "2a746142fcd201ef0756e5d718987ead33b78f6f5ae52de8fabc0e9ac2f872cd"
     },
     {
       "path": "core/full_reading/volumes/057.md",
-      "bytes": 12196,
-      "sha256": "b33836b1dee57ac6fcd465dc4bd831720f9b8c4abbe1e90b247821f7131c4e72"
+      "bytes": 12279,
+      "sha256": "cee7e341d249570cde41f59d29cfab382d4e2335bde9be14288a70d15aef4280"
     },
     {
       "path": "core/full_reading/volumes/058.md",
@@ -329,13 +329,13 @@
     },
     {
       "path": "core/full_reading/volumes/065.md",
-      "bytes": 12207,
-      "sha256": "0d88c39b13167f504d4e7f073077d16c8d9c31366af88f0f37cc252b17bae584"
+      "bytes": 12208,
+      "sha256": "13d7c04e0687bcfe0c271168544f51e2055965b63102018a8fe78ed1ac92060d"
     },
     {
       "path": "core/full_reading/volumes/066.md",
       "bytes": 12261,
-      "sha256": "1ace415ba51103cdafe02fa751db1b0e99b267993ea756f3fe37a35116767731"
+      "sha256": "de58a03d41e853fe07ddedebeb85acb752b40ba9729b9e757d8e0ae4bf98ef3a"
     },
     {
       "path": "core/full_reading/volumes/067.md",
@@ -404,251 +404,246 @@
     },
     {
       "path": "core/full_reading/volumes/080.md",
-      "bytes": 12146,
-      "sha256": "e107247b5ca502e83b15132c53f805cdb27ac8fc3b7b071fd61428905675a29f"
+      "bytes": 12245,
+      "sha256": "70c2e64a864b232cf5ad83b9ac160f4b68b4b402d0979e2961b8c331a017d60a"
     },
     {
       "path": "core/full_reading/volumes/081.md",
-      "bytes": 12187,
-      "sha256": "b07441f528968dad80825006b0761b3d1842ae4de5fe2e99475253cfb25f7039"
+      "bytes": 12069,
+      "sha256": "555d4d5ce92918b1bcba3cfcead838d111ddd0e209076cd655b122d93c7171de"
     },
     {
       "path": "core/full_reading/volumes/082.md",
-      "bytes": 12026,
-      "sha256": "4083ca88e0001b0564c2f17e00ee0d68b25192349fff8af2fd5f7bf23710c018"
+      "bytes": 12177,
+      "sha256": "e778644458e8e8e3448004d6904f9108eadb4082fab24ded1799e0a6e86dc31d"
     },
     {
       "path": "core/full_reading/volumes/083.md",
-      "bytes": 12186,
-      "sha256": "fe5d3fd6f18e2a550a1f1040d1a18f13b0d55e9c6c0be9eef64ce7d1fc4fa0c4"
+      "bytes": 12134,
+      "sha256": "1f6ad9360d7ea78a1569dfa46dde6420c4f2997b600c2edb4c0dcdbae4758b63"
     },
     {
       "path": "core/full_reading/volumes/084.md",
-      "bytes": 1722,
-      "sha256": "9187330253123b0cb65344851efc8f4265e24414373121a66d2ac50c6ebbe6f3"
+      "bytes": 11892,
+      "sha256": "9051e92439b70158b0a23b43fb87f9cbbd7ffe520e46f2d77b87b11cf785ad18"
     },
     {
       "path": "core/full_reading/volumes/085.md",
-      "bytes": 10917,
-      "sha256": "058d0e0d1d3fe31de8dfcaccd56495645b239bcdffdc4de1acee04b9fc258caa"
-    },
-    {
-      "path": "core/full_reading/volumes/086.md",
       "bytes": 9635,
       "sha256": "b3b078a61e273e8dcd28e5ee83417caafc8f216ac7370f456a7215a9a34640ef"
     },
     {
-      "path": "core/full_reading/volumes/087.md",
+      "path": "core/full_reading/volumes/086.md",
       "bytes": 9734,
       "sha256": "c43e807f52698dcef0f5257f88b434089d87a60fd00ae560e8af221c1b020d32"
     },
     {
-      "path": "core/full_reading/volumes/088.md",
+      "path": "core/full_reading/volumes/087.md",
       "bytes": 9413,
       "sha256": "e9a68a12df00be6e0ae54982c1c5b23556daee7aa4c0d879aba58db14956ad3b"
     },
     {
-      "path": "core/full_reading/volumes/089.md",
+      "path": "core/full_reading/volumes/088.md",
       "bytes": 8755,
       "sha256": "d7e5f602b53cd2b853b321a1228c81318880c18c8855e0ddf2743cf775bcf147"
     },
     {
-      "path": "core/full_reading/volumes/090.md",
+      "path": "core/full_reading/volumes/089.md",
       "bytes": 6154,
       "sha256": "781e589b99ce479b4dfb8d59cdd9fab8ccb085af0420c148b1842ac76aaae8f6"
     },
     {
-      "path": "core/full_reading/volumes/091.md",
+      "path": "core/full_reading/volumes/090.md",
       "bytes": 12088,
       "sha256": "1754091ebfd8e24490437f887317a9e27605bbfc13b718118ec1af0583ede246"
     },
     {
-      "path": "core/full_reading/volumes/092.md",
+      "path": "core/full_reading/volumes/091.md",
       "bytes": 7564,
       "sha256": "d7f6b83a54c8be2ac031caff9f0b35b726e291a827553d54172bb063b427ea16"
     },
     {
-      "path": "core/full_reading/volumes/093.md",
-      "bytes": 12106,
-      "sha256": "b8c718aa57dcfca229043601475b0c3a9344e67f1e76c5954e329da6f1779670"
+      "path": "core/full_reading/volumes/092.md",
+      "bytes": 11972,
+      "sha256": "c900cdbc5b0ec16e74deaaefc0a87d8a25693a17a3f153d871bf3d06f90ac227"
     },
     {
-      "path": "core/full_reading/volumes/094.md",
+      "path": "core/full_reading/volumes/093.md",
       "bytes": 9784,
       "sha256": "80f7b27f29f9ed615116bb89e2f59de5adbd4eb1709088465313bff195db5ea9"
     },
     {
-      "path": "core/full_reading/volumes/095.md",
+      "path": "core/full_reading/volumes/094.md",
       "bytes": 8504,
       "sha256": "abce69cdd23d6247a24f8ffa9b9c58d23e14cc0d32bf36ebadb4c98a6c0f8c61"
     },
     {
-      "path": "core/full_reading/volumes/096.md",
+      "path": "core/full_reading/volumes/095.md",
       "bytes": 9364,
       "sha256": "d317d9b176977abb357e0235f70ba8e2a3fd831c57c3b5fefe3b147477daea2c"
     },
     {
-      "path": "core/full_reading/volumes/097.md",
+      "path": "core/full_reading/volumes/096.md",
       "bytes": 11924,
       "sha256": "909d776e8d14af969bd2dcde2de9a714f3007eb2708d28e18e9a7706b078c535"
     },
     {
-      "path": "core/full_reading/volumes/098.md",
+      "path": "core/full_reading/volumes/097.md",
       "bytes": 9509,
       "sha256": "3182b5e1a6d540da26284034ec443a9aec7a9fdff3526e001ea6b5d61e8c3d9a"
     },
     {
-      "path": "core/full_reading/volumes/099.md",
+      "path": "core/full_reading/volumes/098.md",
       "bytes": 6304,
       "sha256": "ff72f529e4f2f0fcb7ab713090c942fd5bf34d041e16e99daca6082fee835661"
     },
     {
-      "path": "core/full_reading/volumes/100.md",
+      "path": "core/full_reading/volumes/099.md",
       "bytes": 8562,
       "sha256": "ac39233d0a6e3f44497aac49f729b7caac727804e2cd621487e1a15202ea1935"
     },
     {
-      "path": "core/full_reading/volumes/101.md",
+      "path": "core/full_reading/volumes/100.md",
       "bytes": 9108,
       "sha256": "77c0a3a31069c8f47170e1ec2aff15f1cf6dd3f2db812abadc0eb9505245f816"
     },
     {
-      "path": "core/full_reading/volumes/102.md",
+      "path": "core/full_reading/volumes/101.md",
       "bytes": 12248,
       "sha256": "c0e47469d4ca97c50c8f9bc020577718de3f5c56463c94d63ebe59b8ad0d6093"
     },
     {
-      "path": "core/full_reading/volumes/103.md",
+      "path": "core/full_reading/volumes/102.md",
       "bytes": 12240,
       "sha256": "a36c58b33b9544d3c67e303e71e802e41b719a95519f043f2ce23b6d4f618b5d"
     },
     {
-      "path": "core/full_reading/volumes/104.md",
+      "path": "core/full_reading/volumes/103.md",
       "bytes": 12288,
       "sha256": "f84b946145c464d3a0231ed88fa71c54e2232a8c5b05b904816762720a8fa5f5"
     },
     {
-      "path": "core/full_reading/volumes/105.md",
+      "path": "core/full_reading/volumes/104.md",
       "bytes": 12127,
       "sha256": "ec3109e690fd46b836df304c1c12120d32d902a6844fb3e64830251d03f7a17c"
     },
     {
-      "path": "core/full_reading/volumes/106.md",
+      "path": "core/full_reading/volumes/105.md",
       "bytes": 12066,
       "sha256": "1e0f60adeee000e4e979e4f5190578862241c6e6e1341ae03318ac952aec9bf7"
     },
     {
-      "path": "core/full_reading/volumes/107.md",
+      "path": "core/full_reading/volumes/106.md",
       "bytes": 9601,
       "sha256": "71528d094604552d6852f8e001d9ba0744a706c93385e9e9335c72d6d15f4930"
     },
     {
-      "path": "core/full_reading/volumes/108.md",
+      "path": "core/full_reading/volumes/107.md",
       "bytes": 11393,
       "sha256": "ffecc961ce90f6326f67463abc3db1d0b409762a0b9d5306d085df1dcc55ad49"
     },
     {
-      "path": "core/full_reading/volumes/109.md",
+      "path": "core/full_reading/volumes/108.md",
       "bytes": 10091,
       "sha256": "f070577b52aeea7595def9b405a9b92b6926f112e84cfb20ad4ff98db0a56be6"
     },
     {
-      "path": "core/full_reading/volumes/110.md",
+      "path": "core/full_reading/volumes/109.md",
       "bytes": 5610,
       "sha256": "e0ffddc9c2c7021fabdb3538b63c11456594d8ab3771ac9f98b3e2f7af045373"
     },
     {
-      "path": "core/full_reading/volumes/111.md",
+      "path": "core/full_reading/volumes/110.md",
       "bytes": 12268,
       "sha256": "f97a1a627228f44b4d12e75f67bccbaca601034a0b92eb2b5876c9ca4cce187e"
     },
     {
-      "path": "core/full_reading/volumes/112.md",
+      "path": "core/full_reading/volumes/111.md",
       "bytes": 11666,
       "sha256": "5393a7c01d3d6c84927db8b1dca5f03e5b64477bad7f9a8122f40138b3ec1713"
     },
     {
-      "path": "core/full_reading/volumes/113.md",
+      "path": "core/full_reading/volumes/112.md",
       "bytes": 12288,
       "sha256": "872f5881418472150ba704c34eb3941757ee99823783efb11eedd551f3bf8b02"
     },
     {
-      "path": "core/full_reading/volumes/114.md",
+      "path": "core/full_reading/volumes/113.md",
       "bytes": 9892,
       "sha256": "a7942c2a3a24c26185e16396ae13172544699548c3839a9ebf17d427febd8fce"
     },
     {
-      "path": "core/full_reading/volumes/115.md",
+      "path": "core/full_reading/volumes/114.md",
       "bytes": 12231,
       "sha256": "ad669cf5ec7c483121514f1877e3446632b36b66f520699b887809768d60e125"
     },
     {
-      "path": "core/full_reading/volumes/116.md",
+      "path": "core/full_reading/volumes/115.md",
       "bytes": 12282,
       "sha256": "d3d3566f14b10255e6e234f9e152ae76a363055c389ed84b6a5f7b81d87e15e7"
     },
     {
-      "path": "core/full_reading/volumes/117.md",
+      "path": "core/full_reading/volumes/116.md",
       "bytes": 8796,
       "sha256": "5f3c02c191df16c18b6c04fb0e26de0f2a27f1275173b882d74afd19fd256e5a"
     },
     {
-      "path": "core/full_reading/volumes/118.md",
+      "path": "core/full_reading/volumes/117.md",
       "bytes": 12213,
       "sha256": "decf14b1b9aad75f2c10e191d698aed54b58f672030cc2d58eb9bb621dfcf302"
     },
     {
+      "path": "core/full_reading/volumes/118.md",
+      "bytes": 12279,
+      "sha256": "e94272f60e5889130220a32c48c907a33994d522d858d4251bde3080dd8b6d91"
+    },
+    {
       "path": "core/full_reading/volumes/119.md",
-      "bytes": 12236,
-      "sha256": "8ef06d593b1a1b175f358a0c2f7792f6c56a619c6153ee13674fbc399f46329f"
+      "bytes": 12272,
+      "sha256": "300f37960eb152010847bd4c05724d49521881c00c2cefe843cef59d9979c7cc"
     },
     {
       "path": "core/full_reading/volumes/120.md",
-      "bytes": 12236,
-      "sha256": "9348ac9ae0d9bf087d8b91066eccfefda9470e6d014ff181b65e99e930fe9538"
+      "bytes": 8292,
+      "sha256": "719c77c0e480bb667ec4b1bdef7634d028afa6b90b8aac195c362ffbd58bfa07"
     },
     {
       "path": "core/full_reading/volumes/121.md",
-      "bytes": 8412,
-      "sha256": "f15ae2c9c34e48a41ff7ecabc6b808432014fa71199384184e55b9810e97c17e"
-    },
-    {
-      "path": "core/full_reading/volumes/122.md",
       "bytes": 11474,
       "sha256": "95391b746c63062be126e4c05ffaf3f7ed1d4149f5dc8df010633226a9881ddd"
     },
     {
-      "path": "core/full_reading/volumes/123.md",
+      "path": "core/full_reading/volumes/122.md",
       "bytes": 9536,
       "sha256": "3255914efb5457c3a53219f39344e1ff560be47b72f21fd97a80861220a59e50"
     },
     {
-      "path": "core/full_reading/volumes/124.md",
+      "path": "core/full_reading/volumes/123.md",
       "bytes": 12237,
       "sha256": "cbc907891cecc6ba73abb5f73a1a5cf0b8650073f25ec3458397ac2b8144c79d"
     },
     {
-      "path": "core/full_reading/volumes/125.md",
+      "path": "core/full_reading/volumes/124.md",
       "bytes": 2604,
       "sha256": "0b1a076822b1aa0833f7bb0bb64a5cdc9afeebbe055007785df52c8240bf3b17"
     },
     {
-      "path": "core/full_reading/volumes/126.md",
+      "path": "core/full_reading/volumes/125.md",
       "bytes": 10525,
       "sha256": "a4f9a5d228ab8d5e88b7f5370831fe5a9ee8cc8f75be7caeaf90a32917c0dd1f"
     },
     {
-      "path": "core/full_reading/volumes/127.md",
+      "path": "core/full_reading/volumes/126.md",
       "bytes": 11974,
       "sha256": "58015a15c1351c09508f2702042b7269b1678411a46a804a7bee56275d50b574"
     },
     {
-      "path": "core/full_reading/volumes/128.md",
+      "path": "core/full_reading/volumes/127.md",
       "bytes": 12010,
       "sha256": "6664c7041b5993a1792aae5db294316f9fa625493ec52c99f45b00faa158ca00"
     },
     {
-      "path": "core/full_reading/volumes/129.md",
+      "path": "core/full_reading/volumes/128.md",
       "bytes": 3132,
       "sha256": "c2329fb45979e5325b00c6f5ec84fc4d8177f681751c462d94265432abe529a2"
     }
@@ -1240,9 +1235,9 @@
       "path": "core/output_contract.yaml",
       "role": "contract",
       "aliases": [],
-      "bytes": 55540,
-      "sha256": "e78a4092760319cee25c94d3eb4a4fe41ea814a85395ef16d15b25d3cd15e7c9",
-      "git_blob_sha1": "c8d094a54425c0cc5255c157236a359ab9e94838",
+      "bytes": 55782,
+      "sha256": "11a647712355a29de942062fa26c09d21baa5bfe3360c79df90d34021a78be05",
+      "git_blob_sha1": "b1c94aa2814c1d0724eac3773732a682f4184de9",
       "parts": [
         {
           "volume": "core/full_reading/volumes/023.md",
@@ -1277,32 +1272,32 @@
         {
           "volume": "core/full_reading/volumes/026.md",
           "start": 30017,
-          "end": 42197,
+          "end": 42199,
           "line_start": 377,
-          "line_end": 537,
+          "line_end": 539,
           "volume_start": 101,
-          "volume_end": 12281,
-          "sha256": "2d7dafafe220a90451b23844802f473415bcc6fe6e591f2ce8bb03c1d5132cc5"
+          "volume_end": 12283,
+          "sha256": "9926a83f6fb54732045e8fe1fc691c1c453eb7a37d269efa0aafb0a6d97ad3af"
         },
         {
           "volume": "core/full_reading/volumes/027.md",
-          "start": 42197,
-          "end": 54314,
-          "line_start": 538,
-          "line_end": 625,
+          "start": 42199,
+          "end": 54381,
+          "line_start": 540,
+          "line_end": 627,
           "volume_start": 101,
-          "volume_end": 12218,
-          "sha256": "9da364bc12851d7304ca79a8cce77a7cc9a512e9f73cb7eff1fb872685f15aef"
+          "volume_end": 12283,
+          "sha256": "d8aa917afc044fa8d7b4d1416bfddbc0789819ae369067077680df4485b0efe2"
         },
         {
           "volume": "core/full_reading/volumes/028.md",
-          "start": 54314,
-          "end": 55540,
-          "line_start": 626,
-          "line_end": 634,
+          "start": 54381,
+          "end": 55782,
+          "line_start": 628,
+          "line_end": 637,
           "volume_start": 101,
-          "volume_end": 1327,
-          "sha256": "48fd37a9760001f2f8458ca255485504be042d34df1a808eb0e039700d643707"
+          "volume_end": 1502,
+          "sha256": "b2eea4957620a42a4a2fadf8f00693ffc2e9dd1ebb44eea5ccbab9e3a64d7246"
         }
       ]
     },
@@ -1310,79 +1305,79 @@
       "path": "core/project_state.schema.yaml",
       "role": "contract",
       "aliases": [],
-      "bytes": 73945,
-      "sha256": "348e981de6a66f028f742e56f9e0cd872567baf685b4f507ff62cfff435ccd73",
-      "git_blob_sha1": "f24c6d2fcb2de693da4111633f18990c1154e4b6",
+      "bytes": 74175,
+      "sha256": "5ab0e1b5897e70e2ce04d1de7f684a6003d9a97ad1e45201e734ae5360c722c1",
+      "git_blob_sha1": "6e77c803b5d67d54b4c38e50594161353e25cf13",
       "parts": [
         {
           "volume": "core/full_reading/volumes/028.md",
           "start": 0,
-          "end": 10795,
+          "end": 10660,
           "line_start": 1,
-          "line_end": 263,
-          "volume_start": 1432,
-          "volume_end": 12227,
-          "sha256": "6859dc0c1077a150ab6db5519a140ade8531c70903eb73ca7e0b7cb4e17a61ee"
+          "line_end": 258,
+          "volume_start": 1607,
+          "volume_end": 12267,
+          "sha256": "458fc839a829c37fa4f708cbe24c26b9f2417981e595db007193e7d039e5507d"
         },
         {
           "volume": "core/full_reading/volumes/029.md",
-          "start": 10795,
-          "end": 22957,
-          "line_start": 264,
-          "line_end": 645,
+          "start": 10660,
+          "end": 22827,
+          "line_start": 259,
+          "line_end": 643,
           "volume_start": 111,
-          "volume_end": 12273,
-          "sha256": "be681946886f209e017ab97c122f9a6dbff9492c1333127c6ee65a1b578d298d"
+          "volume_end": 12278,
+          "sha256": "e56cf4b28e33bdee8456bcb07950daa2fa837ad1d5823918c3412b4666b4c9fc"
         },
         {
           "volume": "core/full_reading/volumes/030.md",
-          "start": 22957,
-          "end": 35062,
-          "line_start": 646,
-          "line_end": 1091,
+          "start": 22827,
+          "end": 34939,
+          "line_start": 644,
+          "line_end": 1088,
           "volume_start": 111,
-          "volume_end": 12216,
-          "sha256": "07d52c9029ced6c99b631cf8f9548168d00f5008c5e0d337ed896e81fe6bbfdd"
+          "volume_end": 12223,
+          "sha256": "abae2a8f8bd42f90abdc38c2c1817b005bcf61e91f46739b4a73faa7334815f1"
         },
         {
           "volume": "core/full_reading/volumes/031.md",
-          "start": 35062,
-          "end": 47198,
-          "line_start": 1092,
-          "line_end": 1462,
+          "start": 34939,
+          "end": 47036,
+          "line_start": 1089,
+          "line_end": 1459,
           "volume_start": 112,
-          "volume_end": 12248,
-          "sha256": "987d097cec782b833a8420f9badfacf35cb7cc4c7033af7de412e51d1824a0e1"
+          "volume_end": 12209,
+          "sha256": "a420e9c576d93b15e881ddb961815c5cafdaf4aaac22823e369a278451bbfd4a"
         },
         {
           "volume": "core/full_reading/volumes/032.md",
-          "start": 47198,
-          "end": 59218,
-          "line_start": 1463,
-          "line_end": 1737,
+          "start": 47036,
+          "end": 59191,
+          "line_start": 1460,
+          "line_end": 1736,
           "volume_start": 112,
-          "volume_end": 12132,
-          "sha256": "375d90a67ff1f86d6e99c0f9994719cd4e8b17df76a7cf42201940d2a384975b"
+          "volume_end": 12267,
+          "sha256": "1afcc10f3f658a62c66880b1401544b58b8a92ce3067248e68ab0effe3429f70"
         },
         {
           "volume": "core/full_reading/volumes/033.md",
-          "start": 59218,
-          "end": 71384,
-          "line_start": 1738,
-          "line_end": 1987,
+          "start": 59191,
+          "end": 71327,
+          "line_start": 1737,
+          "line_end": 1984,
           "volume_start": 112,
-          "volume_end": 12278,
-          "sha256": "c49fe778faa746abb2a9e833b0fecb58caad51320f026a33998af9176a7dfbe8"
+          "volume_end": 12248,
+          "sha256": "234b68ccc8aa57e53dcfb3931f28a76c1f8cfd80e64f4c8d2edde6793aeac283"
         },
         {
           "volume": "core/full_reading/volumes/034.md",
-          "start": 71384,
-          "end": 73945,
-          "line_start": 1988,
-          "line_end": 2055,
+          "start": 71327,
+          "end": 74175,
+          "line_start": 1985,
+          "line_end": 2059,
           "volume_start": 112,
-          "volume_end": 2673,
-          "sha256": "b7221c01619edd9689866d5392e039d1a6158e1eee6644b02ca677884842c1f2"
+          "volume_end": 2960,
+          "sha256": "a9967906065b7f37d9a090ec60ed1db64b4457234bfeb0958439135f0c8d805b"
         }
       ]
     },
@@ -1400,8 +1395,8 @@
           "end": 3896,
           "line_start": 1,
           "line_end": 61,
-          "volume_start": 2808,
-          "volume_end": 6704,
+          "volume_start": 3095,
+          "volume_end": 6991,
           "sha256": "b84141fea73e1a56281d4db73d1429838146a14be70f8bb036d900fc42644d6d"
         }
       ]
@@ -1680,9 +1675,9 @@
       "path": "core/writing_reasoning_contract.yaml",
       "role": "contract",
       "aliases": [],
-      "bytes": 95550,
-      "sha256": "d34d95e774c3f61bbff8cd5c56e22e5acfe42a8202f7530c292413d5415d1b98",
-      "git_blob_sha1": "70b312b87f55cda21e1a4c97f4322a643e10a70c",
+      "bytes": 95648,
+      "sha256": "56246364a74bb8a5ec014d1882e9ae2ad12f13d183815a0f5ee6f6a9a029c2e6",
+      "git_blob_sha1": "47548cce047dc897ed15546a10f00f28d6b84b20",
       "parts": [
         {
           "volume": "core/full_reading/volumes/049.md",
@@ -1747,32 +1742,32 @@
         {
           "volume": "core/full_reading/volumes/055.md",
           "start": 69500,
-          "end": 81632,
+          "end": 81652,
           "line_start": 1213,
-          "line_end": 1427,
+          "line_end": 1429,
           "volume_start": 124,
-          "volume_end": 12256,
-          "sha256": "d210f70faeb81d76b24f36cb60c147b0a5d8a51c5a28b2f14ce525988669a2e8"
+          "volume_end": 12276,
+          "sha256": "f7e05ccdf34d80a345279516107af65a0c193dd2a224c8bd9de578c515c6b093"
         },
         {
           "volume": "core/full_reading/volumes/056.md",
-          "start": 81632,
-          "end": 93767,
-          "line_start": 1428,
-          "line_end": 1689,
+          "start": 81652,
+          "end": 93782,
+          "line_start": 1430,
+          "line_end": 1692,
           "volume_start": 124,
-          "volume_end": 12259,
-          "sha256": "cfe371b80e16dea305f511c3181fb0e20449ccd5e308c479256e02d5b27887b0"
+          "volume_end": 12254,
+          "sha256": "ce7f8a3358f4509181336013ad0d580f82b001c9a539ba547154a14f00fbe101"
         },
         {
           "volume": "core/full_reading/volumes/057.md",
-          "start": 93767,
-          "end": 95550,
-          "line_start": 1690,
-          "line_end": 1725,
+          "start": 93782,
+          "end": 95648,
+          "line_start": 1693,
+          "line_end": 1729,
           "volume_start": 124,
-          "volume_end": 1907,
-          "sha256": "1b1221d01eae2f509fa921015a5355f06f98bfa71afe684b803a843c27dfda79"
+          "volume_end": 1990,
+          "sha256": "5c233c17b9933b58f0d4b169db141843e8178e2e07cc15548f5236e7363f23ab"
         }
       ]
     },
@@ -1790,8 +1785,8 @@
           "end": 10176,
           "line_start": 1,
           "line_end": 172,
-          "volume_start": 2020,
-          "volume_end": 12196,
+          "volume_start": 2103,
+          "volume_end": 12279,
           "sha256": "7d70d71259ae0056bef459b652b1d538ce6f166d6fa995f3ba3d8dabb5e7a93b"
         },
         {
@@ -1870,9 +1865,9 @@
       "path": "modules/02_model_design.md",
       "role": "module",
       "aliases": [],
-      "bytes": 57885,
-      "sha256": "4deb0db4d7ff06c6cfc6cda0344fc25212e7cb9bbe8155b11d516c1f3c2107f4",
-      "git_blob_sha1": "c9e60426a2b7ea243c4e005fcf0eea076c36b674",
+      "bytes": 57886,
+      "sha256": "ca5c299e4cbeea9caff80fbbaba2e3711262081ffe258ef5ca51e0ee7fcaf306",
+      "git_blob_sha1": "f5a9b1d7bd370b578e8a15fe2630e6a8e074dec0",
       "parts": [
         {
           "volume": "core/full_reading/volumes/061.md",
@@ -1917,19 +1912,19 @@
         {
           "volume": "core/full_reading/volumes/065.md",
           "start": 41392,
-          "end": 53498,
+          "end": 53499,
           "line_start": 577,
-          "line_end": 689,
+          "line_end": 685,
           "volume_start": 101,
-          "volume_end": 12207,
-          "sha256": "d565ff541d93fc604e16892890916aae77ef6929c5ce6e1a2495e24238a8542a"
+          "volume_end": 12208,
+          "sha256": "13ba1d8d6307e1a1cff422b52456df7eec25af8020c0e59ac2f4a023a24b46f7"
         },
         {
           "volume": "core/full_reading/volumes/066.md",
-          "start": 53498,
-          "end": 57885,
-          "line_start": 690,
-          "line_end": 719,
+          "start": 53499,
+          "end": 57886,
+          "line_start": 686,
+          "line_end": 715,
           "volume_start": 101,
           "volume_end": 4488,
           "sha256": "5bedad7fb6966ba467ee104c90d0c307eb2b2dd42a448617134667b6faa91244"
@@ -2170,9 +2165,9 @@
       "path": "modules/05_writing/paper_writing_protocol.md",
       "role": "module",
       "aliases": [],
-      "bytes": 77470,
-      "sha256": "ec5e1b95336dd6fc72114a2e2a62c5c96f2f2bbec48533c353adec158693e2a8",
-      "git_blob_sha1": "248afe31c17f91bc3f93d1c572cdfaa33390cb9d",
+      "bytes": 76803,
+      "sha256": "09994c876bc02cacd320d6898429eb95e4e2c095cb2900739dc815ab8deb0094",
+      "git_blob_sha1": "73f2f21099227ac79f4b8792e9a9f21ba5c5c699",
       "parts": [
         {
           "volume": "core/full_reading/volumes/077.md",
@@ -2207,52 +2202,52 @@
         {
           "volume": "core/full_reading/volumes/080.md",
           "start": 27888,
-          "end": 39897,
+          "end": 39996,
           "line_start": 299,
-          "line_end": 406,
+          "line_end": 408,
           "volume_start": 137,
-          "volume_end": 12146,
-          "sha256": "ab2c3b9636854714f47f100b69b2061741f87f6bc42f6cef0885d69d3aa366ab"
+          "volume_end": 12245,
+          "sha256": "efea6924777c142912d760467c9568ae7385ea3143e9e76b14ecd339f74ed067"
         },
         {
           "volume": "core/full_reading/volumes/081.md",
-          "start": 39897,
-          "end": 51947,
-          "line_start": 407,
+          "start": 39996,
+          "end": 51928,
+          "line_start": 409,
           "line_end": 534,
           "volume_start": 137,
-          "volume_end": 12187,
-          "sha256": "a1f0b9709498065fa41726170895d476cd5609aa7c8f57e194e84315ae5289b4"
+          "volume_end": 12069,
+          "sha256": "d7781764f109fd7be77e364d55a2a92529f8bfddb76a618be5ff257131c5b478"
         },
         {
           "volume": "core/full_reading/volumes/082.md",
-          "start": 51947,
-          "end": 63836,
+          "start": 51928,
+          "end": 63968,
           "line_start": 535,
           "line_end": 636,
           "volume_start": 137,
-          "volume_end": 12026,
-          "sha256": "417cd3b908f9a150178f4e8acbc4bcf158019cef08b5ad8b6f438ca1f9eddb51"
+          "volume_end": 12177,
+          "sha256": "cee947f128fc6c064b9858a2f7a1a0a9730aaacfda4270631284fedd05c5587c"
         },
         {
           "volume": "core/full_reading/volumes/083.md",
-          "start": 63836,
-          "end": 75885,
+          "start": 63968,
+          "end": 75965,
           "line_start": 637,
           "line_end": 756,
           "volume_start": 137,
-          "volume_end": 12186,
-          "sha256": "fa8c2e1de1ab1bc07f86121dadb4ad25577a2808dd565e222568ebeacfc036d0"
+          "volume_end": 12134,
+          "sha256": "9923bb0f75f4fd3c11e32eba1b9ef506e0180927044c7c3da5a329702d827141"
         },
         {
           "volume": "core/full_reading/volumes/084.md",
-          "start": 75885,
-          "end": 77470,
+          "start": 75965,
+          "end": 76803,
           "line_start": 757,
-          "line_end": 767,
+          "line_end": 763,
           "volume_start": 137,
-          "volume_end": 1722,
-          "sha256": "8b2f353b2a93e32e5989bf5c75148a369ccb7dbbfe82679e2e68bfcdf7fa30aa"
+          "volume_end": 975,
+          "sha256": "67a4b21145d9d583930602bebdb4d7a4e5dccff9a56ca8ca8d51a3c78f1b4c2e"
         }
       ]
     },
@@ -2265,13 +2260,13 @@
       "git_blob_sha1": "14e566d0283eacfa64b6bc6c9d0bd6ea98fb284f",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/085.md",
+          "volume": "core/full_reading/volumes/084.md",
           "start": 0,
           "end": 10804,
           "line_start": 1,
           "line_end": 110,
-          "volume_start": 113,
-          "volume_end": 10917,
+          "volume_start": 1088,
+          "volume_end": 11892,
           "sha256": "2910db96b2207e6fe4f568bee52e47149efddd8a24b74ea6862c2e48454fb111"
         }
       ]
@@ -2285,7 +2280,7 @@
       "git_blob_sha1": "fc850063686e6bee371a0943d8f8a8642335fc26",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/086.md",
+          "volume": "core/full_reading/volumes/085.md",
           "start": 0,
           "end": 2947,
           "line_start": 1,
@@ -2305,7 +2300,7 @@
       "git_blob_sha1": "4fa6e9f1c777de1998595fb59c52459a349023b2",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/086.md",
+          "volume": "core/full_reading/volumes/085.md",
           "start": 0,
           "end": 6474,
           "line_start": 1,
@@ -2325,7 +2320,7 @@
       "git_blob_sha1": "2db23cf485e66d5325fea67e98d19910810505df",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/087.md",
+          "volume": "core/full_reading/volumes/086.md",
           "start": 0,
           "end": 9617,
           "line_start": 1,
@@ -2345,7 +2340,7 @@
       "git_blob_sha1": "966d0ccce089bc4e94115c1e6af1f058f5653f32",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/088.md",
+          "volume": "core/full_reading/volumes/087.md",
           "start": 0,
           "end": 2524,
           "line_start": 1,
@@ -2365,7 +2360,7 @@
       "git_blob_sha1": "756f548860a034dd1ff6de8eee34ae0c9e135edc",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/088.md",
+          "volume": "core/full_reading/volumes/087.md",
           "start": 0,
           "end": 3821,
           "line_start": 1,
@@ -2385,7 +2380,7 @@
       "git_blob_sha1": "16c690fc2698ce4044b2ecf18c2712e184f223d7",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/088.md",
+          "volume": "core/full_reading/volumes/087.md",
           "start": 0,
           "end": 2743,
           "line_start": 1,
@@ -2405,7 +2400,7 @@
       "git_blob_sha1": "f4e29d3eb0c9c911a089a5fb3e012bd349fa3e5c",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/089.md",
+          "volume": "core/full_reading/volumes/088.md",
           "start": 0,
           "end": 8654,
           "line_start": 1,
@@ -2425,7 +2420,7 @@
       "git_blob_sha1": "bdb1ad994ff07e8d198e686b3d770ab5ecf422da",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/090.md",
+          "volume": "core/full_reading/volumes/089.md",
           "start": 0,
           "end": 6035,
           "line_start": 1,
@@ -2445,7 +2440,7 @@
       "git_blob_sha1": "653a80beec227bd4e52786dad2e50cffa27b25b9",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/091.md",
+          "volume": "core/full_reading/volumes/090.md",
           "start": 0,
           "end": 11989,
           "line_start": 1,
@@ -2465,7 +2460,7 @@
       "git_blob_sha1": "bade42cfea26be997c9e69cd50829a47125b836f",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/092.md",
+          "volume": "core/full_reading/volumes/091.md",
           "start": 0,
           "end": 7437,
           "line_start": 1,
@@ -2480,19 +2475,19 @@
       "path": "packs/artifact/proposition_proof.md",
       "role": "conditional_pack",
       "aliases": [],
-      "bytes": 6124,
-      "sha256": "4cd57dad8303750c99b0e2e53c06f3ef8dde2432e431120fefa5ebf3fe90a91a",
-      "git_blob_sha1": "187cf4626294857a8e89351cf335a15bd0bbf1f8",
+      "bytes": 5990,
+      "sha256": "4ec2ee9345a254ebae2a2b489d3df80563ba172cc46349b7669cddccf1c8e7dd",
+      "git_blob_sha1": "11d472eaf5b6ffdaad04af730d49e4f265a47cf8",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/093.md",
+          "volume": "core/full_reading/volumes/092.md",
           "start": 0,
-          "end": 6124,
+          "end": 5990,
           "line_start": 1,
           "line_end": 111,
           "volume_start": 123,
-          "volume_end": 6247,
-          "sha256": "4cd57dad8303750c99b0e2e53c06f3ef8dde2432e431120fefa5ebf3fe90a91a"
+          "volume_end": 6113,
+          "sha256": "4ec2ee9345a254ebae2a2b489d3df80563ba172cc46349b7669cddccf1c8e7dd"
         }
       ]
     },
@@ -2505,13 +2500,13 @@
       "git_blob_sha1": "47cd9a171be2d504fe17c82ff964d1a24cfebacc",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/093.md",
+          "volume": "core/full_reading/volumes/092.md",
           "start": 0,
           "end": 4397,
           "line_start": 1,
           "line_end": 37,
-          "volume_start": 6348,
-          "volume_end": 10745,
+          "volume_start": 6214,
+          "volume_end": 10611,
           "sha256": "3b54a34d7b86ba4f6f86d225b65a99faa0bbbff8a8fab93b7aa32db0e7fbdc34"
         }
       ]
@@ -2525,13 +2520,13 @@
       "git_blob_sha1": "2483071296c18e712394487d9d359f97b9506559",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/093.md",
+          "volume": "core/full_reading/volumes/092.md",
           "start": 0,
           "end": 868,
           "line_start": 1,
           "line_end": 12,
-          "volume_start": 10848,
-          "volume_end": 11716,
+          "volume_start": 10714,
+          "volume_end": 11582,
           "sha256": "5b1bab20437f1ae9dc328812801ddf688c69c7c38829e9f2f6805fdd060f8baf"
         }
       ]
@@ -2545,13 +2540,13 @@
       "git_blob_sha1": "5d0596d769cc2c41a6ff6ea5bc22a6ba0bc8dc3f",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/093.md",
+          "volume": "core/full_reading/volumes/092.md",
           "start": 0,
           "end": 261,
           "line_start": 1,
           "line_end": 5,
-          "volume_start": 11845,
-          "volume_end": 12106,
+          "volume_start": 11711,
+          "volume_end": 11972,
           "sha256": "5da9ae8e8b0f62de74f285869c2c71d87493e69497c03a22b1f11a746fff3434"
         }
       ]
@@ -2565,7 +2560,7 @@
       "git_blob_sha1": "c934e6c975e0a6b50e65ed4096de255365ff340c",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/094.md",
+          "volume": "core/full_reading/volumes/093.md",
           "start": 0,
           "end": 576,
           "line_start": 1,
@@ -2585,7 +2580,7 @@
       "git_blob_sha1": "78e66cb26af82b9b053969ed8246448abed429fc",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/094.md",
+          "volume": "core/full_reading/volumes/093.md",
           "start": 0,
           "end": 293,
           "line_start": 1,
@@ -2605,7 +2600,7 @@
       "git_blob_sha1": "1d511043d45e317a17ae306682f3718626d2849f",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/094.md",
+          "volume": "core/full_reading/volumes/093.md",
           "start": 0,
           "end": 360,
           "line_start": 1,
@@ -2625,7 +2620,7 @@
       "git_blob_sha1": "80ff7c5121a06725a146d883ecfc1ee1688dda19",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/094.md",
+          "volume": "core/full_reading/volumes/093.md",
           "start": 0,
           "end": 4295,
           "line_start": 1,
@@ -2645,7 +2640,7 @@
       "git_blob_sha1": "14f5cba2f140ebcef3976a5a1654389bce09066f",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/094.md",
+          "volume": "core/full_reading/volumes/093.md",
           "start": 0,
           "end": 3713,
           "line_start": 1,
@@ -2665,7 +2660,7 @@
       "git_blob_sha1": "a88fba5f8aa29ddefa56d4df0a11702fe2049d94",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/095.md",
+          "volume": "core/full_reading/volumes/094.md",
           "start": 0,
           "end": 2690,
           "line_start": 1,
@@ -2685,7 +2680,7 @@
       "git_blob_sha1": "4791ed94fa00bb0f5944a2ca9d14dd4f4a1c2ef8",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/095.md",
+          "volume": "core/full_reading/volumes/094.md",
           "start": 0,
           "end": 2748,
           "line_start": 1,
@@ -2705,7 +2700,7 @@
       "git_blob_sha1": "8180ae5ddd4624e957af779d9473709533aee027",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/095.md",
+          "volume": "core/full_reading/volumes/094.md",
           "start": 0,
           "end": 2751,
           "line_start": 1,
@@ -2725,7 +2720,7 @@
       "git_blob_sha1": "f134ada2d1486649f64ea987c28e6b9ac112b766",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/096.md",
+          "volume": "core/full_reading/volumes/095.md",
           "start": 0,
           "end": 9265,
           "line_start": 1,
@@ -2745,7 +2740,7 @@
       "git_blob_sha1": "cf9a90e8fae762385d74f4b167cfc6cd0745a9bc",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/097.md",
+          "volume": "core/full_reading/volumes/096.md",
           "start": 0,
           "end": 11819,
           "line_start": 1,
@@ -2765,7 +2760,7 @@
       "git_blob_sha1": "2bcba7261b69226308a463105bff797276f1303d",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/098.md",
+          "volume": "core/full_reading/volumes/097.md",
           "start": 0,
           "end": 3382,
           "line_start": 1,
@@ -2785,7 +2780,7 @@
       "git_blob_sha1": "9641867b4e01b04f819023eb75ef941c5630f18d",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/098.md",
+          "volume": "core/full_reading/volumes/097.md",
           "start": 0,
           "end": 2886,
           "line_start": 1,
@@ -2805,7 +2800,7 @@
       "git_blob_sha1": "3a1e48ba24d54cba0c48bf0846723a4a5e404bc0",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/098.md",
+          "volume": "core/full_reading/volumes/097.md",
           "start": 0,
           "end": 2938,
           "line_start": 1,
@@ -2825,7 +2820,7 @@
       "git_blob_sha1": "9023b25daf2780aa782ec72c1ddd2ce7d0c7c0a3",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/099.md",
+          "volume": "core/full_reading/volumes/098.md",
           "start": 0,
           "end": 2853,
           "line_start": 1,
@@ -2845,7 +2840,7 @@
       "git_blob_sha1": "738a1ef0ff6a831b2dd23ebf4be7c82653fa8618",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/099.md",
+          "volume": "core/full_reading/volumes/098.md",
           "start": 0,
           "end": 3249,
           "line_start": 1,
@@ -2865,7 +2860,7 @@
       "git_blob_sha1": "8eba5f467b9aa1b140abc7bd2556661d6070cafc",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/100.md",
+          "volume": "core/full_reading/volumes/099.md",
           "start": 0,
           "end": 8431,
           "line_start": 1,
@@ -2885,7 +2880,7 @@
       "git_blob_sha1": "941d00abe2f551d0e8fbb0119eb684d6ce4e7bd5",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/101.md",
+          "volume": "core/full_reading/volumes/100.md",
           "start": 0,
           "end": 8989,
           "line_start": 1,
@@ -2905,7 +2900,7 @@
       "git_blob_sha1": "603adb5a7f97b2c333e4843aa830f9a583406e70",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/102.md",
+          "volume": "core/full_reading/volumes/101.md",
           "start": 0,
           "end": 12127,
           "line_start": 1,
@@ -2925,7 +2920,7 @@
       "git_blob_sha1": "8b87b79d55e23f1b581c1ceca9e4d609fd11ba26",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/103.md",
+          "volume": "core/full_reading/volumes/102.md",
           "start": 0,
           "end": 12113,
           "line_start": 1,
@@ -2935,7 +2930,7 @@
           "sha256": "cf5844d6dde8b66b55cd84aaf712553a83552286368d110a72d679c5b7ce42a4"
         },
         {
-          "volume": "core/full_reading/volumes/104.md",
+          "volume": "core/full_reading/volumes/103.md",
           "start": 12113,
           "end": 13190,
           "line_start": 119,
@@ -2955,7 +2950,7 @@
       "git_blob_sha1": "fa9db83323c4dcbe430e8afdca82df806e3db9de",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/104.md",
+          "volume": "core/full_reading/volumes/103.md",
           "start": 0,
           "end": 10927,
           "line_start": 1,
@@ -2965,7 +2960,7 @@
           "sha256": "6e17a7a55f2243182a7387666a61d9b41e9dc21d82ed20dea3d1a6bb6d651de0"
         },
         {
-          "volume": "core/full_reading/volumes/105.md",
+          "volume": "core/full_reading/volumes/104.md",
           "start": 10927,
           "end": 22897,
           "line_start": 221,
@@ -2975,7 +2970,7 @@
           "sha256": "c287f3327b1f02fbbe65647b34c4d06d873bddbeca187981568c75aa2bb87786"
         },
         {
-          "volume": "core/full_reading/volumes/106.md",
+          "volume": "core/full_reading/volumes/105.md",
           "start": 22897,
           "end": 34806,
           "line_start": 404,
@@ -2995,7 +2990,7 @@
       "git_blob_sha1": "a1bf12f47274d46cdfa9815431d3c9f67e78bccb",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/107.md",
+          "volume": "core/full_reading/volumes/106.md",
           "start": 0,
           "end": 3625,
           "line_start": 1,
@@ -3015,7 +3010,7 @@
       "git_blob_sha1": "71a6f74c4e553d3792fa7bab609c672d2e38d4d8",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/107.md",
+          "volume": "core/full_reading/volumes/106.md",
           "start": 0,
           "end": 3028,
           "line_start": 1,
@@ -3035,7 +3030,7 @@
       "git_blob_sha1": "b19797170767aa431bf78cb7b685e978def2e851",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/107.md",
+          "volume": "core/full_reading/volumes/106.md",
           "start": 0,
           "end": 2559,
           "line_start": 1,
@@ -3055,7 +3050,7 @@
       "git_blob_sha1": "e103d544599e8d0e744e22ff6921583c91bb9fa4",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/108.md",
+          "volume": "core/full_reading/volumes/107.md",
           "start": 0,
           "end": 9990,
           "line_start": 1,
@@ -3075,7 +3070,7 @@
       "git_blob_sha1": "29abc180d1f0337dedaa8623848833c9645ccd56",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/108.md",
+          "volume": "core/full_reading/volumes/107.md",
           "start": 0,
           "end": 1113,
           "line_start": 1,
@@ -3095,7 +3090,7 @@
       "git_blob_sha1": "91cf13db43c3ac9ed98fd812f6eff79f30a29663",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/109.md",
+          "volume": "core/full_reading/volumes/108.md",
           "start": 0,
           "end": 2537,
           "line_start": 1,
@@ -3115,7 +3110,7 @@
       "git_blob_sha1": "d2ef9ed915eb8d526594fde4411fdb85dd4844bf",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/109.md",
+          "volume": "core/full_reading/volumes/108.md",
           "start": 0,
           "end": 2571,
           "line_start": 1,
@@ -3135,7 +3130,7 @@
       "git_blob_sha1": "8dc8e85202dbe6d90f9f18dc02b6c5da62ed0873",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/109.md",
+          "volume": "core/full_reading/volumes/108.md",
           "start": 0,
           "end": 4574,
           "line_start": 1,
@@ -3155,7 +3150,7 @@
       "git_blob_sha1": "f7e2321f30a1e570b0cbbcfba31fffd93872a70b",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/110.md",
+          "volume": "core/full_reading/volumes/109.md",
           "start": 0,
           "end": 5481,
           "line_start": 1,
@@ -3175,7 +3170,7 @@
       "git_blob_sha1": "2455152824be63dc487c6ed079914f3d9f7a06ed",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/111.md",
+          "volume": "core/full_reading/volumes/110.md",
           "start": 0,
           "end": 11349,
           "line_start": 1,
@@ -3195,7 +3190,7 @@
       "git_blob_sha1": "284f842698a5ad37e0bf589632679932a6200a0d",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/111.md",
+          "volume": "core/full_reading/volumes/110.md",
           "start": 0,
           "end": 633,
           "line_start": 1,
@@ -3215,7 +3210,7 @@
       "git_blob_sha1": "c262de87f002d8ef78679df8ddb66ebb54c60f08",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/112.md",
+          "volume": "core/full_reading/volumes/111.md",
           "start": 0,
           "end": 162,
           "line_start": 1,
@@ -3235,7 +3230,7 @@
       "git_blob_sha1": "f852289084205f42409f451722a3bd7f658fa290",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/112.md",
+          "volume": "core/full_reading/volumes/111.md",
           "start": 0,
           "end": 528,
           "line_start": 1,
@@ -3255,7 +3250,7 @@
       "git_blob_sha1": "787e4944857757fd9cf261654aa736441c1ef453",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/112.md",
+          "volume": "core/full_reading/volumes/111.md",
           "start": 0,
           "end": 1770,
           "line_start": 1,
@@ -3275,7 +3270,7 @@
       "git_blob_sha1": "c123557d52d4a766bc1f94b08fb2e62f2bf12b65",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/112.md",
+          "volume": "core/full_reading/volumes/111.md",
           "start": 0,
           "end": 680,
           "line_start": 1,
@@ -3295,7 +3290,7 @@
       "git_blob_sha1": "291ea4dd8105cad26db31c8166b14435a449521c",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/112.md",
+          "volume": "core/full_reading/volumes/111.md",
           "start": 0,
           "end": 2099,
           "line_start": 1,
@@ -3315,7 +3310,7 @@
       "git_blob_sha1": "774d24be7e00684e6e4174dba6ae77705be6de14",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/112.md",
+          "volume": "core/full_reading/volumes/111.md",
           "start": 0,
           "end": 741,
           "line_start": 1,
@@ -3335,7 +3330,7 @@
       "git_blob_sha1": "48d8af90815d5d3000fc367ec6ea3f343c310290",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/112.md",
+          "volume": "core/full_reading/volumes/111.md",
           "start": 0,
           "end": 1164,
           "line_start": 1,
@@ -3355,7 +3350,7 @@
       "git_blob_sha1": "c74279d3a648240c8e8921dfdc16d53691b43cbc",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/112.md",
+          "volume": "core/full_reading/volumes/111.md",
           "start": 0,
           "end": 282,
           "line_start": 1,
@@ -3375,7 +3370,7 @@
       "git_blob_sha1": "9b9af80db9edf36ead7af8be4d9dddacb665e57e",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/112.md",
+          "volume": "core/full_reading/volumes/111.md",
           "start": 0,
           "end": 591,
           "line_start": 1,
@@ -3395,7 +3390,7 @@
       "git_blob_sha1": "ebc35787aa0c64684b9cc978b4bc9d8e22261c07",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/112.md",
+          "volume": "core/full_reading/volumes/111.md",
           "start": 0,
           "end": 502,
           "line_start": 1,
@@ -3415,7 +3410,7 @@
       "git_blob_sha1": "51dd3007ed27c63a3605d0ab1c0c84843fb67c94",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/112.md",
+          "volume": "core/full_reading/volumes/111.md",
           "start": 0,
           "end": 1426,
           "line_start": 1,
@@ -3435,7 +3430,7 @@
       "git_blob_sha1": "867e4b6bd51551222ab0466ad8ea3b86cb9e6dc0",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/113.md",
+          "volume": "core/full_reading/volumes/112.md",
           "start": 0,
           "end": 2885,
           "line_start": 1,
@@ -3455,7 +3450,7 @@
       "git_blob_sha1": "8b63113efe591bcf7464dd9768f20f216d04ad4b",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/113.md",
+          "volume": "core/full_reading/volumes/112.md",
           "start": 0,
           "end": 1775,
           "line_start": 1,
@@ -3475,7 +3470,7 @@
       "git_blob_sha1": "449a1a7acea3a40ed48d0e74950affab9bbe77f2",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/113.md",
+          "volume": "core/full_reading/volumes/112.md",
           "start": 0,
           "end": 1353,
           "line_start": 1,
@@ -3495,7 +3490,7 @@
       "git_blob_sha1": "1b53bde3f9c8ae37e3fe1837073806aa5058ead1",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/113.md",
+          "volume": "core/full_reading/volumes/112.md",
           "start": 0,
           "end": 871,
           "line_start": 1,
@@ -3515,7 +3510,7 @@
       "git_blob_sha1": "2fa490ff062538e0a3a235a272072c2903e3761d",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/113.md",
+          "volume": "core/full_reading/volumes/112.md",
           "start": 0,
           "end": 700,
           "line_start": 1,
@@ -3535,7 +3530,7 @@
       "git_blob_sha1": "1acf4ce261e804afee52d350e3cd59ca8cd835c8",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/113.md",
+          "volume": "core/full_reading/volumes/112.md",
           "start": 0,
           "end": 3738,
           "line_start": 1,
@@ -3545,7 +3540,7 @@
           "sha256": "4120fb8fdeb0d0e92e683f8f6cd548904ccbd4b1e0621871a4999d7350c17bcb"
         },
         {
-          "volume": "core/full_reading/volumes/114.md",
+          "volume": "core/full_reading/volumes/113.md",
           "start": 3738,
           "end": 13473,
           "line_start": 88,
@@ -3565,7 +3560,7 @@
       "git_blob_sha1": "fa6031c384e5c928d541bd6ef4c4917fe669fcc9",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/115.md",
+          "volume": "core/full_reading/volumes/114.md",
           "start": 0,
           "end": 3336,
           "line_start": 1,
@@ -3585,7 +3580,7 @@
       "git_blob_sha1": "3e5526b4ba9879becde917ad46bd4432bb39c7e3",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/115.md",
+          "volume": "core/full_reading/volumes/114.md",
           "start": 0,
           "end": 4699,
           "line_start": 1,
@@ -3605,7 +3600,7 @@
       "git_blob_sha1": "1cb16a1091e69153a5bfdab86dcdd5aa416c73e6",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/115.md",
+          "volume": "core/full_reading/volumes/114.md",
           "start": 0,
           "end": 3851,
           "line_start": 1,
@@ -3615,7 +3610,7 @@
           "sha256": "b1d08b8186b06067232322b40581c29717457888f35eff38dea23264b63027a7"
         },
         {
-          "volume": "core/full_reading/volumes/116.md",
+          "volume": "core/full_reading/volumes/115.md",
           "start": 3851,
           "end": 16020,
           "line_start": 42,
@@ -3625,7 +3620,7 @@
           "sha256": "8cee2eaeda49b8bb4e32dc623b000e3c12adf45a6311d3e33b34f19bc8f91ed8"
         },
         {
-          "volume": "core/full_reading/volumes/117.md",
+          "volume": "core/full_reading/volumes/116.md",
           "start": 16020,
           "end": 23762,
           "line_start": 179,
@@ -3645,7 +3640,7 @@
       "git_blob_sha1": "d0055a8d542489f3f9aacfc7a8d55a3652d2d31b",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/117.md",
+          "volume": "core/full_reading/volumes/116.md",
           "start": 0,
           "end": 384,
           "line_start": 1,
@@ -3665,7 +3660,7 @@
       "git_blob_sha1": "9f6299bb3d66bf2afca176415408559fc8dc772b",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/117.md",
+          "volume": "core/full_reading/volumes/116.md",
           "start": 0,
           "end": 293,
           "line_start": 1,
@@ -3685,7 +3680,7 @@
       "git_blob_sha1": "9e6ce53aba208106093d9aebb9996cae16b3f6a5",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/118.md",
+          "volume": "core/full_reading/volumes/117.md",
           "start": 0,
           "end": 3546,
           "line_start": 1,
@@ -3705,7 +3700,7 @@
       "git_blob_sha1": "cd13111cdba2a62e444e599c0a31b0db162b5138",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/118.md",
+          "volume": "core/full_reading/volumes/117.md",
           "start": 0,
           "end": 1767,
           "line_start": 1,
@@ -3720,12 +3715,12 @@
       "path": "templates/model/model_paper_framework.md",
       "role": "conditional_template",
       "aliases": [],
-      "bytes": 38402,
-      "sha256": "694ee6221852e8bf2562b62e94c9bb4bc798d0ef252a8b13dc99705c930ed779",
-      "git_blob_sha1": "4e162e85b1010e1767a68bfdd66c4406eb09e903",
+      "bytes": 38361,
+      "sha256": "74a7dc36671accc6a7633424bb817a3b1c55ea73001fd188406b46e8b64d7198",
+      "git_blob_sha1": "553b5b434fd5702195cb04db5f9c13036cb44344",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/118.md",
+          "volume": "core/full_reading/volumes/117.md",
           "start": 0,
           "end": 6489,
           "line_start": 1,
@@ -3735,34 +3730,34 @@
           "sha256": "5b7bb9b3e6aa2ecdce118b175cfa2a3c7b31c4d0f097641319b272477f1d7b38"
         },
         {
-          "volume": "core/full_reading/volumes/119.md",
+          "volume": "core/full_reading/volumes/118.md",
           "start": 6489,
-          "end": 18583,
+          "end": 18626,
           "line_start": 143,
-          "line_end": 361,
+          "line_end": 360,
           "volume_start": 142,
-          "volume_end": 12236,
-          "sha256": "989de7f96c70affbd20d1afc5e8be8ebc0b61859a56debf1ead3aff57e4b13af"
+          "volume_end": 12279,
+          "sha256": "48ed43c37aaa1af8e0eef6c77af8e37b19920c2b39cb007972a774639eba4db5"
+        },
+        {
+          "volume": "core/full_reading/volumes/119.md",
+          "start": 18626,
+          "end": 30755,
+          "line_start": 361,
+          "line_end": 570,
+          "volume_start": 143,
+          "volume_end": 12272,
+          "sha256": "008d085d8d9d2e3b0038f7a490485c123636efea7f8dc01c032dd180256a506a"
         },
         {
           "volume": "core/full_reading/volumes/120.md",
-          "start": 18583,
-          "end": 30676,
-          "line_start": 362,
-          "line_end": 570,
-          "volume_start": 143,
-          "volume_end": 12236,
-          "sha256": "c3a8105349ad1917c26f38d8ac43ce4cee8e6bdfaaef5fda631e332a542bd72b"
-        },
-        {
-          "volume": "core/full_reading/volumes/121.md",
-          "start": 30676,
-          "end": 38402,
+          "start": 30755,
+          "end": 38361,
           "line_start": 571,
-          "line_end": 653,
+          "line_end": 651,
           "volume_start": 143,
-          "volume_end": 7869,
-          "sha256": "91e1dff9c3b5770fcbff2ffe41f9b22e6e2089b242870c09ac80c8a4a401195a"
+          "volume_end": 7749,
+          "sha256": "3f0489dca2dd648283f564446d7353809f3a425264cd6a38e746eef3f332d987"
         }
       ]
     },
@@ -3775,13 +3770,13 @@
       "git_blob_sha1": "0177587d190448fc60e843d93d6de1249e174539",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/121.md",
+          "volume": "core/full_reading/volumes/120.md",
           "start": 0,
           "end": 420,
           "line_start": 1,
           "line_end": 11,
-          "volume_start": 7992,
-          "volume_end": 8412,
+          "volume_start": 7872,
+          "volume_end": 8292,
           "sha256": "ec4cba471fd72a4a8a60912f9cb647b0db789f0f2b0c809daf072c90c5999dd8"
         }
       ]
@@ -3795,7 +3790,7 @@
       "git_blob_sha1": "87bcb970fed93339e437ef3c7cf47c5585894267",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/122.md",
+          "volume": "core/full_reading/volumes/121.md",
           "start": 0,
           "end": 6739,
           "line_start": 1,
@@ -3815,7 +3810,7 @@
       "git_blob_sha1": "ce5c23914b84fe3b8d7247623c26a8e0a66ac2b2",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/122.md",
+          "volume": "core/full_reading/volumes/121.md",
           "start": 0,
           "end": 684,
           "line_start": 1,
@@ -3835,7 +3830,7 @@
       "git_blob_sha1": "29e31a79bad99c6199eb94d14ee16fc207a8d483",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/122.md",
+          "volume": "core/full_reading/volumes/121.md",
           "start": 0,
           "end": 1804,
           "line_start": 1,
@@ -3855,7 +3850,7 @@
       "git_blob_sha1": "67ff99b40a575cfc51d000cf4c8e9d8f0c93141f",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/122.md",
+          "volume": "core/full_reading/volumes/121.md",
           "start": 0,
           "end": 860,
           "line_start": 1,
@@ -3875,7 +3870,7 @@
       "git_blob_sha1": "3f8feb80a6caa53eabb5c94174bfbaf935cf90b7",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/122.md",
+          "volume": "core/full_reading/volumes/121.md",
           "start": 0,
           "end": 736,
           "line_start": 1,
@@ -3895,7 +3890,7 @@
       "git_blob_sha1": "9699bc2d0b430b51afc569ef4e8487962951b4a4",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/123.md",
+          "volume": "core/full_reading/volumes/122.md",
           "start": 0,
           "end": 3760,
           "line_start": 1,
@@ -3915,7 +3910,7 @@
       "git_blob_sha1": "50e150fd1f8c3062d543ed1f98c7941d11bb0a28",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/123.md",
+          "volume": "core/full_reading/volumes/122.md",
           "start": 0,
           "end": 4182,
           "line_start": 1,
@@ -3935,7 +3930,7 @@
       "git_blob_sha1": "616992015f0287b79353ef286148c6044667ec43",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/123.md",
+          "volume": "core/full_reading/volumes/122.md",
           "start": 0,
           "end": 1185,
           "line_start": 1,
@@ -3955,7 +3950,7 @@
       "git_blob_sha1": "356e015d68f7201f9c9dab8cf380c752dc90b1cb",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/124.md",
+          "volume": "core/full_reading/volumes/123.md",
           "start": 0,
           "end": 3180,
           "line_start": 1,
@@ -3975,7 +3970,7 @@
       "git_blob_sha1": "3ebfb5575a4b8176cabecfaafed97bd67656f483",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/124.md",
+          "volume": "core/full_reading/volumes/123.md",
           "start": 0,
           "end": 8779,
           "line_start": 1,
@@ -3995,7 +3990,7 @@
       "git_blob_sha1": "b33a7ee329d04d0451258a3c0559153778cacb5d",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/125.md",
+          "volume": "core/full_reading/volumes/124.md",
           "start": 0,
           "end": 2455,
           "line_start": 1,
@@ -4015,7 +4010,7 @@
       "git_blob_sha1": "cbf903a0dfe45e9fb4998f4ec00ad08da07b3691",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/126.md",
+          "volume": "core/full_reading/volumes/125.md",
           "start": 0,
           "end": 10406,
           "line_start": 1,
@@ -4035,7 +4030,7 @@
       "git_blob_sha1": "d6212a5a60e17a2f2c14914aa3ccaf6f27c6c572",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/127.md",
+          "volume": "core/full_reading/volumes/126.md",
           "start": 0,
           "end": 7990,
           "line_start": 1,
@@ -4055,7 +4050,7 @@
       "git_blob_sha1": "cf04975509a32a3046f830f1bf2fa93292a8b7ff",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/127.md",
+          "volume": "core/full_reading/volumes/126.md",
           "start": 0,
           "end": 712,
           "line_start": 1,
@@ -4065,7 +4060,7 @@
           "sha256": "01cd3765dba6e6479e8ecf0400e18795231c4024d83b4291263d8dcf03c5b1c8"
         },
         {
-          "volume": "core/full_reading/volumes/127.md",
+          "volume": "core/full_reading/volumes/126.md",
           "start": 23047,
           "end": 23260,
           "line_start": 795,
@@ -4075,7 +4070,7 @@
           "sha256": "1a5e7764dd4588f1e1efdce78d6377888445715db066d31d9450436f8d7231de"
         },
         {
-          "volume": "core/full_reading/volumes/127.md",
+          "volume": "core/full_reading/volumes/126.md",
           "start": 28824,
           "end": 30521,
           "line_start": 959,
@@ -4095,7 +4090,7 @@
       "git_blob_sha1": "052f579bc0066cb5bec8326a7a0162aa3887300f",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/127.md",
+          "volume": "core/full_reading/volumes/126.md",
           "start": 0,
           "end": 629,
           "line_start": 1,
@@ -4115,7 +4110,7 @@
       "git_blob_sha1": "2e7d9207a3bc1870fc68cf5d856588459e818f35",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/128.md",
+          "volume": "core/full_reading/volumes/127.md",
           "start": 0,
           "end": 453,
           "line_start": 1,
@@ -4135,7 +4130,7 @@
       "git_blob_sha1": "a12f4c673ecbda0780e220c43b1f107d46b0f061",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/128.md",
+          "volume": "core/full_reading/volumes/127.md",
           "start": 0,
           "end": 288,
           "line_start": 1,
@@ -4145,7 +4140,7 @@
           "sha256": "5ed61d19f594fe0f4da1436d26977045cc79505ca40d52cf244b0a2428947fd1"
         },
         {
-          "volume": "core/full_reading/volumes/128.md",
+          "volume": "core/full_reading/volumes/127.md",
           "start": 2792,
           "end": 3253,
           "line_start": 112,
@@ -4165,7 +4160,7 @@
       "git_blob_sha1": "6694bf11d94449f692a7c19b8db7cead95e3432e",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/128.md",
+          "volume": "core/full_reading/volumes/127.md",
           "start": 0,
           "end": 222,
           "line_start": 1,
@@ -4175,7 +4170,7 @@
           "sha256": "159f42cd5f99b00d81e8ecf4bb1f0137b8ba3b380a5839d14db4b5ca7c03b084"
         },
         {
-          "volume": "core/full_reading/volumes/128.md",
+          "volume": "core/full_reading/volumes/127.md",
           "start": 2694,
           "end": 3006,
           "line_start": 113,
@@ -4195,7 +4190,7 @@
       "git_blob_sha1": "94913f547380caaf887c4607a2bc48953c234756",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/128.md",
+          "volume": "core/full_reading/volumes/127.md",
           "start": 0,
           "end": 246,
           "line_start": 1,
@@ -4215,7 +4210,7 @@
       "git_blob_sha1": "617391f5f7b4fb6a86cbe791c76b46249f123840",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/128.md",
+          "volume": "core/full_reading/volumes/127.md",
           "start": 0,
           "end": 92,
           "line_start": 1,
@@ -4235,7 +4230,7 @@
       "git_blob_sha1": "0ba2eb95048bd55803a9003cd8d41bc0fd1f9335",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/128.md",
+          "volume": "core/full_reading/volumes/127.md",
           "start": 0,
           "end": 453,
           "line_start": 1,
@@ -4255,7 +4250,7 @@
       "git_blob_sha1": "ab2c61cd568977c9282b18ceb190444a1036eb17",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/128.md",
+          "volume": "core/full_reading/volumes/127.md",
           "start": 0,
           "end": 258,
           "line_start": 1,
@@ -4275,7 +4270,7 @@
       "git_blob_sha1": "09abc1133505912bdc4ab3f73e93e220c46613d9",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/128.md",
+          "volume": "core/full_reading/volumes/127.md",
           "start": 0,
           "end": 1496,
           "line_start": 1,
@@ -4295,7 +4290,7 @@
       "git_blob_sha1": "6ec2f5532eb6142abca7ddea8079bdbdca59fb78",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/128.md",
+          "volume": "core/full_reading/volumes/127.md",
           "start": 0,
           "end": 610,
           "line_start": 1,
@@ -4315,7 +4310,7 @@
       "git_blob_sha1": "6c88ad19bdb45aece517acb34438daacf847bae7",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/128.md",
+          "volume": "core/full_reading/volumes/127.md",
           "start": 0,
           "end": 1112,
           "line_start": 1,
@@ -4335,7 +4330,7 @@
       "git_blob_sha1": "8ce5427bd1111d3d2e2c5ee469a5ed9276d14f6a",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/128.md",
+          "volume": "core/full_reading/volumes/127.md",
           "start": 0,
           "end": 838,
           "line_start": 1,
@@ -4355,7 +4350,7 @@
       "git_blob_sha1": "3958dd613ec23d7f43b493757f3d3cc287b8b1ec",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/128.md",
+          "volume": "core/full_reading/volumes/127.md",
           "start": 0,
           "end": 1607,
           "line_start": 1,
@@ -4375,7 +4370,7 @@
       "git_blob_sha1": "5e6475752f16ad098fb977d9c23dc5dc7eef265c",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/128.md",
+          "volume": "core/full_reading/volumes/127.md",
           "start": 0,
           "end": 1283,
           "line_start": 1,
@@ -4395,7 +4390,7 @@
       "git_blob_sha1": "914c9976ee2e036f8eccc9a530efb49ec9c663aa",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/129.md",
+          "volume": "core/full_reading/volumes/128.md",
           "start": 0,
           "end": 1408,
           "line_start": 1,
@@ -4415,7 +4410,7 @@
       "git_blob_sha1": "9ba8c2b996c447fa77af9406f5e54ae6d422b544",
       "parts": [
         {
-          "volume": "core/full_reading/volumes/129.md",
+          "volume": "core/full_reading/volumes/128.md",
           "start": 0,
           "end": 1470,
           "line_start": 1,
