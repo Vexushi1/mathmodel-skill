@@ -316,6 +316,8 @@ excluded:
   - docs/literature_p6b_real_case_preflight.md
   - docs/main-branch-protection-hardening-plan.md
   - docs/matlab_publication_rendering_v91_plan.md
+  - docs/mathmodel_skill_disclaimer_cutlist.md
+  - docs/mathmodel_skill_repository_slimming_review.md
   - docs/modeling_intelligence_a0_decisions.md
   - docs/modeling_intelligence_a2_execution_plan.md
   - docs/modeling_intelligence_a2_followup_review.md
