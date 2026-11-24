@@ -100,7 +100,8 @@ class ProseOnlyCleanupContractTests(unittest.TestCase):
         self.assertEqual(
             self.reasoning["numeric_style_contract"]["ordinary_display_default"]["decimal_places"], 2
         )
-        self.assertIn("一般非关键、非评分敏感的说明性连续数值", self.protocol)
+        self.assertIn("论文数值默认保留小数点后两位", self.protocol)
+        self.assertIn("不修改 accepted 工作簿原始数值", self.protocol)
 
     def test_headings_figure_entities_and_latex_labels_are_protected(self):
         for protected in (
