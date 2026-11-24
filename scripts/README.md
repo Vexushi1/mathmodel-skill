@@ -23,6 +23,7 @@ python scripts/resolve_runtime.py problem_analysis --objective explanation
 
 - `resolve_runtime.py`：默认 assured runtime 入口。在兼容旧 plan 字段及 `objective / structures / capabilities` 分类轴的基础上，可选读取 `--project-root` / `--question` 恢复 current project state，先检查全题项目后端策略，再按本次问题及实际恢复阶段验证 artifact hash，输出 intent provenance、ambiguity、declarative contract closure、authority fingerprint 与 `runtime_plan/assurance`；`auto` 或无状态兼容默认不写入项目选择。
   已有项目传入 `--project-root`，定位小问时另传 `--question`。例如，从完整资源根只读解析当前问题的审题动作可用 `python scripts/resolve_runtime.py problem_analysis --project-root <项目根> --question Q1`。
+  `assurance.status=pass` 表示本次解析未发现需要复核的歧义或冲突。例如，Q2 求解依赖的 Q1 结果尚未核验时，解析器仍可返回计划，并在 `assurance.context.dependency_diagnostics` 中列出该依赖。在所需的上游结果通过核验前，`code_delivery` 会阻止交付 Q2 求解代码。
 - `reading_plan.py`：由默认 resolver 调用，使用同一次 hydration 的原始状态快照生成带文件哈希与行范围的初始读取、条件资料和工具接口清单；读取选择服从 `core/workflow_router.yaml#reading_policy`，不改旧计划、不执行校验门、不写项目。
 - `read_stage.py`：只读消费现有 resolver 读取计划或写作阶段来源，返回指定文件的实际正文块、源身份和缺口；不裁决条件、不执行 gate、不写项目，使用边界见下节。
 - `resolve_workflow.py`：保留的无状态兼容 resolver；仍可直接解析显式 intent/classification/artifact-name 输入，但不负责 project-state hydration 或 artifact hash assurance。
@@ -101,7 +102,7 @@ python scripts/read_stage.py --root <同版本Skill根> --plan <当前resolver.y
 
 ## 可选实现结构核验
 
-`model_code_conformance.py <project_root> --question Q1 --stage primary|analysis [--inventory]` 是A1只读入口，协议由 `core/model_code_conformance_contract.yaml` 管理，记录形状由Project State Schema管理。复用当前模型锁、源码bundle及快照，不导入/执行用户代码，不读取工作簿，不写PASS或修改状态。`conformance_source.py`仅提供有界符号与词法观察。退出码0只表示structure_verified，1表示blocked，2表示needs_review/not_assessed；这些均不是数学等价、数值验收或独立审查证明。A2尚未把该报告接入正式交付资格。
+`model_code_conformance.py <project_root> --question Q1 --stage primary|analysis [--inventory]` 是A1只读入口，协议由 `core/model_code_conformance_contract.yaml` 管理，记录形状由Project State Schema管理。复用当前模型锁、源码bundle及快照，不导入/执行用户代码，不读取工作簿，不写PASS或修改状态。`conformance_source.py`仅提供有界符号与词法观察。退出码0只表示structure_verified，1表示blocked，2表示needs_review/not_assessed；这些均不是数学等价、数值验收或独立审查证明。项目为当前小问的相应阶段显式启用 A2 后，现有门禁按 `core/model_code_conformance_contract.yaml` 的 `activation.integration` 核验结构绑定。启用方式见下文「A2：显式启用的一致性交付与验收绑定」。
 
 ## 项目记忆与论文检查
 
