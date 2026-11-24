@@ -1227,12 +1227,13 @@ def check_templates(errors: list[str]) -> None:
     if closure != ["model_structure", "algorithm_trace", "paper_algorithm_presentation", "code_implementation", "workbook_result_or_validation"]:
         errors.append("Algorithm Trace closure must connect model, paper algorithm, code implementation and workbook evidence")
     numeric_style = reasoning.get("numeric_style_contract") or {}
-    digits = ((numeric_style.get("high_precision_default") or {}).get("preferred_decimal_places_when_not_otherwise_specified"))
-    if digits != [6, 7]:
-        errors.append("numeric style contract must default scoring-sensitive continuous results to 6--7 decimals when no more specific rule exists")
     ordinary = numeric_style.get("ordinary_display_default") or {}
-    if ordinary.get("decimal_places") != 2 or ordinary.get("governance_level") != "recommendation":
-        errors.append("numeric style must recommend two decimals only for ordinary noncritical explanatory values")
+    if (ordinary.get("decimal_places") != 2
+            or ordinary.get("governance_level") != "default"
+            or "no_explicit_prompt_or_verified_official_precision" not in ordinary.get("applies_when_all", [])
+            or "prompt_or_verified_official_precision" not in ordinary.get("exceptions", [])
+            or "high_precision_default" in numeric_style):
+        errors.append("numeric style must default paper displays to two decimals unless prompt/verified official precision overrides")
     if (reasoning.get("model_evaluation") or {}).get("authority") != "modules/05_writing/paper_writing_protocol.md#15-模型评价逐问结论与附录":
         errors.append("model evaluation must delegate to Paper Writing Protocol")
 

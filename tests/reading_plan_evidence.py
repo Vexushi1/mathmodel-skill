@@ -2232,7 +2232,36 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
             raw = (HERE.parent.parent / path).read_bytes()
             patch_header = ("version: " + matched_carrier["skill"] + "\n").encode("utf-8")
             previous_header = b"version: 10.27.0\n"
-            if not raw.startswith(patch_header) or hashlib.sha256(raw).hexdigest() != actual[0]["sha256"]:
+            # W2 D02 only removes one duplicated *paper display* default.
+            # Restore the approved W1 exact bytes before the existing historical
+            # carrier inverse. All unknown field/source differences remain visible.
+            w2_digest = "e78a4092760319cee25c94d3eb4a4fe41ea814a85395ef16d15b25d3cd15e7c9"
+            w1_digest = "281b9c5da5a7e70c422244c1de44eb54fa1b738ed045e2a911ce3d9bffbb2d84"
+            w2_source = (
+                matched_carrier == V1110_RELEASE_AUTHORITY_VERSIONS
+                and actual[0]["sha256"] == w2_digest
+            )
+            if w2_source:
+                line = (
+                    b"  high_precision_default_when_scoring_sensitive: "
+                    b"6--7_decimal_places_unless_more_specific_requirement\n"
+                )
+                anchor = b"  carrier_specific:\n"
+                if (hashlib.sha256(raw).hexdigest() != w2_digest
+                        or raw.count(anchor) != 1 or line in raw):
+                    return deepcopy(original), []
+                restored = raw.replace(anchor, line + anchor, 1)
+                if hashlib.sha256(restored).hexdigest() != w1_digest:
+                    return deepcopy(original), []
+                raw = restored
+                changes.append({
+                    "path": "assurance.authority_fingerprint.sources.core/output_contract.yaml",
+                    "baseline": w1_digest,
+                    "candidate": w2_digest,
+                    "approval": "W2 D02 approved paper display default (exact output source)",
+                })
+            expected_sha = w1_digest if w2_source else actual[0]["sha256"]
+            if not raw.startswith(patch_header) or hashlib.sha256(raw).hexdigest() != expected_sha:
                 return deepcopy(original), []
             # Only the exact candidate's selector paragraph may be reversed here.
             if matched_carrier in (V11_DEFAULT_AUTHORITY_VERSIONS, V1110_RELEASE_AUTHORITY_VERSIONS):

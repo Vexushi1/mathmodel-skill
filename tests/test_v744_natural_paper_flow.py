@@ -31,10 +31,14 @@ class TestNaturalPaperFlow(unittest.TestCase):
         self.assertIn("科研训练初期", text)
         self.assertIn("不追求成熟期刊式概念包装", text)
 
-    def test_result_precision_is_not_reduced_for_abstract_brevity(self):
+    def test_result_precision_follows_prompt_and_preserves_accepted_values(self):
         text = (ROOT / "modules/05_writing/paper_writing_protocol.md").read_text(encoding="utf-8")
-        self.assertIn("核心答案的精度不得为了摘要简洁而擅自降低", text)
-        self.assertIn("6--7", text)
+        self.assertIn("题目对数值精度有明确要求时，按题目及已核验的官方输出格式执行", text)
+        self.assertIn("未明确要求时，**论文数值默认保留小数点后两位**", text)
+        self.assertIn("该规则只调整论文展示，不修改 accepted 工作簿原始数值、计算精度、求解容差或提交数据", text)
+        self.assertIn("**摘要中的数值精度服从题目明确要求；未明确要求时默认保留小数点后两位**", text)
+        self.assertIn("特殊精度必须有题面或官方来源", text)
+        self.assertNotIn("高精度评分场景常见为小数后 6--7 位", text)
 
 
 if __name__ == "__main__":

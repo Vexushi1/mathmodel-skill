@@ -14,7 +14,20 @@ from pathlib import Path
 import yaml
 
 from module06_sources import historical_review_text
-from writing_slimming_reference import WRITING_SLIMMING_REWRITES, prior_writing_slimming_text
+from writing_slimming_reference import (
+    WRITING_SLIMMING_REWRITES,
+    prior_writing_slimming_text as prior_w1_writing_slimming_text,
+)
+from w2_numeric_display_reference import (
+    W2_D02_APPROVED_REWRITES, W2_D02_SOURCE_IDENTITIES,
+    prior_w2_numeric_display_text,
+)
+
+def prior_writing_slimming_text(relative: str, text: str) -> str:
+    """First reverse W2 D02, then W1; historical digest guards remain unchanged."""
+    return prior_w1_writing_slimming_text(
+        relative, prior_w2_numeric_display_text(relative, text)
+    )
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -1691,6 +1704,24 @@ class ContractAndDriftTests(unittest.TestCase):
                     with self.subTest(relative=relative, current=current[:80]):
                         with self.assertRaisesRegex(ValueError, "missing or duplicated"):
                             prior_writing_slimming_text(relative, changed)
+
+    def test_w2_d02_authority_inverse_retains_historical_hash_guards(self):
+        for relative, digests in W2_D02_SOURCE_IDENTITIES.items():
+            with self.subTest(relative=relative):
+                actual = (ROOT / relative).read_text(encoding="utf-8")
+                self.assertEqual(hashlib.sha256(actual.encode("utf-8")).hexdigest(), digests[0])
+                predecessor = prior_w2_numeric_display_text(relative, actual)
+                self.assertEqual(hashlib.sha256(predecessor.encode("utf-8")).hexdigest(), digests[1])
+                extra = "\n# unauthorized unrelated source change\n"
+                self.assertEqual(
+                    prior_w2_numeric_display_text(relative, actual + extra),
+                    predecessor + extra,
+                )
+                for current, _ in W2_D02_APPROVED_REWRITES[relative]:
+                    for modified in (actual.replace(current, "", 1), actual + current):
+                        with self.subTest(hunk=current[:52]):
+                            with self.assertRaisesRegex(ValueError, "D02 hunk missing or duplicated"):
+                                prior_w2_numeric_display_text(relative, modified)
 
     def test_defensive_writing_inverse_projection_rejects_missing_or_duplicate_blocks(self):
         for relative, replacements in DEFENSIVE_WRITING_AUTHORITY_REWRITES.items():

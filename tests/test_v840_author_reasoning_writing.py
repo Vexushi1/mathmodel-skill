@@ -16,6 +16,7 @@ from pathlib import Path
 import yaml
 
 from writing_slimming_reference import prior_writing_slimming_text
+from w2_numeric_display_reference import prior_w2_numeric_display_text
 
 ROOT = Path(__file__).resolve().parents[1]
 PROTOCOL = "modules/05_writing/paper_writing_protocol.md"
@@ -93,7 +94,8 @@ class WritingReasoningScopeTests(unittest.TestCase):
         }
         sections = {m[1]: m[0] for m in re.finditer(
             r"^## ([^\n]+)\n(.*?)(?=^## |\Z)",
-            prior_writing_slimming_text(PROTOCOL, read(PROTOCOL)), re.M | re.S
+            prior_writing_slimming_text(PROTOCOL, prior_w2_numeric_display_text(PROTOCOL, read(PROTOCOL))),
+            re.M | re.S
         )}
         for heading, digest in expected.items():
             with self.subTest(heading=heading):

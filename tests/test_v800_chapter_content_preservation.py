@@ -72,12 +72,14 @@ class TestV800ChapterContentPreservation(unittest.TestCase):
             "建立的标准模型类型与题目专属模型",
             "决定模型的目标、关键条件或核心约束",
             "使用的数学处理、算法或 solver",
-            "高精度核心结果/方案",
+            "核心结果/方案",
             "已实施检验对稳定性、误差或适用边界的证据",
             "对设问的直接结论",
         )
         positions = [self.protocol.index(item) for item in chain]
         self.assertEqual(positions, sorted(positions))
+        self.assertIn("未明确要求时，**论文数值默认保留小数点后两位**", self.protocol)
+        self.assertIn("不修改 accepted 工作簿原始数值、计算精度、求解容差或提交数据", self.protocol)
         self.assertIn("摘要与关键词不超过一页", self.protocol)
         self.assertIn("研究背景，由背景引出具体问题，最后给出本文的主要模型", self.protocol)
         self.assertIn("通常为3–4句话，最终 PDF 排版不超过4行", self.protocol)
