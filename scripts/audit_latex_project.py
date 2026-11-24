@@ -11,7 +11,10 @@ from pathlib import Path
 
 import yaml
 
-from audit_paper_prose import Finding, audit_bibliography, audit_framework_consistency, audit_text, overall_status
+from audit_paper_prose import (
+    CUMCM_TEMPLATE_MANIFEST, Finding, _bundled_template_manifest, audit_bibliography,
+    audit_framework_consistency, audit_text, overall_status,
+)
 from claim_consumption import formal_figure_gate, formal_text_gate
 from claim_tex import _active_command, _mask_nonprose
 from latex_delivery import formal_assembly_issues, sha256_file, source_bundle_snapshot
@@ -392,6 +395,25 @@ def audit_cumcm_2026_compliance(main_file: Path, flattened: str) -> list[Finding
     return findings
 
 
+def _adopted_template_manifest(main_file: Path, files: list[Path]) -> Path | None:
+    """Select the independent reference for an explicitly adopted or recognizable template."""
+    root = main_file.parent
+    local = root / "template_manifest.yaml"
+    if local.is_file():
+        return _bundled_template_manifest(local)
+    canonical = CUMCM_TEMPLATE_MANIFEST
+    manifest = yaml.safe_load(canonical.read_text(encoding="utf-8")) or {}
+    slots = {slot["id"]: slot for slot in manifest["paper_skeleton"]["ordered_slots"]}
+    active = set(path.resolve() for path in files)
+    identifying = ("problem_statement", "problem_analysis")
+    if not all((root / slots[key]["source"]).resolve() in active for key in identifying):
+        return None
+    pattern = slots["question_sections"]["source_pattern"]
+    if not any(path.resolve() in active for path in root.glob(pattern)):
+        return None
+    return canonical
+
+
 def audit_project(
     main_file: Path,
     *,
@@ -411,7 +433,7 @@ def audit_project(
     if formal:
         findings.extend(audit_cumcm_2026_compliance(main_file, source))
     findings.extend(audit_formal_heading_depth(flattened))
-    findings.extend(audit_text(flattened))
+    findings.extend(audit_text(flattened, template_manifest=_adopted_template_manifest(main_file, files)))
 
     effective_bib = bib_path
     if effective_bib is None and (project_root / "references.bib").is_file():

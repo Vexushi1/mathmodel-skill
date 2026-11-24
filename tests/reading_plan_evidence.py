@@ -13,6 +13,7 @@ from pathlib import Path
 import yaml
 
 from reading_plan_cases import CASES, build_project
+from writing_slimming_reference import prior_writing_slimming_plan
 
 HERE = Path(__file__).resolve()
 ALLOWED_CHANGED_AUTHORITIES = {
@@ -2487,9 +2488,13 @@ def compare(before, after):
             raise ValueError(f"P2 reading plan missing: {b['id']}")
         old = legacy_projection(a["plan"])
         new = legacy_projection(b["plan"])
+        writing_deltas = []
+        if new.get("version") == "11.1.0" and b.get("authority_versions") == V1110_RELEASE_AUTHORITY_VERSIONS:
+            new, writing_deltas = prior_writing_slimming_plan(new)
         projected, expected = runtime_consistency_predecessor(a["id"], new, b.get("authority_versions"))
         candidate_authority_versions = (V10263_RELEASE_AUTHORITY_VERSIONS
                                        if expected else b.get("authority_versions"))
+        expected = writing_deltas + expected
         projected, a3_changes = approved_a3_changes(a["id"], old, projected)
         expected.extend(a3_changes)
         projected, a7_changes = approved_a7_changes(a["id"], old, projected)

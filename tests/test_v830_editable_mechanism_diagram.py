@@ -14,6 +14,7 @@ from pathlib import Path
 import yaml
 
 from module06_sources import historical_review_text
+from writing_slimming_reference import WRITING_SLIMMING_REWRITES, prior_writing_slimming_text
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -1449,6 +1450,7 @@ class ContractAndDriftTests(unittest.TestCase):
         # neither the old protected blob hash nor its inverse rules are waived.
         text = (historical_review_text(ROOT) if relative == "modules/06_review_delivery.md"
                 else p4a_authority_text(relative))
+        text = prior_writing_slimming_text(relative, text)
         text = prior_primary_quality_binding(relative, prior_execution_scale_binding(relative, text))
         if relative == "core/workbook_schema.yaml":
             # Renderer-neutral handoff wording does not change the workbook
@@ -1675,6 +1677,20 @@ class ContractAndDriftTests(unittest.TestCase):
                 else:
                     actual = git_blob_sha(path)
                 self.assertEqual(actual, expected)
+
+    def test_writing_slimming_projection_preserves_existing_authority_guards(self):
+        for relative, replacements in WRITING_SLIMMING_REWRITES.items():
+            source = (ROOT / relative).read_text(encoding="utf-8")
+            predecessor = prior_writing_slimming_text(relative, source)
+            extra = "\nunauthorized unrelated authority change\n"
+            self.assertEqual(
+                prior_writing_slimming_text(relative, source + extra), predecessor + extra,
+            )
+            for current, _ in replacements:
+                for changed in (source.replace(current, "", 1), source + current):
+                    with self.subTest(relative=relative, current=current[:80]):
+                        with self.assertRaisesRegex(ValueError, "missing or duplicated"):
+                            prior_writing_slimming_text(relative, changed)
 
     def test_defensive_writing_inverse_projection_rejects_missing_or_duplicate_blocks(self):
         for relative, replacements in DEFENSIVE_WRITING_AUTHORITY_REWRITES.items():

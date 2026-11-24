@@ -89,7 +89,7 @@
 
 ### 摘要组织
 
-- 总述：研究对象、统一建模路线：
+- 总述：研究背景、具体问题、主要模型：
 - 每问摘要信息闭合：
 
 | 小问 | 任务/对象 | 标准模型类型/正式模型 | 目标或决定性条件/核心约束 | 主 solver / solution structure | validator/真实检验证据及边界 | 决定性数值/区间 | 直接判断 | Claim Evidence Level |
@@ -118,7 +118,7 @@
 6. 各问核心模型收束状态：`required / inline / not_applicable`：
 7. 各问算法流程呈现状态：`not_needed / stepwise / pseudocode`：
 8. 各问 Model / Solver / Validator 角色、关键 solver preconditions 与首次算法说明位置：
-9. 各问题章节二级/三级小节规划、标题压缩与颗粒度例外：
+9. 各问题章节二级/三级小节规划：
 10. 求解、结果、局部验证和深化证据布局：
 11. 命题/证明、Citation Evidence、Terminology 与 Numeric Profile 的使用位置：
 12. 特殊结构例外（独立结论、对象图、问题关系图等）及依据：
@@ -246,7 +246,6 @@
 - 优化目标摘要闭合：`not_applicable / pending / passed`
 - 问题章节二级/三级小节计划：
 - 小节颗粒度：`pending / compact / justified_expanded / review_required`
-- 标题压缩复核：`not_needed / pending / passed / review_required`
 - 关联 Algorithm ID：
 - 关联命题：
 - 关联 Citation Claim：
@@ -423,9 +422,7 @@ $$
 |---|---|---|---|---|---|---|
 |  | model / solve / result / validation |  |  |  |  |  |
 
-- Heading Compression：父标题已提供的背景/“模型建立及求解”等信息是否已删除：
-- 是否存在应合并的薄小节：
-- 是否存在因过度合并而需要拆出的独立证明/结构化简/参数证据/solver stage：
+- 标题规划按 Paper Writing Protocol §2、§3.1：
 
 **本问理论与引用证据**
 
@@ -551,8 +548,7 @@ $$
 - 另用算法是否有 baseline / alternative / validator 角色和真实 evidence anchor：
 - `stepwise/pseudocode` 的 Algorithm Trace 是否 current 且锚点闭合：
 - 是否有其实应为 `not_needed` 的装饰性算法流程：
-- 问题章节内部小节是否同时避免机械切碎与过度合并；独立证明/结构化简/参数证据/solver stage 是否得到必要导航：
-- 子标题是否通过 Heading Compression Test，且没有以固定字数/数量替代语义判断：
+- 问题章节标题与导航是否符合 Paper Writing Protocol §2、§3.1：
 - 是否存在无依据数值参数；关键参数是否有作用、候选范围/来源、证据指标和选择规则：
 - Citation Evidence 是否存在 pending/stale 的核心 claim：
 - Terminology Registry 是否存在 alias collision 或未处理易混术语：

@@ -1233,8 +1233,8 @@ def check_templates(errors: list[str]) -> None:
     ordinary = numeric_style.get("ordinary_display_default") or {}
     if ordinary.get("decimal_places") != 2 or ordinary.get("governance_level") != "recommendation":
         errors.append("numeric style must recommend two decimals only for ordinary noncritical explanatory values")
-    if (reasoning.get("model_evaluation") or {}).get("count_relation_required") is not False:
-        errors.append("writing reasoning contract must not require strengths to outnumber weaknesses")
+    if (reasoning.get("model_evaluation") or {}).get("authority") != "modules/05_writing/paper_writing_protocol.md#15-模型评价逐问结论与附录":
+        errors.append("model evaluation must delegate to Paper Writing Protocol")
 
     writing_protocol = read_text(ROOT / "modules/05_writing/paper_writing_protocol.md")
     latex_adapter = read_text(ROOT / "modules/05_writing/latex.md")

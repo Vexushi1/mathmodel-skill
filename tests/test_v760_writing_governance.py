@@ -29,7 +29,7 @@ class TestV760WritingGovernance(unittest.TestCase):
         self.assertFalse(contract["proposition_governance"]["automatic_rejection_over_budget"])
         self.assertEqual(contract["proposition_governance"]["default_budget"], [0, 4])
         self.assertIn("citation_evidence", contract)
-        self.assertFalse(contract["model_evaluation"]["count_relation_required"])
+        self.assertEqual(contract["model_evaluation"], {"authority": "modules/05_writing/paper_writing_protocol.md#15-模型评价逐问结论与附录"})
         self.assertEqual(
             set(contract["adaptive_core_model_summary"]["modes"]),
             {"required", "inline", "not_applicable"},
@@ -58,8 +58,11 @@ class TestV760WritingGovernance(unittest.TestCase):
         self.assertIn("required / inline / not_applicable", combined)
 
         protocol = (ROOT / "modules/05_writing/paper_writing_protocol.md").read_text(encoding="utf-8")
-        self.assertIn("优点和缺点的数量按模型实际决定", protocol)
-        self.assertIn("不检查“优点必须多于缺点”", protocol)
+        self.assertIn("简要说明模型自身的优点与不足，通常列3项优点、1–2项不足。", protocol)
+        self.assertIn("模型评价不能替代误差、残差、可行性", protocol)
+        self.assertNotIn("优点和缺点的数量按模型实际决定", protocol)
+        self.assertNotIn("优点数必须大于缺点数", protocol)
+        self.assertNotIn("优点数量必须大于缺点数量", protocol)
 
     def test_framework_template_is_project_memory_with_formula_and_citation_trace(self):
         text = (ROOT / "templates/model/model_paper_framework.md").read_text(encoding="utf-8")

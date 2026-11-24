@@ -78,13 +78,19 @@ class TestV800ChapterContentPreservation(unittest.TestCase):
         )
         positions = [self.protocol.index(item) for item in chain]
         self.assertEqual(positions, sorted(positions))
-        self.assertIn("内容合同而不是固定句式", self.protocol)
+        self.assertIn("摘要与关键词不超过一页", self.protocol)
+        self.assertIn("研究背景，由背景引出具体问题，最后给出本文的主要模型", self.protocol)
+        self.assertIn("通常为3–4句话，最终 PDF 排版不超过4行", self.protocol)
+        self.assertIn("每个小问段落必须以“针对问题X”开头", self.protocol)
+        self.assertNotIn("不得让每段都机械复制", self.protocol)
         self.assertIn("绝不能写“敏感性检验显示模型稳定”", self.protocol)
 
     def test_remaining_chapter_capabilities_are_explicit(self):
         for heading_or_rule in (
             "### 6.3 模型假设与符号说明",
-            "说明它影响模型的哪个部分",
+            "问题分析采用纯文本，不出现数学公式或数学表达式。",
+            "模型假设直接分条陈述，简明扼要，无须逐条说明原因、来源或影响",
+            "简要说明模型自身的优点与不足，通常列3项优点、1–2项不足。改进方向和推广按实际情况简述。",
             "## 15. 模型评价、逐问结论与附录",
             "不新增模型、数据、推导或未经验证的主张",
             "正文必须保留理解模型与结论所需的",
@@ -103,6 +109,11 @@ class TestV800ChapterContentPreservation(unittest.TestCase):
         )
         self.assertIn("目标/关键条件或约束", abstract)
         self.assertIn("不得为了补齐链条虚构", abstract)
+        self.assertIn("逐问段落统一以“针对问题X”开头", abstract)
+        self.assertIn("最终排版不超过4行", abstract)
+        cleanup = (ROOT / "modules/05_writing/ai_cleanup.md").read_text(encoding="utf-8")
+        self.assertIn("AI Cleanup 不得修改摘要", cleanup)
+        self.assertIn("仅编辑普通自然语言的表达层", cleanup)
         self.assertIn("不照抄原题", restatement)
         self.assertIn("不得为了改写漏掉", restatement)
         self.assertIn("逻辑连续的自然段", analysis)

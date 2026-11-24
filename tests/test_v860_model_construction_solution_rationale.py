@@ -116,18 +116,18 @@ class ModelConstructionRationaleContractTests(unittest.TestCase):
     def test_heading_minimality_has_no_hard_character_limit(self):
         headings = self.contract["model_establishment_solution_narrative"]["professional_heading_semantics"]
         self.assertFalse(headings["title_minimality"]["hard_character_limit"])
-        self.assertIn("heading_compression_test", headings["title_minimality"])
-        self.assertIn("Section Title Minimality", self.protocol)
-        self.assertIn("Heading Compression Test", self.cleanup)
+        self.assertEqual(headings["title_minimality"]["authority"], "Paper Writing Protocol §2.1")
+        self.assertNotIn("heading_compression_test", headings["title_minimality"])
+        self.assertIn("三级标题应准确、清楚、易懂，让读者看出研究对象与任务。", self.protocol)
+        self.assertNotIn("Heading Compression Test", self.cleanup)
         boundary = set(self.contract["machine_audit_boundary"]["must_not_claim"])
         self.assertIn("heading_quality_from_character_count_only", boundary)
 
     def test_adaptive_separation_protects_both_fragmentation_and_overmerge(self):
         arch = self.contract["model_establishment_solution_narrative"]["within_question_subsection_architecture"]
         adaptive = arch["adaptive_separation"]
-        self.assertIn("independent_structural_reduction", adaptive["separate_when_any"])
-        self.assertIn("independent_numerical_parameter_evidence", adaptive["separate_when_any"])
-        self.assertIn("same_argument_chain", adaptive["keep_continuous_when_all"])
+        self.assertEqual(adaptive, {"authority": "Paper Writing Protocol §2.2"})
+        self.assertIn("三级标题可正常使用，用于使论文结构与论述更加清晰。", self.protocol)
         self.assertIn("subsection_overmerged_despite_independent_tasks", arch["machine_audit_scope"]["may_review"])
         self.assertIn("subsection_fragmented_without_independent_task", arch["machine_audit_scope"]["may_review"])
         self.assertIn("Adaptive Subsection Separation", self.protocol)
@@ -148,7 +148,8 @@ class ModelConstructionRationaleContractTests(unittest.TestCase):
         for phrase in (
             "不是当前项目事实、算法推荐表或固定句式库",
             "Model Construction Rationale 是重要选择的闭环，不是所有题的扩写器",
-            "不设置标题硬字数限制",
+            "见 Paper Writing Protocol §2.1",
+            "不以标题字数、第一人称数量、理由句数量或小节数量评分",
             "启发式不能写成",
         ):
             self.assertIn(phrase, self.examples)

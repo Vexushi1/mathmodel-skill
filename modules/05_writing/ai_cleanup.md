@@ -8,12 +8,13 @@
 
 **本阶段数学与事实只读；即使认为形式等价，也不得自行改动。**
 
+- **摘要**：AI Cleanup 不得修改摘要。
 - **公式与中文推导**：内联、行间与 LaTeX math 环境中的全部符号、上下标、运算方向、变量、关系、编号、标签、单位、精度和既定位置均逐字保留。公式间纯文字表达的前提→变换→结论、定义、关键近似、约束来源、初边值、误差、solver precondition、Reduction Provenance 与 Core Derivation Body Closure 也只读。**公式来源、推导、命题证明、伪代码及求解细节**一旦在正文定稿，Cleanup 不缩减、迁移、重排或删除；“代码能复现”不能替代数学论证。
 - **已定稿的所有公式角色均只读**：`final_model_relation`、`key_bridge_relation`、`supporting_derivation`、`routine_algebra`。不能仅因“不是最终模型公式”删除；不能以旧 Formula Role 的 Keep / Compress / Re-locate / Delete 裁决对当前正文动手。删除机械代数或重写关键证明须回到前置 Protocol / Reasoning 阶段裁决。
 - **证明与算法**：planned/current Proposition、Proof、stepwise/pseudocode Algorithm Trace、求解步骤、停机条件、条件句、限定词和推理次序只读。用户本轮没有再次提到这些能力，也不意味着可清除。若 `Core Derivation Body Closure Test` 或 Preflight 指出缺口，只报告给上游，不在 Cleanup 直接修补。
 - **核心数值与全部数字**：包括非关键说明数字、目标值、阈值、比较基准、baseline、`accepted 数值`、单位、`绝对/相对误差`、百分比/百分点、`Numeric Profile` 和答题精度，均不舍入、不重写、不改变显示格式、计算或工作簿。此前已定的普通数字两位小数与关键精度 6--7 位规范仍由前置写作阶段决定；Cleanup 只读，不改 accepted 工作簿。
 - **术语与主张**：`Terminology Registry`、canonical term、首次准确解释、`Citation Evidence`、BibTeX key、`Title Claim`、证据等级、当前结果和 stale 状态只读。数值实验不能成为数学证明；局部或启发式求解不能写成无依据的全局最优。发现 unsupported claim 或缺少来源，只提交原有 review finding，**不得**自行增删论断、引用或研究结论；不得为了“更简洁”删成裸术语/裸缩写。
-- **源文件与图表实体**：章标题、小节名称及层级、目录顺序、文件边界、caption、表头、行列、图例、标签与交叉引用命令均只读。不限制也不重排一级章节；写作顺序优化也没有权限重排既定一级大章节。二三级小节的 Merge / Split、Heading Compression Test 与 Judge Readability Test 都属于上游写作/审查，不是 Cleanup 的主动编辑动作。
+- **源文件与图表实体**：章标题、小节名称及层级、目录顺序、文件边界、caption、表头、行列、图例、标签与交叉引用命令均只读。不限制也不重排一级章节；写作顺序优化也没有权限重排既定一级大章节。二三级小节的 Merge / Split 属于上游写作/审查，不是 Cleanup 的主动编辑动作。
 
 以上边界不取决于文本是否含公式：带“仅在、至少、局部、近似、必要、充分、不得”等限制的中文句子也是受保护推理。界限不清时保留原文并报告，禁止靠猜测数学正确性、参数最优性、术语语义等价或物理/统计准确性来替换内容。
 
@@ -38,7 +39,7 @@
 
 可以消除已在邻近正文完整表达过的空泛衔接、逐格复述表格、逐点读图及仅重复 caption 的话术；但核心图表的结果、现象、范围、条件、为什么此时需要这张图和唯一一次必要解释一律保留。不要求每张图固定使用相同句数、句序和词语。空间/网络图、机理/几何图等证据作用按 Protocol / Figure Authority 判断；`图题/表题负责识别对象和范围`，Caption、轴、图例、表头、数据显示、表格拆分及表格 Cleanup 只改善显示层等旧操作**不属于本阶段权限**。
 
-标题或章节有问题时，包括一个二级或三级小节只有一个公式、一张表或一幅普通图、程序执行步骤直接变成论文小节、专业缩写/方法名串联、泛化标题，应报告上游。Split 不能由字数触发，Merge 不能由标题数量触发；Cleanup 连按其他理由主动拆合标题也没有权限。
+标题或章节问题按 Protocol §2、§3.1 报告上游；程序执行步骤直接变成论文小节等数学叙事问题也交回上游。Cleanup 连按其他理由主动拆合标题也没有权限。
 
 ### C3. 不确定性与回退
 
@@ -48,4 +49,4 @@
 
 正式 LaTeX 工程的确定性审计入口仍为 `scripts/audit_latex_project.py`；Cleanup 本身不替代该审计。机器审计不得自动重写正文。现有 `scripts/audit_paper_prose.py` / `scripts/audit_v8_writing_surface.py` 等工具只能定位风险，不能由标题字符数、公式数量、篇幅、连接词、代词频率或算法名判断数学正确性、文章是否“像人”，明确不使用 `first_person_ratio`、`human_like_score`、`AI_like_score`。机器也不能只看 citation key 推断语义支持，不据表面自然度升级为 Hard 错误。
 
-改动后在**现有** draft/final Review 流程和版本对照中检查：公式与中文推导、证明/伪代码、数字、术语/主张、标签与章节结构是否仍是原文；润色确实减少空话、未丢必要信息，关键依据与 Claim Strength 没有改变。仅有数学环境字符串不变，不代表中文推导无误改；有疑问则保留/回退。LaTeX 源码有真实文字变更时，仍按既有编译与 PDF currentness 要求更新，不复用旧证明。不新增项目状态、审批、逐句哈希台账或用户本地 checker。
+改动后在**现有** draft/final Review 流程和版本对照中检查：摘要、公式与中文推导、证明/伪代码、数字、术语/主张、标签与章节结构是否仍是原文；润色确实减少空话、未丢必要信息，关键依据与 Claim Strength 没有改变。仅有数学环境字符串不变，不代表中文推导无误改；有疑问则保留/回退。LaTeX 源码有真实文字变更时，仍按既有编译与 PDF currentness 要求更新，不复用旧证明。不新增项目状态、审批、逐句哈希台账或用户本地 checker。

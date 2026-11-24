@@ -15,6 +15,8 @@ from pathlib import Path
 
 import yaml
 
+from writing_slimming_reference import prior_writing_slimming_text
+
 ROOT = Path(__file__).resolve().parents[1]
 PROTOCOL = "modules/05_writing/paper_writing_protocol.md"
 EXAMPLES = "modules/05_writing/references/model_solution_reasoning_examples.md"
@@ -90,7 +92,8 @@ class WritingReasoningScopeTests(unittest.TestCase):
             "14. 摘要": "8c2cbf13c739b273f4f3331819b0c0bedcac11df5e7103b6e2ea0a109a540271",
         }
         sections = {m[1]: m[0] for m in re.finditer(
-            r"^## ([^\n]+)\n(.*?)(?=^## |\Z)", read(PROTOCOL), re.M | re.S
+            r"^## ([^\n]+)\n(.*?)(?=^## |\Z)",
+            prior_writing_slimming_text(PROTOCOL, read(PROTOCOL)), re.M | re.S
         )}
         for heading, digest in expected.items():
             with self.subTest(heading=heading):
@@ -278,10 +281,8 @@ class WritingReasoningScopeTests(unittest.TestCase):
             trace["claim_strength_alignment"]["rule"],
             "prose_claim_strength_must_not_exceed_evidence_strength",
         )
-        self.assertEqual(
-            trace["necessity_tests"],
-            ["reasoning_necessity", "problem_specificity"],
-        )
+        self.assertNotIn("necessity_tests", trace)
+        self.assertNotIn("necessity_rule", trace)
         for item in (
             "pronoun_frequency_target",
             "authorship_inference_from_voice",

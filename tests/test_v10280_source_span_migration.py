@@ -24,7 +24,8 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.measurement = load_measurement()
-        cls.fixture = ROOT / "tests/fixtures/v1110_release_source_spans.json"
+        cls.fixture = ROOT / "tests/fixtures/v1110_writing_draft_source_spans.json"
+        cls.frozen_v1110 = ROOT / "tests/fixtures/v1110_release_source_spans.json"
         cls.frozen_v11 = ROOT / "tests/fixtures/v11_candidate_source_spans.json"
         cls.frozen_v10353 = ROOT / "tests/fixtures/v10353_approved_source_spans.json"
         cls.frozen_v10352 = ROOT / "tests/fixtures/v10352_approved_source_spans.json"
@@ -163,6 +164,121 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
         # A new Skill release cannot inherit source-byte approval for v11.0.0.
         with self.assertRaisesRegex(ValueError, "candidate bytes changed"):
             self.measurement.approved_source_span_migrations(self.frozen_v11)
+
+    def test_v1110_release_source_spans_remain_frozen(self):
+        original = json.loads(self.frozen_v1110.read_text(encoding="utf-8"))
+        self.assertEqual(original["scope"], "v11_1_0_release_legacy_stage_scoped_spans")
+        self.assertEqual(original["version"], "11.1.0")
+        with self.assertRaisesRegex(ValueError, "legacy profile candidate bytes changed"):
+            self.measurement.approved_source_span_migrations(self.frozen_v1110)
+        draft = self.measurement.approved_source_span_migrations(self.fixture)
+        self.assertEqual(draft["scope"], "v11_1_0_writing_draft_legacy_stage_scoped_spans")
+        before = next(x for x in original["legacy_profile_read_shifts"]
+                      if x["path"] == "modules/05_writing/paper_writing_protocol.md")
+        after = next(x for x in draft["legacy_profile_read_shifts"]
+                     if x["path"] == "modules/05_writing/paper_writing_protocol.md")
+        self.assertEqual(before["candidate_sha256"], "38aedaf39393da999827ca1147ca4295d8070ca375c765dd020722b24ab7c645")
+        self.assertEqual(after["candidate_sha256"], "a2f82d2f9caf391594b4083950a8b9899caefd491f9fe48571be156bbee631b1")
+        self.assertEqual(before["spans"][0]["after"][-1], [728, 794])
+        self.assertEqual(after["spans"][0]["after"], [[1,6],[36,131],[177,622],[674,742]])
+        self.assertEqual(before["spans"][1]["after"], [[1, 821]])
+        self.assertEqual(after["spans"][1]["after"], [[1,767]])
+        # Compare all unchanged paths, selectors and approval fields.
+        projected = deepcopy(draft)
+        projected["scope"] = original["scope"]
+        projected["authorizing_reason"] = original["authorizing_reason"]
+        index = projected["legacy_profile_read_shifts"].index(after)
+        projected["legacy_profile_read_shifts"][index] = deepcopy(before)
+        runtime_path = "core/writing_runtime_contract.yaml"
+        old_runtime = next(x for x in original["legacy_profile_read_shifts"] if x["path"] == runtime_path)
+        new_runtime = next(x for x in projected["legacy_profile_read_shifts"] if x["path"] == runtime_path)
+        self.assertEqual(old_runtime["candidate_sha256"], "00c42790e9f2ee18201b17f9c109076eeebe8c53c88eaffb77c87a3889d4d725")
+        self.assertEqual(new_runtime, {**old_runtime, "candidate_sha256": "f30a6133ab1a8c3f97fc6a26e873518e303fae0c2a8a1bd7dac48cd62fdb6e57"})
+        projected["legacy_profile_read_shifts"][projected["legacy_profile_read_shifts"].index(new_runtime)] = deepcopy(old_runtime)
+        reasoning = projected["legacy_profile_read_shifts"].pop()
+        self.assertEqual(reasoning, {
+            "path": "core/writing_reasoning_contract.yaml",
+            "baseline_sha256": "d64b0ce75987d5581ce9342800a2e73b0fccc9184cce613f12699aaf3a723bd1",
+            "candidate_sha256": "b25bb618385b3d6da148b5cbf11ec9183044218956d2b0a25b1491d3da91f08f",
+            "spans": [{"before": [[1, 1950]], "after": [[1, 1736]]}],
+        })
+        cleanup = projected["legacy_profile_read_shifts"].pop()
+        self.assertEqual(cleanup, {
+            "path": "modules/05_writing/ai_cleanup.md",
+            "baseline_sha256": "a2574e04006daa4ab9156cd5ae051fa42f4ee289e05193892b19919d254c11d6",
+            "candidate_sha256": "8e4b4772d6f2afbb70a6b2e27f12b81a6e41f7bf7a02aafa8a218c19d274cf22",
+            "spans": [{"before": [[1, 51]], "after": [[1, 52]]}],
+        })
+        self.assertEqual(projected, original)
+
+    def test_writing_draft_cleanup_g2_full_read_projects_only_pinned_span(self):
+        fixture = self.measurement.approved_source_span_migrations(self.fixture)
+        approvals = self.measurement.approved_changes(
+            ROOT / "tests/fixtures/v10270_g2_approved_deltas.json")
+        case_id = "natural_language_two_actions_probe"
+        transition = next(row for row in approvals
+                          if row["case_id"] == case_id and row["path"] == "read_now")
+        rule = next(row for row in fixture["legacy_profile_read_shifts"]
+                    if row["path"] == "modules/05_writing/ai_cleanup.md")
+        approved_row = next(row for row in transition["after"] if row["path"] == rule["path"])
+        self.assertEqual(approved_row["ranges"], [[1, 51]])
+        self.assertEqual(rule["spans"], [{"before": [[1, 51]], "after": [[1, 52]]}])
+        current = {**approved_row, "ranges": [[1, 52]]}
+        old = {
+            "id": case_id,
+            "behavior": {"read_now": deepcopy(transition["before"])},
+            "source_identity": {"sources": [{"path": rule["path"],
+                                            "sha256": rule["baseline_sha256"]}]},
+        }
+        new = {
+            "id": case_id,
+            "behavior": {"read_now": [deepcopy(current)]},
+            "source_identity": {"sources": [{"path": rule["path"],
+                                            "sha256": rule["candidate_sha256"]}]},
+        }
+        observed = deepcopy(new["behavior"])
+        evidence = self.measurement._project_approved_read_spans(
+            old, new, observed, [rule], {"read_now": transition})
+        self.assertEqual(observed["read_now"], [approved_row])
+        self.assertEqual(len(evidence), 1)
+        self.assertEqual(evidence[0]["group"], "read_now")
+        self.assertEqual(evidence[0]["source_sha256"], rule["candidate_sha256"])
+        self.assertEqual(new["behavior"]["read_now"], [current])
+
+        changed = deepcopy(new)
+        changed["behavior"]["read_now"][0]["selectors"] = {"yaml_paths": ["unapproved"]}
+        observed = deepcopy(changed["behavior"])
+        evidence = self.measurement._project_approved_read_spans(
+            old, changed, observed, [rule], {"read_now": transition})
+        self.assertEqual(evidence, [])
+        self.assertEqual(observed, changed["behavior"])
+
+        changed = deepcopy(new)
+        changed["source_identity"]["sources"][0]["sha256"] = "0" * 64
+        with self.assertRaisesRegex(ValueError, "source span identity drift"):
+            self.measurement._project_approved_read_spans(
+                old, changed, deepcopy(changed["behavior"]), [rule],
+                {"read_now": transition})
+
+    def test_writing_draft_reasoning_range_projects_only_exact_identity(self):
+        fixture, old, new = self.cases()
+        rule = fixture["legacy_profile_read_shifts"][-1]
+        original = {"origin": "skill", "path": rule["path"],
+                    "resolution": "exact", "ranges": [[1, 1950]],
+                    "selectors": {}, "when": None}
+        current = {**original, "ranges": [[1, 1736]]}
+        for case, row, key in ((old, original, "baseline_sha256"),
+                               (new, current, "candidate_sha256")):
+            case["behavior"]["read_now"].append(deepcopy(row))
+            case["source_identity"]["sources"].append({"path": rule["path"], "sha256": rule[key]})
+        projected, _ = self.measurement.project_exact_approved_source_spans(old, new, fixture)
+        self.assertEqual(projected["read_now"][-1], original)
+        new["behavior"]["read_now"][-1]["selectors"] = {"yaml_paths": ["unreviewed"]}
+        projected, _ = self.measurement.project_exact_approved_source_spans(old, new, fixture)
+        self.assertEqual(projected["read_now"][-1], new["behavior"]["read_now"][-1])
+        new["source_identity"]["sources"][-1]["sha256"] = "0" * 64
+        with self.assertRaisesRegex(ValueError, "source span identity drift"):
+            self.measurement.project_exact_approved_source_spans(old, new, fixture)
 
     def cases(self):
         manifest = self.measurement.approved_source_span_migrations(self.fixture)

@@ -19,9 +19,7 @@ class TestV750WritingReasoningArchitecture(unittest.TestCase):
             "spatial_econometrics", "mixed_multi_question",
         ):
             self.assertIn(family, families)
-        anti = "\n".join(data["scope"]["anti_template_boundary"])
-        self.assertIn("不从单一优秀论文复制", anti)
-        self.assertIn("不要求所有论文设置", anti)
+        self.assertEqual(data["scope"]["anti_template_boundary"], ["正文避免无必要地连续重复句式；摘要已规定的固定句式除外。"])
 
     def test_formula_chain_has_source_derivation_destination_and_internal_trace(self):
         data = yaml.safe_load((ROOT / "core/writing_reasoning_contract.yaml").read_text(encoding="utf-8"))

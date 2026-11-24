@@ -207,6 +207,7 @@ def approved_source_span_migrations(path: Path | None, *, source_root: Path | No
     candidate_profile = (data.get("scope"), data.get("version")) in {
         ("v11_candidate_legacy_stage_scoped_spans", "11.0.0"),
         ("v11_1_0_release_legacy_stage_scoped_spans", "11.1.0"),
+        ("v11_1_0_writing_draft_legacy_stage_scoped_spans", "11.1.0"),
     }
     model_intake_carrier = candidate_profile or (data.get("scope"), data.get("version")) in {
         ("v10.29.0_p2_exact_literature_intake_migration", "10.29.0"),
@@ -347,16 +348,23 @@ def approved_source_span_migrations(path: Path | None, *, source_root: Path | No
             if digest(raw) != row["candidate_sha256"] or len(raw.splitlines()) != row["new_last_line"]:
                 raise ValueError("PQS source span candidate bytes changed")
     if candidate_profile:
-        _validate_legacy_profile_shifts(data["legacy_profile_read_shifts"], root)
+        _validate_legacy_profile_shifts(
+            data["legacy_profile_read_shifts"], root,
+            writing_draft=data["scope"] == "v11_1_0_writing_draft_legacy_stage_scoped_spans",
+        )
     return data
 
 
-def _validate_legacy_profile_shifts(rules, root):
+def _validate_legacy_profile_shifts(rules, root, *, writing_draft=False):
     """Only physical ranges of these additional legacy-profile reads can move."""
     paths = ["core/bootstrap.yaml", "core/global_preprocessing_contract.yaml",
              "core/hsk_core_policy.md", "core/state_transition_contract.yaml",
              "core/writing_runtime_contract.yaml", "modules/04_figure_evidence.md",
              "modules/05_writing/paper_writing_protocol.md", "templates/review/final_review_matrix.yaml"]
+    if writing_draft:
+        # Exact W1 source changes only; released manifests retain their frozen paths.
+        paths.extend(("modules/05_writing/ai_cleanup.md",
+                      "core/writing_reasoning_contract.yaml"))
     if not isinstance(rules, list) or [
         rule.get("path") for rule in rules if isinstance(rule, dict)
     ] != paths or len(rules) != len(paths):

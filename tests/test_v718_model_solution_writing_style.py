@@ -138,38 +138,20 @@ class TestV718ModelSolutionWritingStyle(unittest.TestCase):
         self.assertIn("判断标准是逻辑功能，不是连接词词表", self.cleanup)
 
     def test_heading_semantics_use_independent_mathematical_tasks(self):
-        headings = self.contract["model_establishment_solution_narrative"][
-            "professional_heading_semantics"
-        ]
-        self.assertEqual(headings["preferred_pattern"], "object_plus_mathematical_task")
+        headings = self.contract["model_establishment_solution_narrative"]["professional_heading_semantics"]
         self.assertFalse(headings["hard_grammar_rule"])
         self.assertFalse(headings["title_minimality"]["hard_character_limit"])
-        self.assertIn("模型处理", headings["generic_heading_review_examples"])
-        self.assertIn("结果说明", headings["generic_heading_review_examples"])
-        self.assertIn("标题应对应**独立数学任务**", self.protocol)
-        self.assertIn("不强制所有标题使用“XX 的 XX”", self.protocol)
-        self.assertIn("泛化标题", self.cleanup)
-        self.assertIn("Heading Compression Test", self.cleanup)
+        self.assertEqual(headings["authority"], "Paper Writing Protocol §2.1")
+        self.assertNotIn("preferred_pattern", headings)
+        self.assertNotIn("Heading Compression Test", self.cleanup)
 
     def test_headings_are_judge_readable_without_losing_technical_meaning(self):
-        headings = self.contract["model_establishment_solution_narrative"][
-            "professional_heading_semantics"
-        ]
-        self.assertEqual(
-            headings["reader_assumption"],
-            "mathematical_modeling_literate_not_domain_specialist",
-        )
-        self.assertIn("题目所属行业", headings["principle"])
-        self.assertIn("对象", headings["judge_recoverability_rule"])
-        self.assertIn("任务", headings["judge_recoverability_rule"])
-        self.assertIn("标准模型名", headings["method_name_rule"])
-        self.assertIn("jargon_or_acronym_only_when_object_is_hidden", headings["title_minimality"]["avoid"])
-        self.assertIn("无对象泛化标题", "\n".join(headings["rules"]))
-        self.assertIn("默认读者有数学建模基础", self.protocol)
-        self.assertIn("Judge Readability Test", self.protocol)
-        self.assertIn("只剩“FV--BDF--Radau 一致性”", self.protocol)
-        self.assertIn("Judge Readability Test", self.cleanup)
-        self.assertIn("专业缩写/方法名串联", self.cleanup)
+        headings = self.contract["model_establishment_solution_narrative"]["professional_heading_semantics"]
+        self.assertEqual(headings["title_minimality"]["authority"], "Paper Writing Protocol §2.1")
+        self.assertIn("三级标题应准确、清楚、易懂，让读者看出研究对象与任务。", self.protocol)
+        self.assertNotIn("heading_compression_test", headings["title_minimality"])
+        self.assertNotIn("Judge Readability Test", self.protocol)
+        self.assertNotIn("Judge Readability Test", self.cleanup)
 
     def test_formal_heading_depth_is_three_without_making_level_three_exceptional(self):
         architecture = self.contract["model_establishment_solution_narrative"][
@@ -186,7 +168,7 @@ class TestV718ModelSolutionWritingStyle(unittest.TestCase):
         self.assertIn("不设三级标题数量上限", "\n".join(policy["rules"]))
         self.assertIn("正式章节禁止四级及以上", "\n".join(policy["rules"]))
         self.assertIn("Formal Heading Depth", self.protocol)
-        self.assertIn("三级标题属于正常可用层级", self.protocol)
+        self.assertIn("三级标题可正常使用，用于使论文结构与论述更加清晰。", self.protocol)
         self.assertIn("不参与论文标题深度判定", self.protocol)
         self.assertIn("正式章节禁止四级及以上", self.review)
 
@@ -241,7 +223,6 @@ class TestV718ModelSolutionWritingStyle(unittest.TestCase):
             "report_like_model_listing",
             "formula_without_need_or_consequence",
             "solver_first_narrative",
-            "generic_heading_density",
             "management_transition",
             "detached_result_interpretation",
             "repeated_problem_analysis_in_model_section",
@@ -251,6 +232,7 @@ class TestV718ModelSolutionWritingStyle(unittest.TestCase):
         review_or_warn = set(audit["may_review"]) | set(audit["may_warn"])
         self.assertTrue(narrative_risks <= review_or_warn)
         self.assertTrue(narrative_risks.isdisjoint(set(audit["may_block"])))
+        self.assertNotIn("generic_heading_density", review_or_warn | set(audit["may_block"]))
         # CUMCM D: Cleanup no longer independently judges mathematical narrative.
         self.assertIn("机器审计不得自动重写正文", self.cleanup)
         self.assertIn("仅编辑普通自然语言的表达层，不编辑其承载的数学、数值或证据实体", self.cleanup)
@@ -263,9 +245,10 @@ class TestV718ModelSolutionWritingStyle(unittest.TestCase):
         anti_template = "\n".join(
             self.contract["model_establishment_solution_narrative"]["anti_template_boundary"]
         )
-        for token in ("PSO", "GA", "DE", "二分法", "坐标搜索"):
-            self.assertIn(token, anti_template)
-        self.assertIn("不复制任何优秀论文的固定句子", anti_template)
+        self.assertEqual(anti_template, "见 scope.anti_template_boundary。")
+        self.assertEqual(self.contract["scope"]["anti_template_boundary"], ["正文避免无必要地连续重复句式；摘要已规定的固定句式除外。"])
+        self.assertIn("first_use_chain", self.contract["solver_justification"])
+        self.assertIn("alternative_method_rule", self.contract["solver_justification"])
         combined = self.contract_text + "\n" + self.protocol + "\n" + self.cleanup
         self.assertNotIn("A066", combined)
         self.assertNotIn("A196", combined)

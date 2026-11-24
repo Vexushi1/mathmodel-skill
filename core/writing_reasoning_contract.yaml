@@ -19,11 +19,7 @@ scope:
     - spatial_econometrics
     - mixed_multi_question
   anti_template_boundary:
-    - 不从单一优秀论文复制固定句式、算法名、章节编号或题目专属模型。
-    - 不要求所有论文设置“模型准备”、问题关系图、命题、核心模型汇总独立小节、正式算法框或统一敏感性章节。
-    - 不按固定标题数量判定论文质量；章节层级由当前论证链和真实数学结构决定。
-    - 不把“承接—建式—解释—求解—结果”固化为固定句型或固定标题；规则只抽象逻辑功能。
-    - 规则只抽象可跨题型复用的推理结构，具体章节和证据按当前赛题决定。
+    - 正文避免无必要地连续重复句式；摘要已规定的固定句式除外。
 
 rule_governance:
   authority_principle: >-
@@ -71,7 +67,6 @@ rule_governance:
         - short_proof_length_budget
         - proposition_default_budget
         - terminology_drift_check
-        - caption_length_check
         - paragraph_necessity_check
   machine_mapping:
     hard: blocking
@@ -580,65 +575,10 @@ model_establishment_solution_narrative:
     phrase_bank_forbidden: true
   professional_heading_semantics:
     governance_level: default
-    reader_assumption: mathematical_modeling_literate_not_domain_specialist
-    principle: >-
-      标题按独立数学任务划分。默认评委具有数学建模基础，但不预设其熟悉题目所属行业、专业物理概念或算法缩写；
-      标题优先让评委先恢复“处理哪个对象、回答什么问题或完成什么计算任务”，再由正文准确介绍模型、机制和方法。
-    judge_recoverability_rule: >-
-      标题脱离作者内部上下文后仍应能定位当前对象与任务。若标题只剩领域术语、算法缩写或多个方法名串联，
-      使非该领域评委无法判断本节在解决什么，应补回对象/任务，或把非必要方法名移到节首正文解释。
-    method_name_rule: >-
-      标准模型名、方法名和必要专业术语可以保留；当它们承担区分不同任务、说明真实核心方法或避免歧义时不应强删。
-      “评委可理解”不等于把准确术语改成泛化口语，也不要求所有标题都写成同一种句式。
-    cumcm_heading_level_precedence:
-      scope: cumcm_question_establishment_solution_subsections
-      second_level_default_authority: model_establishment_solution_narrative.within_question_subsection_architecture.cumcm_default_second_level
-      second_level_role: >-
-        常规复杂问的二级标题为非领域评委提供稳定的建模、求解、结果与分析及可选检验导航；
-        优先保留规范原文和数学依赖顺序，不因为 Heading Compression、算法名称或“更专业”任意改写。
-      third_level_role: >-
-        三级标题才重点回答“本节对什么对象完成了哪项具体数学任务”，
-        不以算法缩写、物理领域术语或多个方法名称堆叠代替任务说明。
-      readability_primary_target: third_level_heading
-      second_level_exception_boundary: >-
-        简单解析任务无独立求解、后问仅有真实增量、多独立模型难以用正常结构表示，
-        或实际数学依赖与官方模板发生冲突时，才可解释理由后调整二级；
-        “更简短”“避免重复”“展示算法名”不是充分例外。
-      heading_compression_scope: >-
-        CUMCM 问题章节的 Judge Readability 与 Heading Compression 重点应用于三级标题，
-        不把标题压缩测试用来删除正常二级的建模、求解、结果分析或有效检验功能。
-      mathematical_accuracy_invariant: >-
-        三级标题保留对数学正确性与不同任务区分必要的专业术语；
-        不为了通俗而把明确的对象、判据和边界写成“模型处理”“数据处理”“结果说明”。
-    preferred_pattern: object_plus_mathematical_task
-    alternative_patterns:
-      - method_plus_current_task
-      - result_or_parameter_plus_validation_task
-    action_examples: [确定, 表征, 构造, 推导, 判定, 离散, 降维, 分解, 转化, 估计, 求解, 搜索, 优化, 校准, 验证, 比较]
-    generic_heading_review_examples: [模型分析, 模型处理, 参数处理, 算法设计, 结果说明]
+    authority: Paper Writing Protocol §2.1
     title_minimality:
-      principle: >-
-        标题只保留识别当前数学对象和任务所需的信息；父标题已经提供的“问题X、模型建立与求解、优化模型”等上下文默认不重复。
-      cumcm_scope_boundary: >-
-        对 CUMCM 问题章节重点优化三级标题；正常复杂问的二级标题先服从规范功能导航，
-        不因父标题重复或字号/长度偏好而改写，除非有真实数学或官方格式例外。
-      heading_compression_test: >-
-        删除上位研究背景、问题编号上下文或“基于/视角下/研究”等包装后，若当前数学任务仍完整，应优先采用压缩后的标题。
-      avoid:
-        - parent_context_repetition
-        - research_framing_repetition
-        - decorative_based_on_or_perspective_of
-        - generic_method_stacking
-        - jargon_or_acronym_only_when_object_is_hidden
-        - title_as_full_sentence_without_navigation_gain
+      authority: Paper Writing Protocol §2.1
       hard_character_limit: false
-    rules:
-      - 决策变量、目标函数、约束与核心模型汇总若只是同一短模型建立链，默认连续组织，不机械拆成多个三级标题。
-      - 若决策变量、目标函数、关键约束或模型汇总本身包含独立公式组、非平凡定义或后文需要明确回指的任务，可使用清晰短标题；不得为“连续叙事”强行合并。
-      - 一个公式、一张表或一个参数设置本身不自动构成独立标题。
-      - 仅由专业缩写、领域名词或多个算法名称串联构成的标题，若遮蔽研究对象和当前任务，应改为对象/任务优先的标题，并在正文准确保留方法名。
-      - “数据处理”“模型处理”“结果说明”“影响因素”等无对象泛化标题不能因为更通俗而替代更准确的任务标题。
-      - 短名词标题若能准确恢复数学任务可以保留，不强制“XX的XX”或“名词+动词”语法。
     hard_grammar_rule: false
   within_question_subsection_architecture:
     governance_level: default
@@ -700,10 +640,7 @@ model_establishment_solution_narrative:
       - local_solution_reasoning_sequence
       - model_before_solver
       - evidence_before_local_conclusion
-    heading_basis:
-      - independent_mathematical_task
-      - independent_solution_stage
-      - independent_result_or_validation_role
+    heading_basis: Paper Writing Protocol §2–3.1
     cumcm_default_second_level:
       scope: CUMCM_question_sections_with_independent_complex_tasks
       governance_level: default
@@ -716,34 +653,13 @@ model_establishment_solution_narrative:
         result: 模型求解结果与分析
         validate_without_comparison: 模型检验
         validate_with_comparison: 模型检验与对照
-      normal_title_preservation: >-
-        CUMCM 复杂问在 MODEL/SOLVE/RESULT 真实独立时优先保留“XX模型的建立”、
-        “模型求解”“模型求解结果与分析”的原文和顺序；
-        第四节仅在有独立有效检验或对照时出现。二级标题说明环节，三级标题说明具体数学任务。
-      non_arbitrary_rename_rule: >-
-        不能因为标题简短、父标题已有“建立及求解”、作者希望展示算法名，
-        就把“模型求解”改为算法名、把“模型求解结果与分析”拆成普通二级结果与分析；
-        XX 使用读者可识别的模型对象/类型，不能堆砌专业术语。
-      documented_exception_categories:
-        - simple_analytic_or_direct_computation_no_independent_solve
-        - inherited_or_compact_question_with_only_genuine_increment
-        - multiple_independent_models_not_recoverable_under_single_default_profile
-        - official_template_or_actual_math_dependency_conflict
-      exception_trace_rule: >-
-        发生例外时记录具体数学/模板事实、默认标题为何不能准确导航以及如何保留真实功能；
-        不因为四节形式而虚构算法、模型检验、替代方法对照或额外证据。
+      normal_title_preservation: 见 Paper Writing Protocol §3.1。
       role_duties:
         model: 说明当前数学缺口、为何选择该模型结构、关键关系的来源及最终模型的闭合。
         solve: 说明当前模型为何适用所选求解方式、本题特定算法处理、关键精度与输出映射。
-        result: 先给出直接答案与决定性图表数值，再就地解释其题意；允许按独立结果任务使用三级标题。
+        result: 先给出直接答案与决定性图表数值，再就地解释其题意。
         validate: 针对真实风险或备选方法使用已验收证据检验结论、明确稳定范围及失效边界。
-      heading_choice_rule: >-
-        复杂问题优先按 MODEL→SOLVE→RESULT→可选 VALIDATE 组织，
-        正常情况保持 heading_by_role 的首选二级标题及顺序，不因三级标题任务化、术语压缩或
-        父标题重复而任意改名；XX 填入数学准确且易识别的模型对象。
-        只有 documented_exception_categories 对应的条件成立并能解释事实依据时，
-        才不要求使用完全相同字面标题；简单题可合并确实不存在的薄槽，
-        不得掩盖真实的关键推导、结果和检验。
+      heading_choice_rule: 见 Paper Writing Protocol §3.1。
       optional_validation_rule: >-
         只有独立且有真实证据支持的模型检验或对照任务才独立设置 VALIDATE；
         两者均无必要时不设置该二级标题，也不虚构实验、检验图或 03B。
@@ -754,72 +670,12 @@ model_establishment_solution_narrative:
         仅设想过其他模型/算法、没有 accepted evidence 时不得使用“与对照”冒充已完成比较。
       local_result_rule: >-
         “模型求解结果与分析”既呈现关键答案也解释决定性趋势、数值与问题含义；
-        不把主要结果解释挪到 VALIDATE，也不因结果图表多就机械拆分三级标题。
+        不把主要结果解释挪到 VALIDATE。
     third_level_judge_readability:
-      scope: CUMCM_question_tertiary_headings_under_functional_second_level
       governance_level: default
-      reader_assumption: mathematical_modeling_literate_not_domain_specialist
-      priority: task_recoverability_before_jargon_display_or_shortest_wording
-      selection_sequence:
-        - decide_whether_an_independent_mathematical_task_needs_a_third_level_heading
-        - locate_the_second_level_functional_role
-        - identify_concrete_object_and_mathematical_task
-        - retain_necessary_scope_output_or_distinguishing_method
-        - apply_judge_readability_then_heading_compression
-        - check_mathematical_accuracy_and_adjacent_heading_distinction
-      judge_readability_question: >-
-        非题目专业领域的数学建模评委看到三级标题，能否恢复对象是什么、
-        实际完成什么计算/判断，或者得到什么答案？不能时先补对象与数学任务，
-        再把非必需的算法缩写、机理名称放在正文。
-      necessary_terminology_exception: >-
-        KKT、Sobol、Pareto 等术语如确为区分研究对象、关键方法或准确数学结论所必需，
-        允许保留必要限定；不能为了“通俗”改成“数据处理”“模型处理”“结果说明”等空泛标题。
-      title_compression_order: >-
-        先说明对象、任务与必要限定，后删除“基于……的……研究”“在……视角下”等装饰；
-        不对首选二级标题运行三级任务型改名，不设字数/术语表/数量配额。
-      examples:
-        - original: FV-BDF-Radau 一致性
-          preferred: 状态方程求解结果的一致性检验
-          condition: 实际检查的是该方程不同数值方案输出的一致性
-        - original: Sobol 全局敏感性分解
-          preferred: 关键参数对最终结果的影响
-          condition: 实际计算并验收了相应输出指标的参数影响
-        - original: Pareto 前沿结构分析
-          preferred: 不同方案的成本与效果比较
-          condition: 实际有可比较的成本/效果指标且不夸大最优性
-        - original: 数据处理
-          preferred: 观测时间的统一
-          condition: 真实工作是将多源观测时间统一
-      accuracy_boundary: >-
-        示例不是自动术语替换表；仅概括已批准模型和 current 证据支持的实际任务，
-        不能以易读为由删除核心推导、改变数值/模型含义或制造未执行的实验。
-      machine_audit_scope:
-        may_review:
-          - tertiary_jargon_without_object_or_task
-          - tertiary_generic_heading_without_specific_task
-          - tertiary_necessary_mathematical_distinction_lost
-        must_not_claim:
-          - judge_understanding_from_title_length_or_keyword_only
-          - task_correctness_without_reading_actual_model_and_evidence
+      authority: Paper Writing Protocol §2.1
     adaptive_separation:
-      separate_when_any:
-        - independent_formula_group_or_nontrivial_definition
-        - independent_proposition_or_key_predicate
-        - independent_structural_reduction
-        - independent_numerical_parameter_evidence
-        - independent_solver_stage
-        - independent_result_task_with_distinct_answer_or_interpretation
-        - downstream_text_requires_clear_local_anchor
-        - merged_long_argument_would_reduce_recoverability
-      keep_continuous_when_all:
-        - same_argument_chain
-        - each_candidate_heading_has_little_independent_content
-        - no_downstream_anchor_need
-      optimization_profiles:
-        compact: model_construction_continuous_prose_then_solution_then_result
-        navigational: decision_variables_or_objective_or_key_constraints_or_summary_may_have_short_subheadings_when_independent
-      rule: >-
-        不把“减少标题”或“增加导航”任一方向设为默认审美；是否拆分由独立数学任务和恢复性决定，而不是由字数、标题数量或版面对称决定。
+      authority: Paper Writing Protocol §2.2
     local_dependency_rule: >-
       同一大章节内部若任务 B 的定义、判据、可行域、目标或计算依赖任务 A，则默认先完成 A 再展开 B；
       solver 不早于其消费的模型结构，结果不早于计算依据，验证不早于被验证的主结果。
@@ -842,11 +698,8 @@ model_establishment_solution_narrative:
       - shared_core_relation
       - common_output_actually_consumed_by_later_questions
     rules:
-      - 不按合同字段机械拆分同一条论证链。
-      - 单一公式、普通图表、单个参数或标准算法参数设置本身不足以自动形成独立标题。
-      - 三级标题是正常可用的正式导航层级；二级小节内只要存在需要独立定位的数学任务、命题/关键算法/关键图锚点，或拆分能明显提升长论证可恢复性即可使用；不要求先满足“两个以上”配额，也不因三级标题数量较多自动否决。
+      - 小节组织见 Paper Writing Protocol §2、§3.1。
       - 不为小节对称或版式整齐新增不存在的数学任务。
-      - 复杂模型若确有多个独立任务，允许使用“短而明确”的三级标题；不得为了压缩标题数把证明、关键约束与参数证据混在一个难以回指的长段中。
     machine_audit_scope:
       may_review:
         - subsection_order_breaks_local_dependency
@@ -1134,13 +987,6 @@ model_establishment_solution_narrative:
         - answer_correctness_from_presence_of_summary_sentence
         - closure_from_section_order_only
   prose_target:
-    preferred_subjects:
-      - current_object
-      - current_relation
-      - current_condition
-      - current_result
-      - current_mathematical_task
-    reduce_repeated_subjects: [本文, 本问, 该模型, 我们]
     analysis_sentence_should_add_one_of:
       - why_model_structure_is_needed
       - why_formula_is_needed
@@ -1154,17 +1000,9 @@ model_establishment_solution_narrative:
     rule: >-
       正文语言保持规范、朴素、具体和专业；“适当分析”必须增加数学、求解或证据信息，
       “结果较好、模型有效、算法性能优异、符合实际”若没有具体机制、基线或范围，不构成有效分析。
-      reduce_repeated_subjects 只针对机械重复的步骤宣告，不是第一人称禁令；
-      有信息的作者视角及其表达边界按 Paper Writing Protocol §7.3 执行。
+      作者表达按 Paper Writing Protocol §7.3 执行。
   anti_template_boundary:
-    - 不复制任何优秀论文的固定句子、章节编号、算法或题目专属建模顺序。
-    - 不要求每个公式前出现同一承接词，不要求每段固定使用“因此/进一步/从而”。
-    - 不固定三级标题数量、流程图数量、Step 1--n、模型建立末尾总结句或图表分析三句式。
-    - 不把PSO、GA、DE、二分法、坐标搜索或任何参考论文算法设为默认 solver。
-    - 不把机理题中的某一对象顺序推广成统计、预测、网络、仿真或机器学习题的固定模板。
-    - 不把 Figure Result Narrative 固化为“图身份—特征—数值—原因—结论”的固定句数或固定措辞。
-    - 不把“模型适用性”固化为每问独立小节；适用理由优先贴近模型或 solver 首次出现处。
-    - 不把局部求解依赖升级为全文大章节重排规则。
+    - 见 scope.anti_template_boundary。
   machine_audit_scope:
     may_review:
       - report_like_model_listing
@@ -1174,9 +1012,6 @@ model_establishment_solution_narrative:
       - formula_without_need_or_consequence
       - solver_first_narrative
       - solver_precondition_missing_for_declared_dependency
-      - generic_heading_density
-      - heading_parent_context_repetition
-      - heading_overframed_without_navigation_gain
       - subsection_overmerged_despite_independent_tasks
       - subsection_fragmented_without_independent_task
       - management_transition
@@ -1221,25 +1056,7 @@ subsection_granularity:
     - optional_validation_sensitivity_or_robustness
   cumcm_default_second_level_authority: model_establishment_solution_narrative.within_question_subsection_architecture.cumcm_default_second_level
   cumcm_third_level_readability_authority: model_establishment_solution_narrative.within_question_subsection_architecture.third_level_judge_readability
-  result_third_level_rule: >-
-    模型求解结果与分析允许在存在多个独立结果任务、不同方案或可单独回指的核心解释时设置三级标题；
-    只有一张普通结果图或单个数值时不因此独立设标题，不把结果解释全部推迟到模型检验。
-  review_triggers:
-    - more_than_four_second_level_subsections_without_independent_argument_need
-    - subsection_contains_only_one_formula_table_or_figure
-    - adjacent_subsections_form_one_unbroken_argument_chain
-    - decision_variables_objective_constraints_summary_split_mechanically
-    - long_model_section_contains_multiple_independent_tasks_but_no_navigation_anchor
-    - boundary_ablation_independent_challenge_each_split_despite_same_validation_role
-  merge_preferences:
-    - thin_decision_variables_objective_constraints_and_summary -> model_construction
-    - active_boundary_and_solver_refinement -> model_solution_or_validation
-    - ablation_independent_algorithm_challenge_local_neighborhood -> result_analysis_or_validation_when_same_claim
-  separation_preferences:
-    - independent_key_predicate_or_proof -> short_local_heading
-    - independent_structural_reduction -> short_local_heading_when_navigation_improves
-    - independent_parameter_evidence -> short_local_heading_when_result_is_reused
-    - independent_solver_stage -> short_local_heading_when_control_or_search_role_differs
+  result_third_level_rule: 模型求解结果与分析按 Paper Writing Protocol §2.2 使用三级标题，不把主要结果解释推迟到模型检验。
   hard_count_limit: false
   hard_title_length_limit: false
   machine_audit_scope:
@@ -1685,10 +1502,8 @@ paragraph_necessity:
     - explanation_of_formula_with_no_downstream_use
   machine_audit_scope:
     may_warn:
-      - highly_similar_adjacent_paragraphs
       - generic_algorithm_exposition_without_local_variable_or_constraint_terms
       - repeated_result_number_sentence
-      - repeated_meta_summary
     must_not_do:
       - automatically_delete_text
       - infer_paragraph_semantic_necessity_from_regex_only
@@ -1768,13 +1583,8 @@ prose_style:
         自然发问必须进入相邻推导、真实检验、明确后续任务，或清楚保留为当前未验证问题；
         不得以问句制造探究感后在缺少证据时直接宣布答案。
     subject_roles:
-      author_we: local_reasoning_action
-      paper_this_work: paper_scope_or_contribution
-      object_subject: established_mathematical_or_empirical_fact
       quota: none
-      rule: >-
-        “我们”“本文”与对象/结果主语都可合法使用；按当前语义功能自然选择，
-        不批量互换，也不因正式性偏好统一成某一主语。
+      rule: 见 Paper Writing Protocol §7.3.2。
     claim_strength_alignment:
       levels:
         - mathematical_fact
@@ -1786,12 +1596,6 @@ prose_style:
       boundary: >-
         已证明数学事实和已核验数值通常直接陈述；“我们认为”适合有依据的建模取舍与评价，
         不能把启发式解、图像共现或有限样本观察升级为全局最优、因果、普遍规律或严格证明。
-    necessity_tests:
-      - reasoning_necessity
-      - problem_specificity
-    necessity_rule: >-
-      删除作者声音句后若不丢失选择理由、当前缺口、数学作用、验证目标或结论边界，应压缩、换主语或删除；
-      若替换研究对象后句子仍可原样用于任意赛题，应优先回到当前机制、数据、约束或评价目标重写。
     prohibit:
       - pronoun_frequency_target
       - authorship_inference_from_voice
@@ -1804,36 +1608,21 @@ prose_style:
       - fixed_phrase_rotation_for_human_impression
 
 problem_background:
-  governance_level: recommendation
-  default: one_paragraph
-  allow_second_short_paragraph_when: reality_background_to_specific_research_object_needs_semantic_narrowing
-  second_paragraph_must: narrow_object_or_core_conflict
-  forbidden_second_paragraph: document_structure_or_chapter_management_only
+  authority: modules/05_writing/paper_writing_protocol.md#6.1-问题重述
 
 model_evaluation:
-  governance_level: recommendation
-  strengths_typical: [2, 4]
-  strengths_usual_target: 3
-  weaknesses_typical: [1, 2]
-  count_relation_required: false
-  concise_transfer_rule: 仅在确有迁移对象时简述可继承的结构、需要重新标定的参数或约束和适用边界，避免空泛应用罗列。
-  rule: 优点结合真实模型结构与求解性质，局限说明受影响的结果及范围；数量按实际模型决定，不检查“优点必须多于缺点”，也不机械增加推广小节。
+  authority: modules/05_writing/paper_writing_protocol.md#15-模型评价逐问结论与附录
 
 machine_audit_boundary:
   report_only_for_semantic_style_risks: true
   may_warn:
     - dense_formula_blocks_with_little_prose
-    - repeated_further_obtain_or_similarly_obtain
-    - repeated_meta_navigation
     - repeated_cross_question_redefinition
     - unexplained_numeric_parameter_assignment
-    - repeated_identical_question_opening_pattern
     - unused_bibliography_entry
     - terminology_drift
     - numeric_style_drift
     - unreferenced_label_or_equation
-    - unusually_long_caption
-    - paragraph_redundancy_risk
     - raw_python_like_pseudocode
     - management_transition
   may_review:
@@ -1849,13 +1638,10 @@ machine_audit_boundary:
     - solver_precondition_missing_for_declared_dependency
     - question_subsection_fragmentation_risk
     - question_subsection_overmerge_risk
-    - heading_parent_context_repetition
-    - heading_overframed_without_navigation_gain
     - strong_claim_without_declared_evidence_scope
     - report_like_model_listing
     - formula_without_need_or_consequence
     - solver_first_narrative
-    - generic_heading_density
     - detached_result_interpretation
     - repeated_problem_analysis_in_model_section
     - subsection_order_breaks_local_dependency

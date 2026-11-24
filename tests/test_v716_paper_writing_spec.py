@@ -115,12 +115,17 @@ class TestV716PaperWritingSpec(unittest.TestCase):
         self.assertIn("不建立第二套正文写作规则", self.cleanup)
         self.assertIn("优化类模型先出现 DE、GA、PSO、ALNS、Dual Annealing", self.cleanup)
         self.assertIn("自定义模型名", self.cleanup)
-        self.assertIn("一个二级或三级小节只有一个公式、一张表或一幅普通图", self.cleanup)
+        self.assertIn("标题或章节问题按 Protocol §2、§3.1 报告上游", self.cleanup)
+        self.assertIn("Cleanup 连按其他理由主动拆合标题也没有权限", self.cleanup)
+        self.assertNotIn("一个二级或三级小节只有一个公式、一张表或一幅普通图", self.cleanup)
         self.assertIn("摘要中用“先进、高效、精确、最优、显著、强鲁棒”", self.cleanup)
 
     def test_review_keeps_granularity_default_not_blocking(self):
-        self.assertIn("本规则只检查**问题章节内部二级/三级小节**", self.review)
-        self.assertIn("这不是硬计数", self.review)
+        self.assertIn("问题章节内部二级/三级小节按 Protocol §2、§3.1 审查", self.review)
+        self.assertIn("不改 Template Manifest 一级结构", self.review)
+        self.assertFalse(self.contract["subsection_granularity"]["hard_count_limit"])
+        self.assertFalse(self.contract["subsection_granularity"]["hard_title_length_limit"])
+        self.assertIn("正式章节禁止四级及以上", self.review)
         self.assertIn("以下**不再自动列为 Blocking**：问题章节内部二级/三级小节超过经验数量", self.review)
 
     def test_prose_audit_does_not_review_subsection_count_alone(self):

@@ -33,7 +33,7 @@
 
 ### Author Reasoning Semantic Review
 
-只消费 Protocol §7.3 与 reasoning Authority。检查 Reasoning Necessity、Problem-Specificity、Question Closure 与 Claim Strength；不做“人工感”评分，不用第一人称/连接词频率推断作者身份；明确禁止 `first_person_ratio`、`human_like_score`、`AI_like_score`。必要理由可以保留“我们”，客观事实可以重设为对象主语；不得由表面自然度牺牲公式来源、证明、Algorithm Trace 或证据边界。
+只消费 Protocol §7.3 与 reasoning Authority，核对 Question Closure 与 Claim Strength；段落必要性按 Protocol §5。明确禁止 `first_person_ratio`、`human_like_score`、`AI_like_score`，不根据作者声音判断身份。
 
 ### Formula-Rich Narrative Readability Review
 
@@ -79,9 +79,9 @@
 
 Title Claim 中的主方法/机制必须在正文实质使用并有结果证据；标题—摘要—关键词—正文模型口径一致。正文段落按 Paragraph Necessity 判断信息作用，不按字数配额。
 
-本规则只检查**问题章节内部二级/三级小节**，不改 Template Manifest 一级结构。一级至三级正常可用，正式章节禁止四级及以上；**这不是硬计数**，自定义层级不明时人工复核。独立公式组、证明/判据、结构化简、参数证据或 solver stage 可拆，同链可合并。
+问题章节内部二级/三级小节按 Protocol §2、§3.1 审查，不改 Template Manifest 一级结构。一级至三级正常可用，正式章节禁止四级及以上；自定义层级不明时人工复核。
 
-同时做评委可读性复核：默认评委懂数学建模但不预设其熟悉题目所属专业领域。标题若只有专业缩写、领域概念或多个方法名而无法恢复研究对象和当前任务，按现有 Default 语义进入 review_required；必要模型名/方法名用于区分真实任务时应保留。不能为了“更通俗”把标题改成“数据处理、模型处理、结果说明、影响因素”等无对象空标题。
+三级标题的准确、清楚、易懂及正常使用按 Protocol §2.1、§2.2 复核。
 
 以下**不再自动列为 Blocking**：问题章节内部二级/三级小节超过经验数量、标题较长、使用“基于/的”等语法、段落公式较多，或标题含必要专业术语。只有实际造成语义断裂、证据缺失、模板违规或 Hard 冲突时才 blocking。
 

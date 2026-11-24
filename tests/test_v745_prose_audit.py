@@ -126,13 +126,17 @@ H1. 数据满足要求。
         warning_codes = {item.code for item in findings if item.severity == "warning"}
         self.assertIn("missing_problem_statement", review_codes)
         self.assertIn("legacy_problem_requirement", review_codes)
-        self.assertIn("merged_assumption_symbol_section", review_codes)
-        self.assertIn("standalone_conclusion", review_codes)
+        self.assertNotIn("merged_assumption_symbol_section", review_codes)
+        self.assertNotIn("standalone_conclusion", review_codes)
+        manifest = ROOT / "templates/latex/cumcm/hsk/template_manifest.yaml"
+        selected = self.audit.audit_text(tex, template_manifest=manifest)
+        self.assertIn("merged_assumption_symbol_section", {item.code for item in selected})
+        self.assertIn("standalone_conclusion", {item.code for item in selected})
         self.assertIn("visible_assumption_contract_id", warning_codes)
         self.assertNotIn("no_named_core_model_summary", warning_codes)
         self.assertEqual(self.audit.overall_status(findings), "review_required")
 
-    def test_repeated_negation_is_warning_not_word_ban(self):
+    def test_repeated_negation_is_not_a_mechanical_warning(self):
         ordinary = r"""
 \begin{document}
 \section{问题重述}
@@ -155,8 +159,73 @@ H1. 数据满足要求。
 """
         findings = self.audit.audit_text(dense)
         codes = {item.code for item in findings}
-        self.assertTrue({"repeated_negation_template", "consecutive_contrast_paragraphs"} & codes, findings)
-        self.assertEqual(self.audit.overall_status(findings), "warning")
+        self.assertTrue({"repeated_negation_template", "consecutive_contrast_paragraphs",
+                         "dense_contrast_paragraph"}.isdisjoint(codes), findings)
+        self.assertEqual(self.audit.overall_status(findings), "pass")
+
+    def test_normal_academic_word_frequencies_are_not_diagnostic_thresholds(self):
+        paragraph = (
+            "本文首先建立当前对象的关系，其次进一步可得该对象的变化规律，"
+            "最后由图可知结果与研究对象相对应。由表可知计算结果满足要求，见表。"
+            "本节主要介绍实际过程，为了便于解释，下面将给出下一步。"
+            "然而该关系并非完全独立，不能直接合并，只能按实际条件判断。"
+        )
+        text = r"\begin{document}" + "\n\n".join([paragraph] * 8) + r"\end{document}"
+        removed = {
+            "repeated_paper_subject_start", "consecutive_paper_subject_start",
+            "repeated_derivation_connector", "repeated_stock_phrase",
+            "repeated_negation_template", "repeated_meta_navigation",
+            "consecutive_contrast_paragraphs", "dense_contrast_paragraph",
+            "possible_redundant_paragraph",
+        }
+        self.assertTrue(removed.isdisjoint({row.code for row in self.audit.audit_text(text)}))
+
+    def test_background_paragraph_count_is_not_a_warning(self):
+        text = (
+            r"\begin{document}\section{问题重述}\subsection{问题背景}"
+            + "\n\n".join(["城市交通系统受到需求波动和有限道路容量的共同影响。"] * 4)
+            + r"\subsection{问题提出}确定路径流量。\end{document}"
+        )
+        codes = {row.code for row in self.audit.audit_text(text)}
+        self.assertNotIn("long_problem_background", codes)
+        self.assertNotIn("missing_problem_background", codes)
+
+    def test_long_caption_still_requires_real_references_not_character_counts(self):
+        text = (
+            r"\begin{document}比较结果见图~\ref{fig:real}。"
+            r"\begin{figure}\caption{" + "实际研究对象的结果及其适用范围" * 8
+            + r"}\label{fig:real}\end{figure}\end{document}"
+        )
+        codes = {row.code for row in self.audit.audit_text(text)}
+        self.assertNotIn("long_caption", codes)
+        self.assertNotIn("unreferenced_figure_table", codes)
+        missing = text.replace(r"\ref{fig:real}", r"\ref{fig:absent}")
+        findings = self.audit.audit_text(missing)
+        self.assertTrue(any(row.code == "missing_ref_label" and row.severity == "blocking"
+                            for row in findings), findings)
+
+    def test_problem_analysis_uses_pure_text_and_active_math_is_reported(self):
+        prefix = r"\begin{document}\section{问题分析}\subsection{问题一的分析}"
+        suffix = r"\section{模型建立}后续模型使用 $x=1$。\end{document}"
+        for formula in (
+            r"$x=1$", r"\(x=1\)", r"\[x=1\]", r"$x=1$",
+            r"\begin{equation}x=1\end{equation}",
+            r"\begin{align*}x&=1\end{align*}",
+            r"\begin{multline}x=1\end{multline}", r"\ensuremath{x=1}",
+        ):
+            with self.subTest(formula=formula):
+                findings = self.audit.audit_text(prefix + formula + suffix)
+                self.assertTrue(any(row.code == "formula_in_problem_analysis"
+                                    and row.severity == "review_required" for row in findings))
+        for plain in (
+            "依据题目给定的3组数据，分析误差变化趋势。",
+            r"成本为 \$3，随后比较不同方案。",
+            "% 注释里的 $x=1$\n采用纯文本分析。",
+            r"\verb|$x=1$| 作为字面示例。",
+        ):
+            with self.subTest(plain=plain):
+                self.assertFalse(any(row.code == "formula_in_problem_analysis"
+                                     for row in self.audit.audit_text(prefix + plain + suffix)))
 
     def test_unreferenced_main_figure_is_warning(self):
         tex = r"""
@@ -244,10 +313,101 @@ H1. 数据满足要求。
         findings = self.audit.audit_text(tex)
         self.assertTrue(any(x.code == "background_management_paragraph" for x in findings), findings)
 
+    def test_adopted_template_owns_top_level_structure(self):
+        tex = r"\begin{document}\section{模型假设与符号说明}说明。\section{结论}结论。\end{document}"
+        codes = {"standalone_conclusion", "merged_assumption_symbol_section"}
+        self.assertFalse(codes.intersection(item.code for item in self.audit.audit_text(tex)))
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "assumptions.tex").write_text(r"\section{模型假设与符号说明}", encoding="utf-8")
+            (root / "conclusion.tex").write_text(r"\section{结论}", encoding="utf-8")
+            manifest = root / "template_manifest.yaml"
+            manifest.write_text(yaml.safe_dump({"paper_skeleton": {"ordered_slots": [
+                {"id": "assumptions", "source": "assumptions.tex"},
+                {"id": "conclusion", "source": "conclusion.tex"},
+            ]}}), encoding="utf-8")
+            self.assertFalse(codes.intersection(item.code for item in
+                self.audit.audit_text(tex, template_manifest=manifest)))
+
+    def test_hsk_template_copy_cannot_redefine_fixed_headings(self):
+        from audit_latex_project import audit_project
+
+        canonical = ROOT / "templates/latex/cumcm/hsk/template_manifest.yaml"
+        codes = {"standalone_conclusion", "merged_assumption_symbol_section"}
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            sections = root / "sections"
+            sections.mkdir()
+            manifest = root / "template_manifest.yaml"
+            manifest.write_bytes(canonical.read_bytes())
+            main = root / "main.tex"
+            main.write_text(
+                r"\begin{document}\input{sections/03_assumptions}"
+                r"\input{sections/04_symbols}\end{document}", encoding="utf-8",
+            )
+            assumptions = sections / "03_assumptions.tex"
+            symbols = sections / "04_symbols.tex"
+            assumptions.write_text(r"\section{模型假设与符号说明}说明。", encoding="utf-8")
+            symbols.write_text(r"\section{结论}结论。", encoding="utf-8")
+            authored = assumptions.read_text(encoding="utf-8") + symbols.read_text(encoding="utf-8")
+            for findings in (
+                self.audit.audit_text(authored, template_manifest=manifest),
+                self.audit.audit_file(main),
+                audit_project(main, formal=False),
+            ):
+                self.assertEqual(
+                    codes, {row.code for row in findings if row.severity == "review_required"} & codes,
+                    findings,
+                )
+            # A known template with its original heading structure is still allowed.
+            assumptions.write_text(r"\section{模型假设}说明。", encoding="utf-8")
+            symbols.write_text(r"\section{符号说明}说明。", encoding="utf-8")
+            for findings in (self.audit.audit_file(main), audit_project(main, formal=False)):
+                self.assertFalse(codes.intersection(row.code for row in findings), findings)
+
+    def test_structure_entries_share_template_scope_for_modular_and_unknown_papers(self):
+        from audit_latex_project import audit_project
+
+        codes = {"standalone_conclusion", "merged_assumption_symbol_section"}
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            sections = root / "sections"
+            sections.mkdir()
+            fragments = {
+                "01_problem_statement": r"\section{问题重述}\subsection{问题背景}背景。\subsection{问题提出}任务。",
+                "02_problem_analysis": r"\section{问题分析}\subsection{问题一的分析}分析。",
+                "03_assumptions": r"\section{模型假设与符号说明}说明。",
+                "06_question1": r"\section{问题一模型建立及求解}\section{结论}结论。",
+            }
+            for name, content in fragments.items():
+                (sections / (name + ".tex")).write_text(content, encoding="utf-8")
+            main = root / "main.tex"
+            main.write_text(
+                r"\begin{document}" + "".join(r"\input{sections/" + name + "}" for name in fragments)
+                + r"\end{document}", encoding="utf-8",
+            )
+            # Recognize the original HSK assembly even without a manifest copy.
+            for findings in (self.audit.audit_file(main), audit_project(main, formal=False)):
+                self.assertEqual(codes, {row.code for row in findings} & codes, findings)
+            # An explicitly different template is not subject to HSK-specific findings.
+            (root / "template_manifest.yaml").write_text(
+                yaml.safe_dump({"template_id": "other_contest_template"}), encoding="utf-8",
+            )
+            for findings in (self.audit.audit_file(main), audit_project(main, formal=False)):
+                self.assertFalse(codes.intersection(row.code for row in findings), findings)
+            # An unidentified single-file paper is likewise not assumed to be HSK.
+            (root / "template_manifest.yaml").unlink()
+            main.write_text(
+                r"\begin{document}\section{模型假设与符号说明}说明。\section{结论}结论。\end{document}",
+                encoding="utf-8",
+            )
+            for findings in (self.audit.audit_file(main), audit_project(main, formal=False)):
+                self.assertFalse(codes.intersection(row.code for row in findings), findings)
+
     def test_strict_status_can_distinguish_warning_review_and_blocking(self):
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp) / "main.tex"
-            path.write_text(r"\begin{document}\section{结论}重复总结。\end{document}", encoding="utf-8")
+            path.write_text(r"\begin{document}\section{问题分析}设 $x=1$。\end{document}", encoding="utf-8")
             findings = self.audit.audit_file(path)
             self.assertEqual(self.audit.overall_status(findings), "review_required")
 
