@@ -71,13 +71,27 @@ class TestWritingEvidenceArchitecture(unittest.TestCase):
         self.assertNotIn("\\paragraph{", q2)
         self.assertNotIn("\\subparagraph{", q2)
 
+        # B01/B02 replaced the historical A/B heading profiles with short
+        # Protocol-owned rules; consumers must match that approved authority.
+        protocol = (ROOT / "modules/05_writing/paper_writing_protocol.md").read_text(encoding="utf-8")
         for token in (
-            "Profile A：紧凑型",
-            "Profile B：导航型",
-            "7.1.4 模型汇总",
-            "不应为了“连续叙事”强行全部合并",
+            "## 9. 优化模型的小节组织",
+            "Paper Writing Protocol §2.2、§3.1",
+            "模型建立内部可正常使用三级标题",
+            "决策变量", "目标函数", "协同约束", "模型汇总",
+            "## 10. 三级标题示例",
+            "Paper Writing Protocol §2.1",
+            "标题应准确反映实际研究任务",
         ):
             self.assertIn(token, rationale_examples)
+        for token in (
+            "三级标题应准确、清楚、易懂，让读者看出研究对象与任务。",
+            "三级标题可正常使用，用于使论文结构与论述更加清晰。",
+            "常规复杂问保留以上二级标题原文和顺序，不随意改动。",
+        ):
+            self.assertIn(token, protocol)
+        self.assertNotIn("Profile A：紧凑型", rationale_examples)
+        self.assertNotIn("Profile B：导航型", rationale_examples)
 
         for token in ("内部 run id", "accepted 数值", "过宽表"):
             self.assertIn(token, caption)
