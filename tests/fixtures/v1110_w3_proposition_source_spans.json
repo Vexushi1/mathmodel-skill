@@ -556,6 +556,27 @@
       ]
     },
     {
+      "path": "core/project_state.schema.yaml",
+      "baseline_sha256": "348e981de6a66f028f742e56f9e0cd872567baf685b4f507ff62cfff435ccd73",
+      "candidate_sha256": "5ab0e1b5897e70e2ce04d1de7f684a6003d9a97ad1e45201e734ae5360c722c1",
+      "spans": [
+        {
+          "before": [
+            [
+              1,
+              2055
+            ]
+          ],
+          "after": [
+            [
+              1,
+              2059
+            ]
+          ]
+        }
+      ]
+    },
+    {
       "path": "modules/05_writing/ai_cleanup.md",
       "baseline_sha256": "a2574e04006daa4ab9156cd5ae051fa42f4ee289e05193892b19919d254c11d6",
       "candidate_sha256": "10f5e9b6c8a315bb888893eca03fecb9a772a0f4397cedbee669e8b2014fecf6",

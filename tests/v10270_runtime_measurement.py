@@ -356,6 +356,7 @@ def approved_source_span_migrations(path: Path | None, *, source_root: Path | No
     if candidate_profile:
         _validate_legacy_profile_shifts(
             data["legacy_profile_read_shifts"], root,
+            w3_proposition_cap=data["scope"] == "v11_1_0_w3_proposition_cap_source_spans",
             writing_draft=data["scope"] in {
                 "v11_1_0_writing_draft_legacy_stage_scoped_spans",
                 "v11_1_0_w2_numeric_display_source_spans",
@@ -365,12 +366,15 @@ def approved_source_span_migrations(path: Path | None, *, source_root: Path | No
     return data
 
 
-def _validate_legacy_profile_shifts(rules, root, *, writing_draft=False):
+def _validate_legacy_profile_shifts(rules, root, *, writing_draft=False, w3_proposition_cap=False):
     """Only physical ranges of these additional legacy-profile reads can move."""
     paths = ["core/bootstrap.yaml", "core/global_preprocessing_contract.yaml",
              "core/hsk_core_policy.md", "core/state_transition_contract.yaml",
              "core/writing_runtime_contract.yaml", "modules/04_figure_evidence.md",
              "modules/05_writing/paper_writing_protocol.md", "templates/review/final_review_matrix.yaml"]
+    if w3_proposition_cap:
+        # I01 changes the exact full State Schema extent only on the W3 carrier.
+        paths.append("core/project_state.schema.yaml")
     if writing_draft:
         # Exact writing candidate changes only; released source manifests remain frozen.
         paths.extend(("modules/05_writing/ai_cleanup.md",
@@ -392,6 +396,10 @@ def _validate_legacy_profile_shifts(rules, root, *, writing_draft=False):
         if not isinstance(spans, list) or not spans:
             raise ValueError("legacy profile ranges missing")
         last_line = len(raw.splitlines())
+        if rule["path"] == "core/project_state.schema.yaml" and (
+            last_line != 2059 or spans != [{"before": [[1, 2055]], "after": [[1, 2059]]}]
+        ):
+            raise ValueError("W3 State Schema must bind the exact full source extent")
         for span in spans:
             if not isinstance(span, dict) or set(span) != {"before", "after"} or span["before"] == span["after"]:
                 raise ValueError("legacy profile range transition invalid")
@@ -416,7 +424,14 @@ def _project_approved_read_spans(old_case, new_case, expected, rules, read_appro
         for report, field in ((old_case, "baseline_sha256"), (new_case, "candidate_sha256")):
             found = [row["sha256"] for row in report["source_identity"].get("sources", [])
                      if row.get("path") == path]
-            if found and found != [rule[field]]:
+            # W3's changed State Schema has a fingerprint in both measured reports.
+            # A read of this authority must not lose that identity during projection.
+            state_read = path == "core/project_state.schema.yaml" and any(
+                row.get("path") == path
+                for group in ("read_now", "conditional")
+                for row in report["behavior"].get(group, [])
+            )
+            if (found or state_read) and found != [rule[field]]:
                 raise ValueError("source span identity drift: " + path)
         if "spans" in rule:
             spans = rule["spans"]

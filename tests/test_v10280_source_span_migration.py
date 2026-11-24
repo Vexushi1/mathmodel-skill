@@ -507,6 +507,100 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "source span identity drift"):
             self.measurement.project_exact_approved_source_spans(old, new, fixture)
 
+    def test_w3_state_schema_span_projects_direct_conditional_and_g2_reads(self):
+        fixture = self.measurement.approved_source_span_migrations(self.fixture)
+        path = "core/project_state.schema.yaml"
+        rule = next(item for item in fixture["legacy_profile_read_shifts"]
+                    if item["path"] == path)
+        self.assertEqual(rule, {
+            "path": path,
+            "baseline_sha256": "348e981de6a66f028f742e56f9e0cd872567baf685b4f507ff62cfff435ccd73",
+            "candidate_sha256": "5ab0e1b5897e70e2ce04d1de7f684a6003d9a97ad1e45201e734ae5360c722c1",
+            "spans": [{"before": [[1, 2055]], "after": [[1, 2059]]}],
+        })
+        approvals = self.measurement.approved_changes(
+            ROOT / "tests/fixtures/v10270_g2_approved_deltas.json")
+        mixed_id = "natural_language_two_actions_probe"
+        transition = next(item for item in approvals
+                          if item["case_id"] == mixed_id and item["path"] == "read_now")
+        for case_id, group, when in (
+            ("pure_model_design", "read_now", None),
+            ("full_workflow_boundary", "read_now", None),
+            ("analysis_stage_request", "read_now", None),
+            ("pure_python_figures", "conditional", "machine_gate_or_state_conflict_needs_field_definition"),
+            ("two_carrier_legacy_protected", "conditional", "machine_gate_or_state_conflict_needs_field_definition"),
+            ("explicit_figure_scope", "conditional", "machine_gate_or_state_conflict_needs_field_definition"),
+            (mixed_id, "read_now", None),
+        ):
+            with self.subTest(case_id=case_id, group=group):
+                historical = {"origin": "skill", "path": path, "ranges": [[1, 2055]],
+                              "resolution": "exact", "selectors": {}, "when": when}
+                current = {**historical, "ranges": [[1, 2059]]}
+                if case_id == mixed_id:
+                    self.assertIn(historical, transition["after"])
+                    prior_rows = deepcopy(transition["before"])
+                    read_approvals = {group: transition}
+                else:
+                    prior_rows = [deepcopy(historical)]
+                    read_approvals = {}
+                old = {"id": case_id, "behavior": {group: prior_rows},
+                       "source_identity": {"sources": [
+                           {"path": path, "sha256": rule["baseline_sha256"]}]}}
+                new = {"id": case_id, "behavior": {group: [deepcopy(current)]},
+                       "source_identity": {"sources": [
+                           {"path": path, "sha256": rule["candidate_sha256"]}]}}
+                saved = deepcopy(new)
+                observed = deepcopy(new["behavior"])
+                evidence = self.measurement._project_approved_read_spans(
+                    old, new, observed, [rule], read_approvals)
+                self.assertEqual(observed[group], [historical])
+                self.assertEqual(new, saved)
+                self.assertEqual(len(evidence), 1)
+                self.assertEqual(evidence[0]["group"], group)
+                self.assertEqual(evidence[0]["actual_ranges"], [[1, 2059]])
+                self.assertEqual(evidence[0]["historical_ranges"], [[1, 2055]])
+                self.assertEqual(evidence[0]["source_sha256"], rule["candidate_sha256"])
+
+                for field, value in (("selectors", {"yaml_paths": ["unreviewed"]}),
+                                     ("when", "unreviewed"), ("ranges", [[1, 2058]])):
+                    altered = deepcopy(new)
+                    altered["behavior"][group][0][field] = value
+                    observed = deepcopy(altered["behavior"])
+                    evidence = self.measurement._project_approved_read_spans(
+                        old, altered, observed, [rule], read_approvals)
+                    self.assertEqual(observed, altered["behavior"])
+                    self.assertEqual(evidence, [])
+
+                for identities in ([], [{"path": path, "sha256": "0" * 64}]):
+                    altered = deepcopy(new)
+                    altered["source_identity"]["sources"] = identities
+                    with self.assertRaisesRegex(ValueError, "source span identity drift"):
+                        self.measurement._project_approved_read_spans(
+                            old, altered, deepcopy(altered["behavior"]), [rule], read_approvals)
+
+    def test_w3_state_schema_manifest_rejects_missing_partial_and_wrong_hash(self):
+        original = json.loads(self.fixture.read_text(encoding="utf-8"))
+        path = "core/project_state.schema.yaml"
+        for mutation, message in (
+            ("missing", "legacy profile source paths differ"),
+            ("partial", "W3 State Schema must bind the exact full source extent"),
+            ("hash", "legacy profile candidate bytes changed"),
+        ):
+            with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as folder:
+                data = deepcopy(original)
+                rules = data["legacy_profile_read_shifts"]
+                rule = next(item for item in rules if item["path"] == path)
+                if mutation == "missing":
+                    rules.remove(rule)
+                elif mutation == "partial":
+                    rule["spans"][0]["after"] = [[1, 2058]]
+                else:
+                    rule["candidate_sha256"] = "0" * 64
+                snapshot = Path(folder) / "candidate.json"
+                snapshot.write_text(json.dumps(data), encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, message):
+                    self.measurement.approved_source_span_migrations(snapshot)
+
     def test_w3_snapshot_rejects_mutated_authority_identity(self):
         manifest = self.measurement.approved_source_span_migrations(self.fixture)
         rule = next(x for x in manifest["legacy_profile_read_shifts"]
