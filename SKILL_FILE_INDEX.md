@@ -777,6 +777,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_v931_repository_hygiene_index.py`
 - `tests/test_v931_task_pack_budget_closure.py`
 - `tests/test_v931_writing_readability_w4_acceptance.py`
+- `tests/test_w3_proposition_body_limit.py`
 - `tests/v10270_action_observation.py`
 - `tests/v10270_runtime_measurement.py`
 - `tests/v11_business_baseline.py`
