@@ -1266,10 +1266,11 @@ def check_templates(errors: list[str]) -> None:
         for token in ("Algorithm Trace", "stepwise", "pseudocode"):
             if token not in text:
                 errors.append(f"{text_name} lacks v7.8.1 Algorithm Trace review token: {token}")
-    if "命题数量允许为 0 且最多 4 个" in full_submission:
-        errors.append("full submission must not restore a hard four-proposition maximum")
-    if "0--4 仅是默认正文阅读预算" not in full_submission or "P5+" not in full_submission:
-        errors.append("full submission must preserve proposition default-budget/justification semantics")
+    if (("全文正文正式命题最多 4 个" not in full_submission)
+            or ("无超额豁免" not in full_submission)
+            or ("P5+ 稳定 ID" not in full_submission)
+            or ("核心证明仍须完整可恢复" not in full_submission)):
+        errors.append("final submission must enforce the W3 body proposition cap and preserve core proofs")
     for token in ("Integrity / Hard boundary", "Evidence closure", "Style & Necessity", "Optional machine diagnostics", "Skill 负责原则，脚本负责穷举"):
         if token not in cleanup:
             errors.append(f"AI cleanup lacks v7.7 layered-governance token: {token}")
