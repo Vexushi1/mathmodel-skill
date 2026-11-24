@@ -15,6 +15,8 @@ from pathlib import Path
 
 import yaml
 
+from writing_slimming_reference import prior_writing_slimming_text
+
 ROOT = Path(__file__).resolve().parents[1]
 PROTOCOL = "modules/05_writing/paper_writing_protocol.md"
 EXAMPLES = "modules/05_writing/references/model_solution_reasoning_examples.md"
@@ -123,13 +125,7 @@ class WritingReasoningScopeTests(unittest.TestCase):
                     self.assertEqual(body.count(approved), 1)
                     body = body.replace(approved, "", 1)
                 if heading == "14. 摘要":
-                    # A01--A04: reverse only the approved abstract-format edits.
-                    for current, prior in (
-                        ("摘要与关键词不超过一页。第一段简明扼要地介绍研究背景，由背景引出具体问题，最后给出本文的主要模型。通常为3–4句话，最终 PDF 排版不超过4行。\n\n其后按题目顺序逐问撰写，每个小问段落必须以“针对问题X”开头。每问按以下信息链压缩：", "摘要首先用极短的总述交代研究对象、核心矛盾和全文统一路线，随后覆盖每一个实际小问。每问按以下信息链压缩："),
-                        ("不得为填满链条虚构模型、约束、算法或敏感性检验。", "这条链概括起来可以写成“针对 X 问题，建立 XX 模型；以 XX 为目标并满足 XX 关键条件/约束；通过 XX 方法求解，得到 XX 结果；检验显示结论在 XX 范围内保持/发生变化；因此得到 XX 结论”，但它是**内容合同而不是固定句式**。不得让每段都机械复制“针对问题 X，本文……”，也不得为填满链条虚构模型、约束、算法或敏感性检验。"),
-                    ):
-                        self.assertEqual(body.count(current), 1)
-                        body = body.replace(current, prior, 1)
+                    body = prior_writing_slimming_text(PROTOCOL, body)
                 self.assertEqual(hashlib.sha256(body.encode()).hexdigest(), digest)
 
     def test_template_adapter_and_proof_algorithm_forms_are_pinned(self):

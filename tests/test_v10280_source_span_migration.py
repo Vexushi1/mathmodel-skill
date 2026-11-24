@@ -24,7 +24,8 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.measurement = load_measurement()
-        cls.fixture = ROOT / "tests/fixtures/v1110_release_source_spans.json"
+        cls.fixture = ROOT / "tests/fixtures/v1110_writing_draft_source_spans.json"
+        cls.frozen_v1110 = ROOT / "tests/fixtures/v1110_release_source_spans.json"
         cls.frozen_v11 = ROOT / "tests/fixtures/v11_candidate_source_spans.json"
         cls.frozen_v10353 = ROOT / "tests/fixtures/v10353_approved_source_spans.json"
         cls.frozen_v10352 = ROOT / "tests/fixtures/v10352_approved_source_spans.json"
@@ -163,6 +164,32 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
         # A new Skill release cannot inherit source-byte approval for v11.0.0.
         with self.assertRaisesRegex(ValueError, "candidate bytes changed"):
             self.measurement.approved_source_span_migrations(self.frozen_v11)
+
+    def test_v1110_release_source_spans_remain_frozen(self):
+        original = json.loads(self.frozen_v1110.read_text(encoding="utf-8"))
+        self.assertEqual(original["scope"], "v11_1_0_release_legacy_stage_scoped_spans")
+        self.assertEqual(original["version"], "11.1.0")
+        with self.assertRaisesRegex(ValueError, "legacy profile candidate bytes changed"):
+            self.measurement.approved_source_span_migrations(self.frozen_v1110)
+        draft = self.measurement.approved_source_span_migrations(self.fixture)
+        self.assertEqual(draft["scope"], "v11_1_0_writing_draft_legacy_stage_scoped_spans")
+        before = next(x for x in original["legacy_profile_read_shifts"]
+                      if x["path"] == "modules/05_writing/paper_writing_protocol.md")
+        after = next(x for x in draft["legacy_profile_read_shifts"]
+                     if x["path"] == "modules/05_writing/paper_writing_protocol.md")
+        self.assertEqual(before["candidate_sha256"], "38aedaf39393da999827ca1147ca4295d8070ca375c765dd020722b24ab7c645")
+        self.assertEqual(after["candidate_sha256"], "c8ad6b2c9420852b2076a797d97addebbec2ec09351b274026f0a10c552bc6c5")
+        self.assertEqual(before["spans"][0]["after"][-1], [728, 794])
+        self.assertEqual(after["spans"][0]["after"][-1], [728, 796])
+        self.assertEqual(before["spans"][1]["after"], [[1, 821]])
+        self.assertEqual(after["spans"][1]["after"], [[1, 823]])
+        # Compare all unchanged paths, selectors and approval fields.
+        projected = deepcopy(draft)
+        projected["scope"] = original["scope"]
+        projected["authorizing_reason"] = original["authorizing_reason"]
+        index = projected["legacy_profile_read_shifts"].index(after)
+        projected["legacy_profile_read_shifts"][index] = deepcopy(before)
+        self.assertEqual(projected, original)
 
     def cases(self):
         manifest = self.measurement.approved_source_span_migrations(self.fixture)

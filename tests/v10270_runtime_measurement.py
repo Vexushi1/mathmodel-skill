@@ -207,6 +207,7 @@ def approved_source_span_migrations(path: Path | None, *, source_root: Path | No
     candidate_profile = (data.get("scope"), data.get("version")) in {
         ("v11_candidate_legacy_stage_scoped_spans", "11.0.0"),
         ("v11_1_0_release_legacy_stage_scoped_spans", "11.1.0"),
+        ("v11_1_0_writing_draft_legacy_stage_scoped_spans", "11.1.0"),
     }
     model_intake_carrier = candidate_profile or (data.get("scope"), data.get("version")) in {
         ("v10.29.0_p2_exact_literature_intake_migration", "10.29.0"),
