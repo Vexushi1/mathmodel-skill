@@ -556,6 +556,27 @@
       ]
     },
     {
+      "path": "modules/05_writing/ai_cleanup.md",
+      "baseline_sha256": "a2574e04006daa4ab9156cd5ae051fa42f4ee289e05193892b19919d254c11d6",
+      "candidate_sha256": "8e4b4772d6f2afbb70a6b2e27f12b81a6e41f7bf7a02aafa8a218c19d274cf22",
+      "spans": [
+        {
+          "before": [
+            [
+              1,
+              51
+            ]
+          ],
+          "after": [
+            [
+              1,
+              52
+            ]
+          ]
+        }
+      ]
+    },
+    {
       "path": "core/writing_reasoning_contract.yaml",
       "baseline_sha256": "d64b0ce75987d5581ce9342800a2e73b0fccc9184cce613f12699aaf3a723bd1",
       "candidate_sha256": "b25bb618385b3d6da148b5cbf11ec9183044218956d2b0a25b1491d3da91f08f",

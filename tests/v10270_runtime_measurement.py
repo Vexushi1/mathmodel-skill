@@ -362,7 +362,9 @@ def _validate_legacy_profile_shifts(rules, root, *, writing_draft=False):
              "core/writing_runtime_contract.yaml", "modules/04_figure_evidence.md",
              "modules/05_writing/paper_writing_protocol.md", "templates/review/final_review_matrix.yaml"]
     if writing_draft:
-        paths.append("core/writing_reasoning_contract.yaml")
+        # Exact W1 source changes only; released manifests retain their frozen paths.
+        paths.extend(("modules/05_writing/ai_cleanup.md",
+                      "core/writing_reasoning_contract.yaml"))
     if not isinstance(rules, list) or [
         rule.get("path") for rule in rules if isinstance(rule, dict)
     ] != paths or len(rules) != len(paths):
