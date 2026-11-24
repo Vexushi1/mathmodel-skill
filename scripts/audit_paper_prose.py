@@ -287,7 +287,8 @@ def _audit_abstract_and_keywords(body: str) -> list[Finding]:
     elif environment:
         keyword_text = environment.group(1)
     if keyword_text:
-        plain = re.sub(r"\\[A-Za-z@]+\*?(?:\[[^\]]*\])?(?:\{[^{}]*\})?", " ", keyword_text)
+        separated = re.sub(r"\\(?:quad|qquad)(?![A-Za-z@])", "；", keyword_text)
+        plain = re.sub(r"\\[A-Za-z@]+\*?(?:\[[^\]]*\])?(?:\{[^{}]*\})?", " ", separated)
         items = [item.strip() for item in re.split(r"[，,；;、]", plain) if item.strip()]
         if not 3 <= len(items) <= 6:
             findings.append(Finding("review_required", "keyword_count", f"检测到关键词数量约为 {len(items)}；中文国赛默认 3--6 个。", ", ".join(items[:8])))

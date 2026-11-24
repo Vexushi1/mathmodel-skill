@@ -196,6 +196,25 @@ class TestV770PaperSemanticGovernance(unittest.TestCase):
         self.assertEqual(codes.get("keyword_count"), "review_required")
         self.assertFalse(any("数学错误" in x.message for x in findings))
 
+    def test_keyword_count_supports_template_separators(self):
+        cases = (
+            (r"关键词1\quad 关键词2\quad 关键词3\quad 关键词4", 4),
+            (r"linear regression\qquad robust optimization\quad simulation", 3),
+            (r"模型；优化\quad 预测,检验\qquad 约束、结果", 6),
+            (r"模型\quad 优化", 2),
+            (r"一\quad 二\quad 三\quad 四\quad 五\quad 六\quad 七", 7),
+        )
+        for keywords, expected in cases:
+            with self.subTest(keywords=keywords):
+                tex = r"\begin{document}\keywords{" + keywords + r"}\end{document}"
+                findings = [item for item in self.audit.audit_text(tex) if item.code == "keyword_count"]
+                if 3 <= expected <= 6:
+                    self.assertEqual(findings, [])
+                else:
+                    self.assertEqual(len(findings), 1)
+                    self.assertEqual(findings[0].severity, "review_required")
+                    self.assertIn(f"约为 {expected}", findings[0].message)
+
     def test_framework_terminology_audit_warns_on_registered_discouraged_alias(self):
         framework = """
 ### Terminology Registry
