@@ -634,8 +634,8 @@
     },
     {
       "path": "core/full_reading/volumes/126.md",
-      "bytes": 10548,
-      "sha256": "7cd780100c648f40c4a69232ade9fbae74d0a187f92b72adb853c1c0eccf0db3"
+      "bytes": 10518,
+      "sha256": "c82d18715d80dea53fb209a83b70c3b75c4684040fecad3d9d32b6a5ecc890b3"
     },
     {
       "path": "core/full_reading/volumes/127.md",
@@ -4010,19 +4010,19 @@
       "path": "templates/writing/docx_check.md",
       "role": "conditional_template",
       "aliases": [],
-      "bytes": 10429,
-      "sha256": "ab7a914d851c1376654e6e48a78bc9e45c906139d14ad5d83118fb056b888673",
-      "git_blob_sha1": "848d69dbc856e31ab01cf4b4893ffd65a052951d",
+      "bytes": 10399,
+      "sha256": "778cb66cecb7b683d11d4d3cd5e023b7320597f0ccec1a7ff87a3c4e01334806",
+      "git_blob_sha1": "eb55dec605e49107905d1c2c6ee0cfa926bbf23d",
       "parts": [
         {
           "volume": "core/full_reading/volumes/126.md",
           "start": 0,
-          "end": 10429,
+          "end": 10399,
           "line_start": 1,
           "line_end": 144,
           "volume_start": 119,
-          "volume_end": 10548,
-          "sha256": "ab7a914d851c1376654e6e48a78bc9e45c906139d14ad5d83118fb056b888673"
+          "volume_end": 10518,
+          "sha256": "778cb66cecb7b683d11d4d3cd5e023b7320597f0ccec1a7ff87a3c4e01334806"
         }
       ]
     },
