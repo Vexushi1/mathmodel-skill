@@ -786,6 +786,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/v11_plot_observations.py`
 - `tests/v11_reading_baseline.py`
 - `tests/v11_web_app_packet.py`
+- `tests/w2_numeric_display_reference.py`
 - `tests/writing_slimming_reference.py`
 
 ## Current Maintenance Records
