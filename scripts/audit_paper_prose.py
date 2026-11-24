@@ -24,6 +24,7 @@ from typing import Iterable
 import yaml
 
 SCRIPT_DIR = Path(__file__).resolve().parent
+CUMCM_TEMPLATE_MANIFEST = SCRIPT_DIR.parent / "templates/latex/cumcm/hsk/template_manifest.yaml"
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
@@ -521,7 +522,7 @@ def _audit_cumcm_heading_structure(main: str, body: str) -> list[Finding]:
     analysis = _section_content(main, "问题分析")
     if analysis is None and not question_numbers:
         return []
-    manifest_path = SCRIPT_DIR.parent / "templates/latex/cumcm/hsk/template_manifest.yaml"
+    manifest_path = CUMCM_TEMPLATE_MANIFEST
     manifest = yaml.safe_load(manifest_path.read_text(encoding="utf-8")) or {}
     slots = {s["id"]: s for s in manifest["paper_skeleton"]["ordered_slots"]}
     findings: list[Finding] = []
@@ -572,8 +573,27 @@ def _audit_cumcm_heading_structure(main: str, body: str) -> list[Finding]:
     return findings
 
 
+def _bundled_template_manifest(template_manifest: Path) -> Path | None:
+    """Resolve a known template ID to the independent Skill reference.
+
+    Project copies select the template; their editable paper fragments do not
+    define the expected headings. Unknown templates do not inherit HSK rules.
+    """
+    canonical = CUMCM_TEMPLATE_MANIFEST
+    if template_manifest.resolve() == canonical.resolve():
+        return canonical
+    selected = yaml.safe_load(template_manifest.read_text(encoding="utf-8-sig")) or {}
+    if not isinstance(selected, dict) or not selected.get("template_id"):
+        return None
+    reference = yaml.safe_load(canonical.read_text(encoding="utf-8")) or {}
+    return canonical if selected["template_id"] == reference["template_id"] else None
+
+
 def _audit_selected_template_structure(main: str, template_manifest: Path) -> list[Finding]:
-    """Check the existing two structure findings against the adopted template."""
+    """Check the existing two structure findings against the independent template."""
+    template_manifest = _bundled_template_manifest(template_manifest)
+    if template_manifest is None:
+        return []
     manifest = yaml.safe_load(template_manifest.read_text(encoding="utf-8")) or {}
     slots = manifest.get("paper_skeleton", {}).get("ordered_slots", [])
     section_re = re.compile(r"\\section\*?\s*(?:\[[^\]]*\]\s*)?\{([^{}]+)\}")
@@ -709,6 +729,21 @@ def audit_file(
 ) -> list[Finding]:
     text = path.read_text(encoding="utf-8-sig", errors="strict")
     findings = audit_text(text)
+    # Reuse the project audit's actual include graph and template selection for
+    # L02 only; the remaining standalone prose diagnostics keep their scope.
+    from audit_latex_project import _adopted_template_manifest, discover_tex_graph, flatten_tex
+
+    main_file = path.resolve()
+    files, graph_findings = discover_tex_graph(main_file)
+    template_manifest = _adopted_template_manifest(main_file, files)
+    if template_manifest is not None:
+        if any(item.severity == "blocking" for item in graph_findings):
+            findings.extend(graph_findings)
+        else:
+            assembled = flatten_tex(main_file, files)
+            main = _main_text_before_appendix(_document_body(assembled))
+            findings.extend(_audit_selected_template_structure(main, template_manifest))
+
     bib_text = None
     if bib_path is not None:
         if bib_path.is_file():

@@ -329,6 +329,81 @@ H1. 数据满足要求。
             self.assertFalse(codes.intersection(item.code for item in
                 self.audit.audit_text(tex, template_manifest=manifest)))
 
+    def test_hsk_template_copy_cannot_redefine_fixed_headings(self):
+        from audit_latex_project import audit_project
+
+        canonical = ROOT / "templates/latex/cumcm/hsk/template_manifest.yaml"
+        codes = {"standalone_conclusion", "merged_assumption_symbol_section"}
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            sections = root / "sections"
+            sections.mkdir()
+            manifest = root / "template_manifest.yaml"
+            manifest.write_bytes(canonical.read_bytes())
+            main = root / "main.tex"
+            main.write_text(
+                r"\begin{document}\input{sections/03_assumptions}"
+                r"\input{sections/04_symbols}\end{document}", encoding="utf-8",
+            )
+            assumptions = sections / "03_assumptions.tex"
+            symbols = sections / "04_symbols.tex"
+            assumptions.write_text(r"\section{模型假设与符号说明}说明。", encoding="utf-8")
+            symbols.write_text(r"\section{结论}结论。", encoding="utf-8")
+            authored = assumptions.read_text(encoding="utf-8") + symbols.read_text(encoding="utf-8")
+            for findings in (
+                self.audit.audit_text(authored, template_manifest=manifest),
+                self.audit.audit_file(main),
+                audit_project(main, formal=False),
+            ):
+                self.assertEqual(
+                    codes, {row.code for row in findings if row.severity == "review_required"} & codes,
+                    findings,
+                )
+            # A known template with its original heading structure is still allowed.
+            assumptions.write_text(r"\section{模型假设}说明。", encoding="utf-8")
+            symbols.write_text(r"\section{符号说明}说明。", encoding="utf-8")
+            for findings in (self.audit.audit_file(main), audit_project(main, formal=False)):
+                self.assertFalse(codes.intersection(row.code for row in findings), findings)
+
+    def test_structure_entries_share_template_scope_for_modular_and_unknown_papers(self):
+        from audit_latex_project import audit_project
+
+        codes = {"standalone_conclusion", "merged_assumption_symbol_section"}
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            sections = root / "sections"
+            sections.mkdir()
+            fragments = {
+                "01_problem_statement": r"\section{问题重述}\subsection{问题背景}背景。\subsection{问题提出}任务。",
+                "02_problem_analysis": r"\section{问题分析}\subsection{问题一的分析}分析。",
+                "03_assumptions": r"\section{模型假设与符号说明}说明。",
+                "06_question1": r"\section{问题一模型建立及求解}\section{结论}结论。",
+            }
+            for name, content in fragments.items():
+                (sections / (name + ".tex")).write_text(content, encoding="utf-8")
+            main = root / "main.tex"
+            main.write_text(
+                r"\begin{document}" + "".join(r"\input{sections/" + name + "}" for name in fragments)
+                + r"\end{document}", encoding="utf-8",
+            )
+            # Recognize the original HSK assembly even without a manifest copy.
+            for findings in (self.audit.audit_file(main), audit_project(main, formal=False)):
+                self.assertEqual(codes, {row.code for row in findings} & codes, findings)
+            # An explicitly different template is not subject to HSK-specific findings.
+            (root / "template_manifest.yaml").write_text(
+                yaml.safe_dump({"template_id": "other_contest_template"}), encoding="utf-8",
+            )
+            for findings in (self.audit.audit_file(main), audit_project(main, formal=False)):
+                self.assertFalse(codes.intersection(row.code for row in findings), findings)
+            # An unidentified single-file paper is likewise not assumed to be HSK.
+            (root / "template_manifest.yaml").unlink()
+            main.write_text(
+                r"\begin{document}\section{模型假设与符号说明}说明。\section{结论}结论。\end{document}",
+                encoding="utf-8",
+            )
+            for findings in (self.audit.audit_file(main), audit_project(main, formal=False)):
+                self.assertFalse(codes.intersection(row.code for row in findings), findings)
+
     def test_strict_status_can_distinguish_warning_review_and_blocking(self):
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp) / "main.tex"

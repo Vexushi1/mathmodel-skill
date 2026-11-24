@@ -11,7 +11,10 @@ from pathlib import Path
 
 import yaml
 
-from audit_paper_prose import Finding, audit_bibliography, audit_framework_consistency, audit_text, overall_status
+from audit_paper_prose import (
+    CUMCM_TEMPLATE_MANIFEST, Finding, _bundled_template_manifest, audit_bibliography,
+    audit_framework_consistency, audit_text, overall_status,
+)
 from claim_consumption import formal_figure_gate, formal_text_gate
 from claim_tex import _active_command, _mask_nonprose
 from latex_delivery import formal_assembly_issues, sha256_file, source_bundle_snapshot
@@ -393,12 +396,12 @@ def audit_cumcm_2026_compliance(main_file: Path, flattened: str) -> list[Finding
 
 
 def _adopted_template_manifest(main_file: Path, files: list[Path]) -> Path | None:
-    """Resolve an actual local template or the recognizable HSK modular template."""
+    """Select the independent reference for an explicitly adopted or recognizable template."""
     root = main_file.parent
     local = root / "template_manifest.yaml"
     if local.is_file():
-        return local
-    canonical = Path(__file__).resolve().parents[1] / "templates/latex/cumcm/hsk/template_manifest.yaml"
+        return _bundled_template_manifest(local)
+    canonical = CUMCM_TEMPLATE_MANIFEST
     manifest = yaml.safe_load(canonical.read_text(encoding="utf-8")) or {}
     slots = {slot["id"]: slot for slot in manifest["paper_skeleton"]["ordered_slots"]}
     active = set(path.resolve() for path in files)
