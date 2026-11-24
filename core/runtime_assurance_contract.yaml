@@ -79,6 +79,23 @@ runtime_context:
     standalone_projection: without_the_original_hydration_snapshot_do_not_qualify_a_narrow_project_read
     boundary: optimistic_state_read_consistency_not_atomic_snapshot_of_every_artifact_or_future_execution_authorization
 
+
+question_selection:
+  role: explicit_question_scope_only_no_automatic_question_selection
+  implementation: scripts/question_scheduler.py
+  question_level_intents: [full_solution, full_workflow, code_and_solution, model_selection, new_problem_design, advanced_method, result_analysis, validation]
+  project_level_intents: [problem_analysis, project_sync, data_preprocessing, review, full_submission, latex, docx]
+  source: explicit_cli_or_api_question_and_current_ProjectStateSnapshot
+  output: [scope_kind, selected_question, selection_reason, candidate_questions, blocked_questions, prerequisite_closure, waiting_action, diagnostic_only]
+  rules:
+  - For a loaded project, question-level work requires an explicit Qn. Omission fails closed before artifact hydration or an actionable question-level plan; no ranking, first-ready choice, inferred wait or resume-based selection is authorized.
+  - The explicit Qn remains the only target even if an upstream typed prerequisite is unresolved; report the concrete blocker at its existing owning gate, never switch to another question.
+  - The read-only scope helper may list registered Qn names, but does not assess blockers, grant model approval, qualify results, or infer a next question.
+  - Project-level problem audit, preprocessing and final review/submission remain project-scoped without a Qn. Legacy stateless planning remains supported.
+  - Full-solution/full-workflow are project goals with exactly one explicit question-level execution unit per continuation. All-question finalization continues to use original project result and delivery gates.
+  - State Transition Authority retains full typed downstream invalidation; current Model Approval, Code Delivery and file-backed qualification remain the only execution eligibility sources.
+  - No platform, CPU, local release, license or new user-side checker is required merely to name a question.
+
 intent_resolution:
   explicit_intent_priority: true
   inference_source: core/workflow_router.yaml:routing.*.infer_keywords
@@ -279,6 +296,7 @@ authority_fingerprint:
   - modules/05_writing/paper_writing_protocol.md
   - scripts/resolve_workflow.py
   - scripts/resolve_runtime.py
+  - scripts/question_scheduler.py
   - scripts/reading_plan.py
   - scripts/read_stage.py
   - scripts/plot_backend.py

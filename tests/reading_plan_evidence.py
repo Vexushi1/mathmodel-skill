@@ -2032,6 +2032,115 @@ V11_DEFAULT_AUTHORITY_VERSIONS = {
     **V10353_LITERATURE_QUERY_COVERAGE_AUTHORITY_VERSIONS,
     "skill": "11.0.0",
 }
+# New exact release carrier; the historical v11.0.0 identity is immutable.
+V1110_RELEASE_AUTHORITY_VERSIONS = {
+    **V11_DEFAULT_AUTHORITY_VERSIONS,
+    "skill": "11.1.0",
+}
+
+# Exact-current unified Question Runtime source migration for historical v10.27/v11 reader tests.
+# This is comparison evidence only: no current gate or approval is projected.
+M2_CURRENT_SOURCE_SHA256 = {
+    "scripts/resolve_runtime.py": "4cc063467546e0405587397af3515cf872e0c63fddc8899b34f6886b2e46f2a7",
+    "scripts/question_scheduler.py": "0fbf77eda4dd161b4c40284c6f398a6c36651e26b8c05979b0c87f13f202ac11",
+    "core/runtime_assurance_contract.yaml": "9d2e192913ce0e1855424eea65549e0bd693f62ea8e73fb15c7959113114c2b1",
+}
+
+# PR #356, explicit-Qn-only successor to the still-frozen M2 source tuple.
+# These three physical source identities are reviewed together; this table
+# cannot carry a model approval, result qualification or general field waiver.
+EXPLICIT_QN_SUCCESSOR_SOURCE_SHA256 = {
+    "scripts/resolve_runtime.py": "9b2b437f441793280a0fda7d9fded6314b64a11cd21f7cfa8eca39a7c0f5ed4c",
+    "scripts/question_scheduler.py": "f4a17a8dabc3a424760cdf3073108f6659f29db95c9765f4357be680364a4933",
+    "core/runtime_assurance_contract.yaml": "f24feaf7159a64f771dceaaedb7b6ffb1b1dc665d2286e55cc937f5ed2448d0c",
+}
+
+
+def _registered_m2_source_predecessor(plan, authority_versions):
+    """Project only exact M2 source identities; reject source drift on disk."""
+    old_versions = RUNTIME_CONSISTENCY_PROJECTION["authority_versions"]
+    supported = (
+        (authority_versions == V11_DEFAULT_AUTHORITY_VERSIONS and plan.get("version") == "11.0.0")
+        or (authority_versions == V1110_RELEASE_AUTHORITY_VERSIONS and plan.get("version") == "11.1.0")
+        or (authority_versions == old_versions and plan.get("version") == old_versions["skill"])
+    )
+    if not supported:
+        return deepcopy(plan), [], False
+    candidate = deepcopy(plan)
+    try:
+        rows = candidate["assurance"]["authority_fingerprint"]["sources"]
+        if not isinstance(rows, list) or not all(
+            isinstance(row, dict) and set(row) == {"path", "sha256"} for row in rows
+        ):
+            return None, [], False
+        prior_paths = [row["path"] for row in RUNTIME_CONSISTENCY_PROJECTION["fingerprint"]["candidate"]]
+        actual_paths = [row["path"] for row in rows]
+        pivot = prior_paths.index("scripts/resolve_runtime.py") + 1
+        current_paths = prior_paths[:pivot] + ["scripts/question_scheduler.py"] + prior_paths[pivot:]
+        if actual_paths not in (prior_paths, current_paths):
+            return None, [], False
+        root = HERE.parent.parent
+        # Historical M2 source bytes remain immutable. The new successor must
+        # match a complete, separate, v11-only source tuple (never a mixture).
+        profiles = [("frozen_m2", M2_CURRENT_SOURCE_SHA256)]
+        if authority_versions in (V11_DEFAULT_AUTHORITY_VERSIONS, V1110_RELEASE_AUTHORITY_VERSIONS):
+            profiles.append(("explicit_qn_only", EXPLICIT_QN_SUCCESSOR_SOURCE_SHA256))
+        observed = {path: hashlib.sha256((root / path).read_bytes()).hexdigest()
+                    for path in M2_CURRENT_SOURCE_SHA256}
+        matches = [(name, pinned) for name, pinned in profiles if observed == pinned]
+        if len(matches) != 1:
+            return None, [], False
+        profile_name, source_hashes = matches[0]
+        if profile_name == "explicit_qn_only":
+            # legacy_projection normalizes the contract fingerprint; its real
+            # bytes are verified above. The two script entries remain exact.
+            expected_rows = {
+                "scripts/resolve_runtime.py": source_hashes["scripts/resolve_runtime.py"],
+                "scripts/question_scheduler.py": source_hashes["scripts/question_scheduler.py"],
+                "core/runtime_assurance_contract.yaml": "<EXPECTED_APPROVED_AUTHORITY_CHANGE>",
+            }
+            subset = {row["path"]: row["sha256"] for row in rows
+                      if row["path"] in expected_rows}
+            if actual_paths != current_paths or subset != expected_rows:
+                return None, [], False
+        resolver = next(row for row in rows if row["path"] == "scripts/resolve_runtime.py")
+        new_digest = source_hashes["scripts/resolve_runtime.py"]
+        prior_digest = V11_P5_DEFAULT_SOURCE_HASHES["scripts/resolve_runtime.py"]
+        old_candidate = next(row["sha256"]
+                             for row in RUNTIME_CONSISTENCY_PROJECTION["fingerprint"]["candidate"]
+                             if row["path"] == "scripts/resolve_runtime.py")
+        if resolver["sha256"] not in (prior_digest, new_digest, old_candidate):
+            return None, [], False
+        if resolver["sha256"] == new_digest and actual_paths != current_paths:
+            return None, [], False
+        if resolver["sha256"] == old_candidate and authority_versions != old_versions:
+            return None, [], False
+        changes = []
+        if resolver["sha256"] == new_digest:
+            resolver["sha256"] = prior_digest
+            changes.append({
+                "path": "assurance.authority_fingerprint.sources.scripts/resolve_runtime.py",
+                "baseline": prior_digest, "candidate": new_digest,
+                "approval": ("PR #356 explicit-Qn exact resolver identity; no business-field waiver"
+                             if profile_name == "explicit_qn_only" else
+                             "M2 exact read-only resolver source identity transition"),
+            })
+        if actual_paths == current_paths:
+            record = rows.pop(pivot)
+            if record["path"] != "scripts/question_scheduler.py" or record["sha256"] != (
+                source_hashes["scripts/question_scheduler.py"]
+            ):
+                return None, [], False
+            changes.append({
+                "path": "assurance.authority_fingerprint.sources.scripts/question_scheduler.py",
+                "baseline": None, "candidate": record["sha256"],
+                "approval": ("PR #356 explicit-Qn exact scheduler identity; no business-field waiver"
+                             if profile_name == "explicit_qn_only" else
+                             "M2 exact registered read-only scheduler source identity"),
+            })
+        return candidate, changes, profile_name
+    except (KeyError, TypeError, ValueError, OSError):
+        return None, [], False
 
 
 def runtime_consistency_predecessor(identifier, new, candidate_authority_versions):
@@ -2043,6 +2152,11 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
     fixture = RUNTIME_CONSISTENCY_PROJECTION
     original = deepcopy(new)
     if "startup_reading" in original or "figure_composition" in original:
+        return original, []
+    new, m2_changes, m2_identity_profile = _registered_m2_source_predecessor(
+        new, candidate_authority_versions,
+    )
+    if new is None:
         return original, []
     # Only the exact patch release carrier may reuse the frozen v10.27.0
     # inverse; no other field, source fingerprint, or historical fixture is waived.
@@ -2060,6 +2174,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
         V10352_AFFIRMATIVE_FULL_WORKFLOW_AUTHORITY_VERSIONS,
         V10353_LITERATURE_QUERY_COVERAGE_AUTHORITY_VERSIONS,
         V11_DEFAULT_AUTHORITY_VERSIONS,
+        V1110_RELEASE_AUTHORITY_VERSIONS,
     )
     matched_carrier = next((
         carrier for carrier in accepted_carriers
@@ -2081,6 +2196,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
         V10352_AFFIRMATIVE_FULL_WORKFLOW_AUTHORITY_VERSIONS,
         V10353_LITERATURE_QUERY_COVERAGE_AUTHORITY_VERSIONS,
         V11_DEFAULT_AUTHORITY_VERSIONS,
+        V1110_RELEASE_AUTHORITY_VERSIONS,
     ):
         # P2 historical comparison can borrow the v10.28 inverse only when
         # the new literature-resource pair was NOT loaded. Real modeling-route
@@ -2118,7 +2234,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
             if not raw.startswith(patch_header) or hashlib.sha256(raw).hexdigest() != actual[0]["sha256"]:
                 return deepcopy(original), []
             # Only the exact candidate's selector paragraph may be reversed here.
-            if matched_carrier == V11_DEFAULT_AUTHORITY_VERSIONS:
+            if matched_carrier in (V11_DEFAULT_AUTHORITY_VERSIONS, V1110_RELEASE_AUTHORITY_VERSIONS):
                 # The v11 output-contract carrier is exactly the v10.35.3 body plus its
                 # pinned mechanism selector; reconstruct that predecessor before the
                 # existing v10.27.0 inverse is applied.
@@ -2128,7 +2244,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
                     return deepcopy(original), []
                 patch_header = v10353_header
             if (matched_carrier in (V10353_LITERATURE_QUERY_COVERAGE_AUTHORITY_VERSIONS,
-                                   V11_DEFAULT_AUTHORITY_VERSIONS)
+                                   V11_DEFAULT_AUTHORITY_VERSIONS, V1110_RELEASE_AUTHORITY_VERSIONS)
                     and hashlib.sha256(raw).hexdigest() == "d1a395266067db570001e23813b90941e409ce73d0911c70aba401abf81a2cbf"):
                 selector = (
                     "  mechanism_spec_selector: With an explicit mechanism scope, --mechanism-spec selects one "
@@ -2152,6 +2268,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
                 V10352_AFFIRMATIVE_FULL_WORKFLOW_AUTHORITY_VERSIONS,
                 V10353_LITERATURE_QUERY_COVERAGE_AUTHORITY_VERSIONS,
         V11_DEFAULT_AUTHORITY_VERSIONS,
+        V1110_RELEASE_AUTHORITY_VERSIONS,
             ):
                 # Reconstruct only two exact P4 output-layout additions.
                 # Do not generalize into ignoring the output contract hash.
@@ -2201,6 +2318,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
             V10352_AFFIRMATIVE_FULL_WORKFLOW_AUTHORITY_VERSIONS,
             V10353_LITERATURE_QUERY_COVERAGE_AUTHORITY_VERSIONS,
         V11_DEFAULT_AUTHORITY_VERSIONS,
+        V1110_RELEASE_AUTHORITY_VERSIONS,
         ):
             # Only this exact resolver pair may project onto the frozen source identities.
             # The projected plan must still match the historical behavior field by field.
@@ -2217,6 +2335,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
                 V10352_AFFIRMATIVE_FULL_WORKFLOW_AUTHORITY_VERSIONS,
                 V10353_LITERATURE_QUERY_COVERAGE_AUTHORITY_VERSIONS,
         V11_DEFAULT_AUTHORITY_VERSIONS,
+        V1110_RELEASE_AUTHORITY_VERSIONS,
             ):
                 resolver_hashes = {
                     "scripts/resolve_workflow.py": "706a97aa937e38df4ea7cfe1a2607859209b47be8f8fffcc28bd7af1c6361f42",
@@ -2232,6 +2351,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
                 V10352_AFFIRMATIVE_FULL_WORKFLOW_AUTHORITY_VERSIONS,
                 V10353_LITERATURE_QUERY_COVERAGE_AUTHORITY_VERSIONS,
         V11_DEFAULT_AUTHORITY_VERSIONS,
+        V1110_RELEASE_AUTHORITY_VERSIONS,
             ):
                 resolver_hashes["core/user_execution_contract.yaml"] = "b61f52a6ad68f0f5234bc4dec8182d52e3bd23f3e75e6c7fe85d59f8014ba6bb"
                 approval = "v10.35.0 reviewed opt-in execution scale receipt contract"
@@ -2239,11 +2359,12 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
                 V10352_AFFIRMATIVE_FULL_WORKFLOW_AUTHORITY_VERSIONS,
                 V10353_LITERATURE_QUERY_COVERAGE_AUTHORITY_VERSIONS,
         V11_DEFAULT_AUTHORITY_VERSIONS,
+        V1110_RELEASE_AUTHORITY_VERSIONS,
             ):
                 resolver_hashes["scripts/resolve_workflow.py"] = "6a57aa603ba6e300a9ce9521f62771d2de60bee76ae82277ce06387645f7dce2"
                 approval = "v10.35.2 reviewed affirmative full-workflow routing patch"
             if matched_carrier in (V10353_LITERATURE_QUERY_COVERAGE_AUTHORITY_VERSIONS,
-                                   V11_DEFAULT_AUTHORITY_VERSIONS):
+                                   V11_DEFAULT_AUTHORITY_VERSIONS, V1110_RELEASE_AUTHORITY_VERSIONS):
                 observed_readers = {
                     row["path"]: row["sha256"] for row in fingerprint["sources"]
                     if row["path"] in V11_P3_DEFAULT_READER_HASHES
@@ -2291,8 +2412,22 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
             for path, digest in resolver_hashes.items():
                 actual = [row for row in fingerprint["sources"] if row["path"] == path]
                 raw = (HERE.parent.parent / path).read_bytes()
+                raw_digest = hashlib.sha256(raw).hexdigest()
+                # The frozen v11 source identity is qualified only when the live
+                # M2 successor matches the separately pinned current raw bytes.
+                exact_m2_successor = (
+                    m2_identity_profile in {"frozen_m2", "explicit_qn_only"}
+                    and matched_carrier in (V11_DEFAULT_AUTHORITY_VERSIONS, V1110_RELEASE_AUTHORITY_VERSIONS)
+                    and path == "scripts/resolve_runtime.py"
+                    and digest == V11_P5_DEFAULT_SOURCE_HASHES[path]
+                    and raw_digest == (
+                        EXPLICIT_QN_SUCCESSOR_SOURCE_SHA256[path]
+                        if m2_identity_profile == "explicit_qn_only"
+                        else M2_CURRENT_SOURCE_SHA256[path]
+                    )
+                )
                 if (len(actual) != 1 or actual[0]["sha256"] != digest
-                        or hashlib.sha256(raw).hexdigest() != digest):
+                        or (raw_digest != digest and not exact_m2_successor)):
                     return deepcopy(original), []
                 actual[0]["sha256"] = predecessor_hashes[path]
                 changes.append({"path": f"assurance.authority_fingerprint.sources.{path}",
@@ -2339,7 +2474,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
                     "approval": ("v10.28.0 carrier-only patch; exact v10.27.0 inverse verified"
                                  if is_patch_carrier else
                                  "v10.27.0 compatible runtime repair; historical projections remain checked")})
-    return projected, changes
+    return projected, [*m2_changes, *changes]
 
 
 def compare(before, after):

@@ -245,6 +245,63 @@ def validate_comparison_approval(
     return list(dict.fromkeys(errors))
 
 
+def _necessary_model_upstreams(
+    subproblems: Mapping[str, Any], targets: Iterable[str],
+) -> tuple[list[str], list[str]]:
+    """Return only typed model prerequisites; preserve legacy model read behavior.
+
+    Malformed dependency declarations are reported by the existing semantic
+    alignment authority. Normalize ONLY this traversal's temporary graph so
+    one malformed Qn cannot crash unrelated model approval validation.
+    Historical untyped strings remain readable here, but code-delivery's
+    separate execution-dependency gate still fails closed until typed.
+    """
+    from state_transitions import dependency_cycles, dependency_edges
+    incoming: dict[str, set[str]] = {}
+    issues: list[str] = []
+    safe_graph = {
+        name: (
+            entry if isinstance(entry, Mapping)
+            and isinstance(entry.get("depends_on", []), list)
+            else {"depends_on": []}
+        )
+        for name, entry in subproblems.items()
+    }
+    edges = dependency_edges(safe_graph)
+    for edge in edges:
+        if edge["kind"] == "model":
+            incoming.setdefault(edge["target"], set()).add(edge["source"])
+    origins = set(targets)
+    visited: set[str] = set()
+    queue = list(origins)
+    while queue:
+        question = queue.pop()
+        if question in visited:
+            continue
+        if question not in subproblems:
+            issues.append(f"{question}: upstream model dependency is not registered")
+            continue
+        visited.add(question)
+        queue.extend(incoming.get(question, ()))
+    # Approval cycles are a property of the necessary MODEL subgraph, not
+    # the full dependency graph. A reverse result/data/parameter edge does
+    # not make an otherwise valid model prerequisite into a model cycle.
+    # Historical untyped edges remain excluded from model prerequisites;
+    # their numerical qualification stays with the Code Delivery gate.
+    model_graph = {
+        name: {"depends_on": [
+            {"question": source, "kind": "model"}
+            for source in sorted(incoming.get(name, ()))
+        ]}
+        for name in safe_graph
+    }
+    for cycle in dependency_cycles(model_graph):
+        chain = set(cycle.split(" -> "))
+        if chain and chain.issubset(visited):
+            issues.append(f"model prerequisite cycle requires joint-model review: {cycle}")
+    return sorted(visited - origins, key=lambda q: int(q[1:])), list(dict.fromkeys(issues))
+
+
 def validate_state(
     path: Path,
     questions: Iterable[str],
@@ -256,8 +313,15 @@ def validate_state(
     state = load_yaml(path)
     subproblems = state.get("subproblems", {})
     errors: list[str] = []
-    selected_questions = iter_questions(state, questions)
-    for question in selected_questions:
+    requested = list(questions)
+    selected_questions = iter_questions(state, requested)
+    upstreams, upstream_issues = (
+        _necessary_model_upstreams(subproblems, selected_questions)
+        if requested else ([], [])
+    )
+    errors.extend(upstream_issues)
+    questions_to_validate = list(dict.fromkeys([*selected_questions, *upstreams]))
+    for question in questions_to_validate:
         spec = subproblems.get(question, {})
         if not isinstance(spec, dict):
             errors.append(f"{question}: subproblem state must be a mapping")
@@ -276,11 +340,21 @@ def validate_state(
     if root is not None:
         inspections, framework_error = read_framework_semantic_evidence(root / "模型论文框架.md")
         blockers = pending_semantic_approval_issues(subproblems, inspections)
-        for question in selected_questions:
+        for question in questions_to_validate:
             issues = blockers.get(question, [])
             if issues and framework_error:
                 errors.append(f"{question}: {framework_error}")
             errors.extend(issues)
+            # A current approved upstream model must also match actual file-backed
+            # SIB bytes, not just equal hash fields in the State mapping.
+            if question in upstreams and _uses_structured_identity(dict(subproblems.get(question, {}))):
+                inspection = inspections.get(question) or {}
+                if (inspection.get("mode") != "semantic_identity_v1"
+                        or inspection.get("semantic_identity_hash") !=
+                        subproblems[question].get("semantic_identity_hash")):
+                    errors.append(
+                        f"{question}: necessary upstream current SIB does not match its approved State identity"
+                    )
     if comparison_scope:
         if root is None:
             errors.append("comparison approval requires an explicit project root")
@@ -302,7 +376,10 @@ def validate_state(
         if root is None:
             errors.append("model_challenge review receipts require an explicit project root")
         else:
-            for question in selected_questions:
+            # A model dependency is not approved merely because its State
+            # hashes agree; activated independent challenge receipts for every
+            # necessary upstream model remain part of the same existing gate.
+            for question in questions_to_validate:
                 try:
                     result = _evaluate_model_receipts(root, question)
                 except Exception as exc:

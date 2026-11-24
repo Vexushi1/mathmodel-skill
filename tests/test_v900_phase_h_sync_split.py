@@ -49,7 +49,7 @@ class PhaseHMechanicalSplitTests(unittest.TestCase):
         parameters = inspect.signature(SYNC.synchronize).parameters
         selectors = ("mechanism_spec", "mechanism_question")
         self.assertEqual(
-            [name for name in parameters if name not in selectors],
+            [name for name in parameters if name not in (*selectors, "question")],
             ["project_root", "write", "strict", "delivery_scope", "schema_path", "output_contract_path"],
         )
         root = parameters["project_root"]
@@ -62,6 +62,14 @@ class PhaseHMechanicalSplitTests(unittest.TestCase):
             with self.subTest(name=name):
                 self.assertEqual(parameters[name].kind, inspect.Parameter.KEYWORD_ONLY)
                 self.assertEqual(parameters[name].default, default)
+        # Question scope is an additive selector; old arguments must keep
+        # their order, kinds and defaults, not be deleted to satisfy history.
+        self.assertEqual(parameters["question"].kind, inspect.Parameter.KEYWORD_ONLY)
+        self.assertIsNone(parameters["question"].default)
+        self.assertEqual(
+            list(parameters).index("question"),
+            list(parameters).index("delivery_scope") + 1,
+        )
 
     def test_empty_project_sync_report_matches_pre_split_golden(self):
         expected = yaml.safe_load((ROOT / "tests/fixtures/v900_phase_h_empty_sync_golden.yaml").read_text(encoding="utf-8"))

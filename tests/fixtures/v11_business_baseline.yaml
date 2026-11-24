@@ -61,8 +61,8 @@ cases:
     observed_v10_35_3: {outside: true}
     target: {outside: false}
   '13':
-    surface: final review matrix aggregation without a real PDF
-    controls: {declared_unverified: false, declared_all_pages: true}
+    surface: final review rejects unbound prose and accepts a synthetic PDF-bound page record
+    controls: {declared_unverified: false, declared_all_pages: false, bound_pdf_full_pages: true}
     observed_v10_35_3: {logs_only: true, partial: true}
     target: {logs_only: false, partial: false}
   '14':

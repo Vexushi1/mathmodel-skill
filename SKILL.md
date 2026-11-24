@@ -2,12 +2,12 @@
 name: mathmodel-skill
 description: Guide mathematical-modeling competition work from problem analysis and model design through user-run computation, accepted-workbook figures, paper writing and delivery review. Use for CUMCM, MCM/ICM and related modeling projects, including targeted work on an existing modeling project.
 metadata:
-  version: 11.0.0
+  version: 11.1.0
   summary: HSK mathematical-modeling workflow with bootstrap-first task routing, Problem Contract freezing, condition-driven structural reduction and minimal-sufficient main-model generation before solver selection, independent Model Challenge, explicit Human Model Approval bound to the current semantic revision and validated structured identity, one project-wide Python/MATLAB numerical backend choice and user-owned full-fidelity numerical execution, evidence-checked workbooks, project-wide Python/MATLAB evidence visualization, editable draw.io mechanism diagrams with deterministic structural checks and required rendered review, model-construction rationale with solver-precondition evidence, Template-First paper authoring with state-driven per-question writing capability preflight and final-order Cross-File Chapter Handoff, formal LaTeX attestation, evidence-traceable final review compliance, and validated delivery provenance, with optional competition-resource fallback and stage-scoped delivery gates.
   triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 审题, 问题分析, 建模思路, 建模方案, 模型比较, 完整求解, 全流程, 建模论文, 模型论文框架, 模型锁定, 模型审查, 算法流程, 伪代码, 数据预处理, 数据清洗, 主结果质量, 数值有效性, 结果分析, 结果深化分析, Python求解, MATLAB求解, MATLAB绘图, Python绘图, 可编辑机理图, draw.io, drawio, LaTeX, DOCX, 终审, 提交包]
 ---
 
-# HSK 数学建模模块化工作流 v11.0.0
+# HSK 数学建模模块化工作流 v11.1.0
 
 <!-- HSK_RUNTIME_ENTRY_CONTRACT_START -->
 ## 运行时入口合同（非权威摘要）
@@ -35,6 +35,12 @@ metadata:
 ### 项目工作记忆
 
 项目语义继续由 `模型论文框架.md`、`state/project_state.yaml` 与 accepted workbook 分层恢复；本节只保留稳定导航标题，不复制 Project Memory 合同字段。
+
+### 项目级登记与逐问推进
+
+新项目完成整体 Problem Contract 和已确认的 typed `depends_on` 登记后，只有在第一个真实 `proposed_model_spec` 成立时，才由 `scripts/initialize_project.py` 原子建立当前 State 与 `模型论文框架.md`。已有项目恢复已记录的事实，不因继续求解而重新初始化。
+
+对已有的完整项目，`scripts/resolve_runtime.py` 的问题级操作必须由用户显式指定 `--question Qn`；未指定时拒绝本次问题级执行计划，不自动选择下一问或等待点。问题编号只决定本次检查范围，不能产生模型批准或数值验收。单问产物同步可在 `design/code/results/figures` 使用 `scripts/sync_project.py --question Qn`；全局 Schema、项目后端与完整下游 typed stale 仍生效。`project_sync` 的默认调用及正式 `docx/latex/submission` 仍是全项目范围；同步报告不是 Code Delivery 的通过凭据。具体行为服从现有 Resolver、Sync 代码及其 Authority，不以本节替代门禁。
 
 ## 主链
 

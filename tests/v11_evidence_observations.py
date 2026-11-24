@@ -143,3 +143,18 @@ def page_coverage(mode, status, evidence):
     except ValueError:
         return False
     return verdict["review_status"] == "passed"
+
+def bound_pdf_page_coverage():
+    """Exercise structured page-proof validation against a synthetic current PDF.
+
+    This is a maintenance control, not a record of an actual human/assistant
+    visual review. Real submissions still require actual page inspection.
+    """
+    fixture = test_v820_final_review_compliance.TestV820FinalReviewCompliance()
+    fixture.config = json.loads((ROOT / "config/review_weights.json").read_bytes())
+    try:
+        report, pdf = fixture.pdf_review()
+        verdict = score_submission(fixture.config, report, pdf_path=pdf)
+        return verdict["review_status"] == "passed"
+    finally:
+        fixture.doCleanups()

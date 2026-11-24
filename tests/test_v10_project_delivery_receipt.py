@@ -246,12 +246,12 @@ class ProjectDeliveryReceiptTests(unittest.TestCase):
         _, diagnostic = self.dependency_plan("Q2")
         self.assertNotEqual(diagnostic["result_dependencies"][0]["status"], "verified")
 
-    def test_unresolved_result_cycle_is_scoped_and_ends_at_a_verified_result(self):
+    def test_unresolved_result_cycle_is_scoped_and_blocks_new_code_delivery(self):
         self.approved_question_scope(depends_on=[{"question": "Q2", "kind": "result"}])
         self.approve_additional_question("Q2")
         self.approve_additional_question("Q3")
 
-        for question in ("Q1", "Q2", None):
+        for question in ("Q1", "Q2"):
             with self.subTest(question=question):
                 _, diagnostic = self.dependency_plan(question)
                 self.assertEqual(diagnostic["unresolved_result_cycles"], ["Q1 -> Q2 -> Q1"])
@@ -259,21 +259,27 @@ class ProjectDeliveryReceiptTests(unittest.TestCase):
                     [(row["question"], row["upstream"]) for row in diagnostic["result_dependencies"]],
                     [("Q1", "Q2"), ("Q2", "Q1")],
                 )
+        # There is no implicit project-wide choice for a numerical code route.
+        with self.assertRaisesRegex(ValueError, "--question Qn"):
+            self.dependency_plan(None)
         independent, diagnostic = self.dependency_plan("Q3")
         self.assertIsNone(diagnostic)
         self.assertIn("code_delivery", independent["runtime_plan"]["pre_delivery_gate_names"])
         self.assertEqual(independent["assurance"]["status"], "pass")
 
-        self.accept_primary_fixture()
-        _, diagnostic = self.dependency_plan("Q2")
-        self.assertEqual(diagnostic["unresolved_result_cycles"], [])
-        self.assertEqual(
-            [(row["question"], row["upstream"], row["status"])
-             for row in diagnostic["result_dependencies"]],
-            [("Q2", "Q1", "verified")],
-        )
-        _, analysis = self.dependency_plan("Q1", intent="result_analysis")
-        self.assertEqual(analysis["stage"], "analysis")
+        # A genuine unresolved Q1 <-> Q2 result cycle cannot be bootstrapped
+        # by executing Q1 first. M3 must block static and transactional code
+        # delivery; previously this test constructed a false accepted result
+        # from an impossible declared dependency.
+        problems, parsed = DELIVERY.validate_script(self.root, self.code, "primary")
+        self.assertTrue(any("cycle" in issue for issue in problems), problems)
+        before = self.state_path.read_bytes()
+        with self.assertRaisesRegex(ValueError, "cycle"):
+            DELIVERY.update_state(self.root, parsed, self.code)
+        self.assertEqual(self.state_path.read_bytes(), before)
+        still_blocked, diagnostic = self.dependency_plan("Q2")
+        self.assertEqual(diagnostic["unresolved_result_cycles"], ["Q1 -> Q2 -> Q1"])
+        self.assertIn("code_delivery", still_blocked["runtime_plan"]["pre_delivery_gate_names"])
 
     def test_legacy_and_model_edges_do_not_close_a_result_cycle(self):
         self.approved_question_scope(depends_on=[{"question": "Q2", "kind": "result"}])

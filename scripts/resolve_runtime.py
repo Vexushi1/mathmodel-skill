@@ -9,6 +9,7 @@ from typing import Any, Iterable
 import yaml
 import safe_yaml
 import stage_code as STAGE_CODE
+import question_scheduler as QUESTION_SCHEDULER
 
 from resolve_workflow import TAXONOMY_PATH, add_solver_resources, code_artifact_projection, legacy_to_axes, resolve_workflow, review_only_request, route_boundary_roles
 from reading_plan import build_reading_plan
@@ -342,9 +343,18 @@ def _scope_gate_commands(
     issues: list[str] = []
     for gate in plan["pre_delivery_gates"]:
         name = gate["name"]
-        if not known and name in {"model_approval", "code_delivery", "user_execution_receipt"}:
+        if not known and name in {"semantic_governance", "model_approval", "code_delivery", "user_execution_receipt"}:
             issues.append(f"{question}: gate requires a supported registered question")
-        if name == "model_approval" and stage != "preprocessing":
+        if (name == "semantic_governance"
+                and plan.get("delivery_scope") in {"design", "code", "results", "figures"}
+                and stage != "preprocessing"
+                and "requirements" in state):
+            # M1-created projects have a complete registered Qn roster. Existing
+            # unversioned read-compatible State retains the historical whole-
+            # project semantic command until its roster is explicitly migrated.
+            target = question if known else "<registered_question>"
+            gate["command"] += f' --question "{target}"'
+        elif name == "model_approval" and stage != "preprocessing":
             target = question if known else "<registered_question>"
             gate["command"] += f' --question "{target}"'
         elif name == "code_delivery":
@@ -491,7 +501,18 @@ def resolve_runtime(
     if review_only_request(request or "", router) and set(explicit_intents) - {"review"}:
         raise ValueError("explicit intent conflicts with review-only request; resolve review without write actions")
 
+    requested_question = question
     state_snapshot = ProjectStateSnapshot.capture(project_root) if project_root else None
+    # Explicit-Qn-only flow. Do not inspect siblings, infer "next" Qn, or
+    # turn a resume keyword into authorization for another question.
+    if (state_snapshot is not None and state_snapshot.raw is not None and question is None
+            and set(selected_intents).intersection(QUESTION_SCHEDULER.QUESTION_ROUTES)
+            and not set(selected_intents).intersection(QUESTION_SCHEDULER.FINAL_ROUTES)):
+        state_snapshot.assert_current()
+        raise ValueError(
+            "当前问题级任务必须明确指定 --question Qn（例如 --question Q2）；"
+            "自动选择下一问已禁用，项目级审题/终审仍可不指定问题"
+        )
     hydration = (
         hydrate_project_context(project_root, question, state_snapshot=state_snapshot)
         if project_root
@@ -725,7 +746,7 @@ def resolve_runtime(
     if (state_snapshot is not None and actual_stage and hydration.get("loaded")
             and any(gate["name"] == "code_delivery" for gate in plan["pre_delivery_gates"])):
         dependency_diagnostics = _dependency_diagnostics(
-            state_snapshot, question, actual_stage, hydration["artifact_evidence"],
+            state_snapshot, requested_question, actual_stage, hydration["artifact_evidence"],
         )
     review_required = bool(context_conflicts or ambiguities)
 

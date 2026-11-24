@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：11.0.0
+当前 Skill 版本：11.1.0
 
 本索引按使用语义分区。只有 **Active Runtime & Reference** 表示默认活动导航；
 Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenance，不因此成为 Runtime Authority。
@@ -185,6 +185,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `core/full_reading/volumes/127.md`
 - `core/full_reading/volumes/128.md`
 - `core/full_reading/volumes/129.md`
+- `core/full_reading/volumes/130.md`
 - `core/global_preprocessing_contract.yaml`
 - `core/hsk_core_policy.md`
 - `core/literature_research_contract.yaml`
@@ -291,6 +292,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `scripts/generate_indexes.py`
 - `scripts/generate_mechanism_drawio.py`
 - `scripts/hsk_pack_submission.py`
+- `scripts/initialize_project.py`
 - `scripts/instantiate_model_paper_framework.py`
 - `scripts/latex_delivery.py`
 - `scripts/lint_skill.py`
@@ -313,6 +315,8 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `scripts/project_solver_backend.py`
 - `scripts/project_transaction.py`
 - `scripts/python_source_checks.py`
+- `scripts/question_dependency_gate.py`
+- `scripts/question_scheduler.py`
 - `scripts/read_stage.py`
 - `scripts/reading_plan.py`
 - `scripts/render_paper.py`
@@ -449,6 +453,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/fixtures/p3a_global_policy_source_map.yaml`
 - `tests/fixtures/p3b_writing_role_source_map.yaml`
 - `tests/fixtures/phase_g_cumcm_runtime_golden.yaml`
+- `tests/fixtures/question_runtime_three_question.yaml`
 - `tests/fixtures/runtime_consistency_v10270_projection.yaml`
 - `tests/fixtures/skill_optimization_cases.yaml`
 - `tests/fixtures/solver_backends/input.json`
@@ -471,6 +476,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/fixtures/v10351_approved_source_spans.json`
 - `tests/fixtures/v10352_approved_source_spans.json`
 - `tests/fixtures/v10353_approved_source_spans.json`
+- `tests/fixtures/v1110_release_source_spans.json`
 - `tests/fixtures/v11_business_baseline.yaml`
 - `tests/fixtures/v11_candidate_source_spans.json`
 - `tests/fixtures/v11_web_app_cases.yaml`
@@ -609,6 +615,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_project_backend_migration_preview.py`
 - `tests/test_project_backend_policy_shared.py`
 - `tests/test_project_history_archive.py`
+- `tests/test_project_initialization.py`
 - `tests/test_project_plot_backend.py`
 - `tests/test_project_solver_backend_inspect.py`
 - `tests/test_project_solver_backend_select.py`
@@ -617,6 +624,11 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_python_execution_reference_closure.py`
 - `tests/test_python_matlab_ownership.py`
 - `tests/test_python_reference_followup.py`
+- `tests/test_question_dependency_gate.py`
+- `tests/test_question_runtime_integration.py`
+- `tests/test_question_scheduler.py`
+- `tests/test_question_scoped_semantic_governance.py`
+- `tests/test_question_scoped_sync.py`
 - `tests/test_read_path_semantic_closure.py`
 - `tests/test_read_stage.py`
 - `tests/test_reading_module06.py`
@@ -859,6 +871,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `docs/v10_27_runtime_nonregression_closeout.md`
 - `docs/v10_27_runtime_nonregression_optimization_plan.md`
 - `docs/v10_32_0_release_notes.md`
+- `docs/v11_question_dependency_evidence_integrity_plan.md`
 - `docs/v801_chapter_capability_preservation_audit.md`
 - `docs/v801_skill_health_remediation_plan.md`
 - `docs/v801_skill_health_remediation_status.md`

@@ -26,6 +26,7 @@ from reading_plan_evidence import (
     PDF_REVIEW_WRITING_DELTAS,
     REVIEW_SPLIT_AUTHORITY_VERSIONS,
     V11_DEFAULT_AUTHORITY_VERSIONS,
+    V1110_RELEASE_AUTHORITY_VERSIONS,
     REVIEW_SPLIT_WRITING_DELTAS,
     C_REVIEW_STAGE_PINNED_READS,
     STAGE_READING_AUTHORITY_VERSIONS,
@@ -111,9 +112,10 @@ RUNTIME_AFFIRMATIVE_FULL_WORKFLOW_RELEASE_VERSIONS = {
 RUNTIME_LITERATURE_QUERY_COVERAGE_RELEASE_VERSIONS = {
     **RUNTIME_AFFIRMATIVE_FULL_WORKFLOW_RELEASE_VERSIONS, "skill": "10.35.3",
 }
-# v11.0.0 is the exact current carrier; reuse the P2 authority tuple rather than
-# synthesizing a parallel set of authority versions in this legacy golden test.
+# Preserve the pinned v11.0.0 historical carrier and register the exact
+# v11.1.0 release carrier separately; neither changes the Phase G golden.
 RUNTIME_V11_RELEASE_VERSIONS = V11_DEFAULT_AUTHORITY_VERSIONS
+RUNTIME_V1110_RELEASE_VERSIONS = V1110_RELEASE_AUTHORITY_VERSIONS
 # Phase C: pin the exact review reads separately from the historical
 # Review Split migration and unchanged Phase G golden. Unregistered additions,
 # removals, order changes, or selector substitutions must fail projection.
@@ -155,6 +157,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
             RUNTIME_AFFIRMATIVE_FULL_WORKFLOW_RELEASE_VERSIONS["skill"],
             RUNTIME_LITERATURE_QUERY_COVERAGE_RELEASE_VERSIONS["skill"],
             RUNTIME_V11_RELEASE_VERSIONS["skill"],
+            RUNTIME_V1110_RELEASE_VERSIONS["skill"],
         }:
             plan = copy.deepcopy(plan)
             plan["version"] = RUNTIME_LITERATURE_SNAPSHOT_RELEASE_VERSIONS["skill"]
@@ -377,9 +380,17 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
         self.assertEqual(self._projection(plan), self.golden["routes"]["latex"])
         self.assertEqual((plan, self.golden, FIGURE_HANDOFF_WRITING_DELTAS, PDF_REVIEW_WRITING_DELTAS), before)
 
+    def test_new_release_identity_preserves_frozen_v11_historical_carrier(self):
+        self.assertEqual(RUNTIME_V11_RELEASE_VERSIONS["skill"], "11.0.0")
+        self.assertEqual(RUNTIME_V1110_RELEASE_VERSIONS["skill"], "11.1.0")
+        self.assertEqual(
+            {key: value for key, value in RUNTIME_V11_RELEASE_VERSIONS.items() if key != "skill"},
+            {key: value for key, value in RUNTIME_V1110_RELEASE_VERSIONS.items() if key != "skill"},
+        )
+
     def test_runtime_repair_reuses_exact_writing_projection_without_mutation(self):
         plan = self.runtime.resolve_runtime("latex", competition="CUMCM")
-        self.assertEqual(plan["version"], RUNTIME_V11_RELEASE_VERSIONS["skill"])
+        self.assertEqual(plan["version"], RUNTIME_V1110_RELEASE_VERSIONS["skill"])
         historical = copy.deepcopy(plan)
         historical["version"] = CUMCM_D_CLEANUP_RELEASE_VERSIONS["skill"]
         saved = copy.deepcopy((plan, historical, self.golden))
@@ -395,7 +406,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
         plan = self.runtime.resolve_runtime(
             "full_workflow", competition="CUMCM", primary="mechanism",
         )
-        self.assertEqual(plan["version"], RUNTIME_V11_RELEASE_VERSIONS["skill"])
+        self.assertEqual(plan["version"], RUNTIME_V1110_RELEASE_VERSIONS["skill"])
         source = "core/literature_research_contract.yaml"
         pack = "packs/artifact/literature_research.md"
         self.assertEqual(plan["load_order"].count(source), 1)
@@ -420,7 +431,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
 
     def test_review_split_projection_binds_canonical_scopes_without_waiving_stage_fields(self):
         plan = self.runtime.resolve_runtime("latex", competition="CUMCM")
-        self.assertEqual(plan["version"], RUNTIME_V11_RELEASE_VERSIONS["skill"])
+        self.assertEqual(plan["version"], RUNTIME_V1110_RELEASE_VERSIONS["skill"])
         saved = copy.deepcopy((plan, self.golden, REVIEW_SPLIT_WRITING_DELTAS))
         for index, stage_id, previous_reads, current_reads in REVIEW_SPLIT_WRITING_DELTAS:
             historical = self.golden["routes"]["latex"]["writing_runtime"]["authoring_sequence"][index]

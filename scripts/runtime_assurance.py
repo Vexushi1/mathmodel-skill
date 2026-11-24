@@ -921,6 +921,7 @@ def _expected_hash(item: dict[str, Any], layer: str) -> str | None:
 def hydrate_project_context(
     project_root: str | Path, question: str | None = None, *,
     state_snapshot: ProjectStateSnapshot | None = None,
+    include_observed_sources: bool = False,
 ) -> dict[str, Any]:
     root = Path(project_root).expanduser().resolve()
     state_path = root / STATE_RELATIVE_PATH
@@ -1226,7 +1227,7 @@ def hydrate_project_context(
 
     CONFORMANCE.assert_observed(root, comparison_read_set)
     snapshot.assert_current()
-    return {
+    result = {
         "loaded": True,
         "project_root": str(root),
         "state_path": str(state_path),
@@ -1246,6 +1247,12 @@ def hydrate_project_context(
         "conflicts": conflicts,
         "ambiguities": ambiguities,
     }
+    if include_observed_sources:
+        # Expose the exact comparison source read-set the qualifier itself
+        # verified, so numerical code delivery can bind it without re-reading
+        # and hashing a later file version. Existing callers keep their shape.
+        result["observed_sources"] = comparison_read_set
+    return result
 
 
 def reconcile_legacy_artifacts(

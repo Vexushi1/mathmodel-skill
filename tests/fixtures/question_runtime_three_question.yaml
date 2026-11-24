@@ -1,0 +1,30 @@
+fixture_version: "1.0.0"
+case_id: q1-q2-q3-independent-and-result-dependent
+purpose: >-
+  Three-question integration case for distinguishing project-wide observation,
+  target-question execution, typed upstream prerequisites, and independent work.
+questions:
+  Q1:
+    objective: optimization
+    structures: [network]
+    depends_on: []
+    role: independent_upstream
+  Q2:
+    objective: prediction
+    structures: [temporal]
+    depends_on:
+      - question: Q1
+        kind: result
+    role: result_dependent
+  Q3:
+    objective: explanation
+    structures: [physical_mechanism]
+    depends_on: []
+    role: independent
+expected_invariants:
+  question_execution_unit: one_question
+  q2_waits_for: Q1.validated_results
+  q3_waits_for: []
+  project_backend_scope: project
+  stale_propagation: complete_typed_dependency_graph
+  finalization_scope: all_required_questions

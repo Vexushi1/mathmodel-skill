@@ -373,6 +373,7 @@ excluded:
   - docs/v10_27_runtime_nonregression_optimization_plan.md
   - docs/v10_32_0_release_notes.md
   - docs/v11_0_0_migration.md
+  - docs/v11_question_dependency_evidence_integrity_plan.md
   - docs/v11_rule_preservation_map.md
   - docs/v801_chapter_capability_preservation_audit.md
   - docs/v801_skill_health_remediation_plan.md
@@ -429,6 +430,7 @@ excluded:
   - scripts/generate_mechanism_drawio.py
   - scripts/hsk_pack_submission.py
   - scripts/instantiate_model_paper_framework.py
+  - scripts/initialize_project.py
   - scripts/latex_delivery.py
   - scripts/lint_skill.py
   - scripts/lint_skill_checks.py
@@ -449,6 +451,8 @@ excluded:
   - scripts/project_snapshot.py
   - scripts/project_solver_backend.py
   - scripts/project_transaction.py
+  - scripts/question_dependency_gate.py
+  - scripts/question_scheduler.py
   - scripts/python_source_checks.py
   - scripts/read_stage.py
   - scripts/reading_plan.py

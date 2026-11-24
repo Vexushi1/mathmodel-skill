@@ -2166,20 +2166,17 @@ class V11DefaultCarrierProjectionTests(unittest.TestCase):
             "assurance": {"authority_fingerprint": {"sources": sources}},
         }
 
-    def test_v11_default_carrier_uses_exact_authority_and_source_identity(self):
+    def test_current_explicit_qn_source_cannot_invert_frozen_default_carrier(self):
         candidate = self.candidate()
         candidate["pre_delivery_gates"] = [{"name": "unregistered_gate"}]
         saved = deepcopy(candidate)
         projected, changes = EVIDENCE.runtime_consistency_predecessor(
             "facts_current", candidate, deepcopy(EVIDENCE.V11_DEFAULT_AUTHORITY_VERSIONS)
         )
-        self.assertEqual(projected["version"], EVIDENCE.V10263_RELEASE_AUTHORITY_VERSIONS["skill"])
+        # Candidate matches the frozen metadata, but the repository source
+        # bytes no longer match M2: historical inverse MUST refuse it.
+        self.assertEqual((projected, changes), (candidate, []))
         self.assertEqual(projected["pre_delivery_gates"], saved["pre_delivery_gates"])
-        self.assertTrue(any(item["path"] == "version" for item in changes))
-        self.assertTrue(any(
-            item["path"] == "assurance.authority_fingerprint.sources"
-            for item in changes
-        ))
         self.assertEqual(candidate, saved)
 
     def test_v11_default_carrier_rejects_unknown_authority_or_changed_source(self):

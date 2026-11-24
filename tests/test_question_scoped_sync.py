@@ -1,0 +1,277 @@
+"""M4: real scoped Sync behavior; only maintenance synthetic fixtures are touched."""
+from __future__ import annotations
+
+from copy import deepcopy
+from pathlib import Path
+from unittest.mock import patch
+import tempfile
+import unittest
+
+import yaml
+
+from tests.test_sync_project import setup_project, capabilities
+from tests.test_question_runtime_integration import add_unfinished_questions_to_sync_project
+import sync_project as SYNC
+
+# Use the canonical module already imported by other production consumers.
+# Loading sync_project afresh at unittest discovery time replaces
+# sys.modules["sync_project"] and breaks transaction patch targets in
+# project_solver_backend's independent integration tests.
+
+
+def three_question_project(root: Path) -> Path:
+    setup_project(
+        root, status="designed", phase="solve_validate",
+        include_solution=False, include_analysis=False, include_analysis_code=False,
+    )
+    add_unfinished_questions_to_sync_project(root)
+    path = root / "state/project_state.yaml"
+    state = yaml.safe_load(path.read_text(encoding="utf-8"))
+    state["requirements"] = {"total": 3, "completed": [], "pending": ["Q1", "Q2", "Q3"]}
+    for q in ("Q2", "Q3"):
+        entry = state["subproblems"][q]
+        entry.update(
+            status="audited", selected_model="", capabilities=capabilities(),
+            primary_execution_status="pending", analysis_execution_status="pending",
+            problem_contract_status="frozen", semantic_closure_status="pending",
+            complexity_sanity_status="pending",
+        )
+        for field in ("semantic_revision", "validated_semantic_revision",
+                      "approved_semantic_revision", "semantic_identity_hash",
+                      "validated_semantic_identity_hash", "approved_semantic_identity_hash"):
+            entry.pop(field, None)
+    state["subproblems"]["Q2"]["depends_on"] = [{"question": "Q1", "kind": "result"}]
+    path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False),
+                    encoding="utf-8")
+    return path
+
+
+class QuestionScopedSyncTests(unittest.TestCase):
+    def test_scoped_q1_code_is_not_blocked_by_missing_independent_q2_q3_code(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            three_question_project(root)
+            full = SYNC.synchronize(root, write=False, delivery_scope="code")
+            self.assertTrue(any("缺少标准主求解脚本" in item for item in full["issues"]), full)
+            scoped = SYNC.synchronize(root, write=False, delivery_scope="code", question="Q1")
+            self.assertEqual(set(scoped["questions"]), {"Q1"}, scoped)
+            self.assertEqual(scoped["target_question"], "Q1")
+            self.assertNotIn("Q2", scoped["upstream_question_snapshots"])
+            self.assertFalse(any("缺少标准主求解脚本" in item for item in scoped["issues"]), scoped)
+
+    def test_unrelated_solved_q3_missing_workbook_does_not_block_q1(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            path = three_question_project(root)
+            state = yaml.safe_load(path.read_text(encoding="utf-8"))
+            state["subproblems"]["Q3"].update(
+                status="solved", result_quality_status="pending",
+                result_summary_status="pending",
+                solution_workbook="问题三求解/问题三求解结果.xlsx",
+            )
+            path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False),
+                            encoding="utf-8")
+            full = SYNC.synchronize(root, write=False, delivery_scope="code")
+            self.assertTrue(any("Q3" in issue for issue in full["issues"]), full)
+            scoped = SYNC.synchronize(root, write=False, delivery_scope="code", question="Q1")
+            self.assertFalse(any("Q3" in issue and ("workbook" in issue or "result" in issue)
+                                 for issue in scoped["issues"]), scoped)
+            self.assertEqual(set(scoped["questions"]), {"Q1"})
+
+    def test_only_traversed_prerequisite_edges_form_scoped_cycle(self):
+        state = {
+            "requirements": {"total": 3, "pending": ["Q1", "Q2", "Q3"], "completed": []},
+            "subproblems": {
+                "Q1": {"depends_on": [{"question": "Q3", "kind": "result"}]},
+                "Q2": {"depends_on": [{"question": "Q1", "kind": "model"}]},
+                "Q3": {"depends_on": [{"question": "Q1", "kind": "result"}]},
+            },
+        }
+        numerics, roles, issues = SYNC._question_sync_selection(state, "Q2", "design")
+        self.assertEqual(numerics, ["Q2"])
+        self.assertEqual(roles["Q1"], ["model"])
+        self.assertFalse(any("cycle" in item for item in issues), issues)
+        state["subproblems"]["Q1"]["depends_on"] = [{"question": "Q2", "kind": "model"}]
+        numerics, roles, issues = SYNC._question_sync_selection(state, "Q2", "design")
+        self.assertTrue(any("cycle" in item for item in issues), issues)
+
+    def test_result_dependency_observes_only_necessary_upstream_snapshot(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            three_question_project(root)
+            scoped = SYNC.synchronize(root, write=False, delivery_scope="code", question="Q2")
+            self.assertEqual(set(scoped["questions"]), {"Q2"})
+            self.assertEqual(set(scoped["upstream_question_snapshots"]), {"Q1"})
+            self.assertNotIn("Q3", scoped["questions"])
+            self.assertNotIn("Q3", scoped["upstream_question_snapshots"])
+
+    def test_model_dependency_does_not_demand_upstream_numeric_code(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            path = three_question_project(root)
+            state = yaml.safe_load(path.read_text(encoding="utf-8"))
+            state["subproblems"]["Q2"]["depends_on"] = [{"question": "Q1", "kind": "model"}]
+            path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False),
+                            encoding="utf-8")
+            scoped = SYNC.synchronize(root, write=False, delivery_scope="design", question="Q2")
+            self.assertEqual(set(scoped["questions"]), {"Q2"})
+            self.assertFalse(scoped["upstream_question_snapshots"])
+            self.assertIn("Q1", scoped["upstream_question_evidence"])
+            self.assertFalse(any("Q1: 当前源码缺少" in item for item in scoped["issues"]), scoped)
+
+    def test_changed_q1_uses_global_graph_to_stale_q2_not_independent_q3(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            path = three_question_project(root)
+            state = yaml.safe_load(path.read_text(encoding="utf-8"))
+            before_q3 = deepcopy(state["subproblems"]["Q3"])
+            source = root / "问题一求解/问题一求解.py"
+            source.write_bytes(source.read_bytes() + b"\n# M4 synthetic drift\n")
+            report = SYNC.synchronize(root, write=True, delivery_scope="code", question="Q1")
+            saved = yaml.safe_load(path.read_text(encoding="utf-8"))
+            self.assertIn("Q2", report["stale_questions"], report)
+            self.assertTrue(saved["subproblems"]["Q2"]["artifacts_stale"])
+            self.assertEqual(saved["subproblems"]["Q3"], before_q3)
+
+    def test_repeating_an_unchanged_question_sync_does_not_rewrite_state(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            path = three_question_project(root)
+            first = SYNC.synchronize(root, write=True, delivery_scope="code", question="Q1")
+            before = path.read_bytes()
+            generation = yaml.safe_load(before)["project"].get("state_generation", 0)
+            second = SYNC.synchronize(root, write=True, delivery_scope="code", question="Q1")
+            after = path.read_bytes()
+            self.assertEqual(after, before, (first, second))
+            self.assertEqual(yaml.safe_load(after)["project"].get("state_generation", 0),
+                             generation)
+            self.assertFalse(second["state_write_performed"], second)
+            self.assertTrue((root / "sync_report.yaml").is_file())
+
+    def test_global_backend_conflict_is_not_hidden_by_question_scope(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            path = three_question_project(root)
+            state = yaml.safe_load(path.read_text(encoding="utf-8"))
+            state["execution"]["solver_backend"] = "matlab"
+            path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False),
+                            encoding="utf-8")
+            report = SYNC.synchronize(root, write=False, delivery_scope="code", question="Q1")
+            self.assertEqual(report["status"], "failed")
+            self.assertTrue(any("后端" in item or "backend" in item for item in report["issues"]), report)
+
+    def test_unrelated_schema_corruption_remains_global_blocker(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            path = three_question_project(root)
+            state = yaml.safe_load(path.read_text(encoding="utf-8"))
+            del state["subproblems"]["Q3"]["capabilities"]["requires_convergence_diagnostic"]
+            path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False),
+                            encoding="utf-8")
+            report = SYNC.synchronize(root, write=False, delivery_scope="code", question="Q1")
+            self.assertEqual(report["status"], "failed")
+            self.assertTrue(any("schema" in issue and "Q3" in issue for issue in report["issues"]), report)
+            before = path.read_bytes()
+            refused = SYNC.synchronize(root, write=True, delivery_scope="code", question="Q1")
+            self.assertEqual(refused["status"], "failed")
+            self.assertFalse(refused["write_performed"])
+            self.assertEqual(path.read_bytes(), before)
+
+
+    def test_scoped_write_rechecks_target_files_after_observation(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            path = three_question_project(root)
+            before_state = path.read_bytes()
+            source = root / "问题一求解/问题一求解.py"
+            original_snapshot = SYNC._snapshot_question
+            changed = [False]
+
+            def mutate_after_read(*args, **kwargs):
+                observed = original_snapshot(*args, **kwargs)
+                if not changed[0]:
+                    changed[0] = True
+                    source.write_bytes(source.read_bytes() + b"\n# concurrent synthetic edit\n")
+                return observed
+
+            with patch.object(SYNC, "_snapshot_question", side_effect=mutate_after_read):
+                with self.assertRaises(SYNC.PROJECT_TX.ReadSetConflictError):
+                    SYNC.synchronize(root, write=True, delivery_scope="code", question="Q1")
+            self.assertTrue(changed[0])
+            self.assertEqual(path.read_bytes(), before_state,
+                             "concurrent source drift must not commit new State")
+
+    def test_untyped_dependency_may_be_diagnosed_but_never_written_as_current(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            path = three_question_project(root)
+            state = yaml.safe_load(path.read_text(encoding="utf-8"))
+            state["subproblems"]["Q2"]["depends_on"] = ["Q1"]
+            path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False),
+                            encoding="utf-8")
+            original = path.read_bytes()
+            report = SYNC.synchronize(root, write=True, delivery_scope="design", question="Q2")
+            self.assertEqual(report["status"], "failed")
+            self.assertTrue(any("legacy_untyped" in issue for issue in report["issues"]), report)
+            self.assertFalse(report["write_performed"])
+            self.assertEqual(path.read_bytes(), original)
+
+    def test_project_level_preprocessing_stays_project_scoped(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            path = three_question_project(root)
+            state = yaml.safe_load(path.read_text(encoding="utf-8"))
+            state["project"]["current_phase"] = "data_preprocessing"
+            state["preprocessing"]["decision"] = "project_level"
+            path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False),
+                            encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "preprocessing must synchronize globally"):
+                SYNC.synchronize(root, write=False, delivery_scope="code", question="Q1")
+
+    def test_scoped_sync_refuses_incomplete_or_duplicate_modern_question_rosters(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            state_path = three_question_project(root)
+            canonical = yaml.safe_load(state_path.read_text(encoding="utf-8"))
+            rosters = (
+                {"total": 0, "completed": [], "pending": []},
+                {"total": 2, "completed": [], "pending": ["Q1", "Q2"]},
+                {"total": 4, "completed": [], "pending": ["Q1", "Q2", "Q3", "Q9"]},
+                {"total": 3, "completed": [], "pending": ["Q1", "Q2", "Q2"]},
+                {"total": True, "completed": [], "pending": ["Q1", "Q2", "Q3"]},
+                {"total": 3, "completed": ["Q1"], "pending": ["Q1", "Q2", "Q3"]},
+            )
+            for roster in rosters:
+                with self.subTest(roster=roster):
+                    candidate = deepcopy(canonical)
+                    candidate["requirements"] = roster
+                    state_path.write_text(
+                        yaml.safe_dump(candidate, allow_unicode=True, sort_keys=False),
+                        encoding="utf-8",
+                    )
+                    before = state_path.read_bytes()
+                    with self.assertRaisesRegex(ValueError, "requirements roster"):
+                        SYNC.synchronize(root, write=True, delivery_scope="code", question="Q1")
+                    self.assertEqual(state_path.read_bytes(), before)
+
+    def test_unknown_question_and_final_delivery_scope_fail_closed(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            three_question_project(root)
+            with self.assertRaisesRegex(ValueError, "Q9"):
+                SYNC.synchronize(root, write=False, delivery_scope="code", question="Q9")
+            for scope in ("docx", "latex", "submission", "mechanism"):
+                with self.subTest(scope=scope), self.assertRaises(ValueError):
+                    SYNC.synchronize(root, write=False, delivery_scope=scope, question="Q1")
+
+    def test_unchanged_unscoped_sync_keeps_legacy_all_questions_behavior(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            three_question_project(root)
+            report = SYNC.synchronize(root, write=False, delivery_scope="code")
+            self.assertEqual(set(report["questions"]), {"Q1", "Q2", "Q3"})
+            self.assertNotIn("target_question", report)
+
+
+if __name__ == "__main__":
+    unittest.main()
