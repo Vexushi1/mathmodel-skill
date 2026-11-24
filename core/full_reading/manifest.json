@@ -604,8 +604,8 @@
     },
     {
       "path": "core/full_reading/volumes/120.md",
-      "bytes": 8292,
-      "sha256": "719c77c0e480bb667ec4b1bdef7634d028afa6b90b8aac195c362ffbd58bfa07"
+      "bytes": 8412,
+      "sha256": "17cb4400d749a1b295aedf4bd5573e522fc9000259f123321a516005117965a4"
     },
     {
       "path": "core/full_reading/volumes/121.md",
@@ -3715,9 +3715,9 @@
       "path": "templates/model/model_paper_framework.md",
       "role": "conditional_template",
       "aliases": [],
-      "bytes": 38361,
-      "sha256": "74a7dc36671accc6a7633424bb817a3b1c55ea73001fd188406b46e8b64d7198",
-      "git_blob_sha1": "553b5b434fd5702195cb04db5f9c13036cb44344",
+      "bytes": 38481,
+      "sha256": "55c3181e6089809d5783f214bbd855bd9a7dd29b7638dd6ba0c4e041aa4693cb",
+      "git_blob_sha1": "79aa389f46e8cadf817a4c53804feb8f1a9e70b4",
       "parts": [
         {
           "volume": "core/full_reading/volumes/117.md",
@@ -3752,12 +3752,12 @@
         {
           "volume": "core/full_reading/volumes/120.md",
           "start": 30755,
-          "end": 38361,
+          "end": 38481,
           "line_start": 571,
           "line_end": 651,
           "volume_start": 143,
-          "volume_end": 7749,
-          "sha256": "3f0489dca2dd648283f564446d7353809f3a425264cd6a38e746eef3f332d987"
+          "volume_end": 7869,
+          "sha256": "4c54b8033b23b8cb94c8377eee0922dcfb97264459ae8808ef80dbb1db20e2b9"
         }
       ]
     },
@@ -3775,8 +3775,8 @@
           "end": 420,
           "line_start": 1,
           "line_end": 11,
-          "volume_start": 7872,
-          "volume_end": 8292,
+          "volume_start": 7992,
+          "volume_end": 8412,
           "sha256": "ec4cba471fd72a4a8a60912f9cb647b0db789f0f2b0c809daf072c90c5999dd8"
         }
       ]
