@@ -1965,13 +1965,17 @@ properties:
         minimum: 0
       proposition_default_budget: {type: integer, const: 4, default: 4}
       proposition_budget_status:
+        description: 旧项目预算状态只读兼容，justified 不再豁免当前正文上限
         type: string
         enum: [within_default_budget, justification_required, justified]
-      proposition_budget_reason: {type: string}
-      proposition_count: {type: integer, minimum: 0}
+      proposition_budget_reason:
+        description: 旧项目预算说明只读兼容，不得用于当前正文超限放行
+        type: string
+      proposition_count: {type: integer, minimum: 0, maximum: 4}
       proposition_status: {type: string, enum: [not_assessed, planned, current, stale]}
       propositions:
         type: array
+        maxItems: 4
         items: {$ref: '#/$defs/proposition_entry'}
     allOf:
     - if:

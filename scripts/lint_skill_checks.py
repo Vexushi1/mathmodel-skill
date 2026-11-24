@@ -846,15 +846,13 @@ def check_contracts(errors: list[str]) -> None:
     if proposition.get("authority") != "core/writing_reasoning_contract.yaml#proposition_governance":
         errors.append("proposition contract must delegate governance to writing reasoning authority")
     if proposition.get("default_budget") != [0, 4]:
-        errors.append("proposition default reading budget must be [0, 4]")
-    if proposition.get("automatic_rejection_over_budget") is not False:
-        errors.append("proposition count above default budget must not be automatic rejection")
-    if proposition.get("over_budget_action") != "justification_required":
-        errors.append("proposition over-budget action must require justification")
+        errors.append("proposition body limit must retain the 0--4 range")
+    if proposition.get("automatic_rejection_over_budget") is not True or proposition.get("count_scope") != "full_paper_body":
+        errors.append("proposition contract must reject more than four full-paper body propositions")
+    if proposition.get("over_budget_action") != "revise_body_plan_required":
+        errors.append("proposition over-limit plans must be revised, not justified")
     if proposition.get("display_numbering") != "arabic_section_dot_arabic_proposition":
         errors.append("proposition contract must use Arabic section.proposition numbering")
-    if "maximum_per_paper" in proposition:
-        errors.append("proposition contract must not retain a hard maximum_per_paper")
     algorithm = output.get("algorithm_presentation_contract", {})
     if algorithm.get("authority") != "core/writing_reasoning_contract.yaml#algorithm_presentation":
         errors.append("algorithm presentation must delegate governance to writing reasoning authority")
@@ -1062,13 +1060,15 @@ def check_project_state_and_framework(errors: list[str]) -> None:
         errors.append("project state must preserve algorithm as an existing semantic-change category")
     proposition_id = schema["$defs"]["proposition_entry"]["properties"]["id"].get("pattern")
     if proposition_id != "^P[1-9][0-9]*$":
-        errors.append("project state proposition IDs must support justified P5+ entries")
+        errors.append("project state must retain stable historical proposition IDs (including P5+)")
     proposition_count = schema["properties"]["paper_framework"]["properties"]["proposition_count"]
-    if "maximum" in proposition_count:
-        errors.append("project state proposition_count must not retain a hard maximum")
+    if proposition_count.get("maximum") != 4:
+        errors.append("project state proposition_count must enforce the four-proposition body limit")
     framework_props = schema["properties"]["paper_framework"]["properties"]
+    if framework_props["propositions"].get("maxItems") != 4:
+        errors.append("project state proposition entries must respect the body limit")
     if "proposition_budget_status" not in framework_props:
-        errors.append("project state must expose proposition budget justification state")
+        errors.append("project state must preserve legacy budget status for read compatibility")
     for field in ("terminology_registry", "numeric_profile", "title_claims", "paper_fragments"):
         if field not in framework_props:
             errors.append(f"project state must expose optional v0.8 paper-framework field: {field}")
@@ -1210,8 +1210,12 @@ def check_templates(errors: list[str]) -> None:
     reasoning = load_structured(ROOT / "core/writing_reasoning_contract.yaml") or {}
     if set((reasoning.get("rule_governance") or {}).get("levels", {})) != {"hard", "default", "recommendation"}:
         errors.append("writing reasoning contract must expose Hard/Default/Recommendation levels")
-    if (reasoning.get("proposition_governance") or {}).get("automatic_rejection_over_budget") is not False:
-        errors.append("writing reasoning contract must not hard-reject proposition count above default budget")
+    prop_rule = reasoning.get("proposition_governance") or {}
+    if (prop_rule.get("automatic_rejection_over_budget") is not True
+            or prop_rule.get("maximum_body_propositions") != 4
+            or prop_rule.get("governance_level") != "hard"
+            or prop_rule.get("count_scope") != "full_paper_body"):
+        errors.append("writing reasoning contract must enforce the four-proposition body limit without exceptions")
     for key in (
         "citation_evidence", "terminology_governance", "numeric_style_contract", "title_claim_gate",
         "analysis_evidence_disposition", "paragraph_necessity", "paper_fragment_stale_governance", "algorithm_presentation",

@@ -508,15 +508,10 @@ def _validate_proposition_plan(text: str, *, strict: bool) -> tuple[list[str], i
         )
 
     if declared_count is not None and declared_count > PROPOSITION_DEFAULT_BUDGET:
-        budget_status = _extract_scalar(text, "超预算状态") or ""
-        reason = _extract_scalar(text, "超预算说明（若适用）") or _extract_scalar(text, "超预算说明") or ""
-        if budget_status not in {"justified", "已说明", "已论证"}:
-            issues.append(
-                f"proposition count {declared_count} exceeds default budget {PROPOSITION_DEFAULT_BUDGET}; "
-                "set 超预算状态=justified after necessity review"
-            )
-        if strict and not reason:
-            issues.append("over-budget proposition plan requires 超预算说明 in strict mode")
+        issues.append(
+            f"proposition count {declared_count} exceeds full-paper body limit "
+            f"{PROPOSITION_DEFAULT_BUDGET}; over-budget explanation is not an exception"
+        )
 
     for proposition_id, cells in rows:
         if len(cells) < 9:

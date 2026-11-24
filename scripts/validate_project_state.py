@@ -127,17 +127,12 @@ def _validate_propositions(
         issues.append("paper_framework.proposition_count must equal len(paper_framework.propositions)")
 
     if isinstance(count, int) and count > PROPOSITION_DEFAULT_BUDGET:
-        budget_status = framework.get("proposition_budget_status")
-        reason = str(framework.get("proposition_budget_reason", "")).strip()
-        if budget_status != "justified":
-            issues.append(
-                f"paper_framework has {count} propositions, above default budget {PROPOSITION_DEFAULT_BUDGET}; "
-                "proposition_budget_status must be justified"
-            )
-        if not reason:
-            issues.append("paper_framework.proposition_budget_reason is required above the default proposition budget")
+        issues.append(
+            f"paper_framework has {count} propositions, exceeding the full-paper body limit "
+            f"{PROPOSITION_DEFAULT_BUDGET}; old budget justification does not authorize an exception"
+        )
     elif framework.get("proposition_budget_status") == "justification_required":
-        issues.append("paper_framework.proposition_budget_status cannot remain justification_required within default budget")
+        issues.append("paper_framework.proposition_budget_status cannot remain justification_required within the body limit")
 
     ids: list[str] = []
     has_stale = status == "stale"
