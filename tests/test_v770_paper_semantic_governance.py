@@ -46,23 +46,32 @@ class TestV770PaperSemanticGovernance(unittest.TestCase):
         self.assertEqual(self.reasoning["paragraph_necessity"]["governance_level"], "recommendation")
         self.assertEqual(self.reasoning["analysis_evidence_disposition"]["statuses"], ["support", "modify", "reject"])
 
-    def test_high_precision_scoring_contract_does_not_downround_abstract(self):
+    def test_d02_default_two_decimals_with_explicit_precision_override(self):
         numeric = self.reasoning["numeric_style_contract"]
         principle = numeric["principle"]
-        self.assertEqual(numeric["high_precision_default"]["preferred_decimal_places_when_not_otherwise_specified"], [6, 7])
-        self.assertIn("不得", principle)
-        self.assertIn("粗略舍入", principle)
-        self.assertIn("摘要", principle)
-        self.assertIn("6--7", principle)
-        self.assertIn("高精度", numeric["display_profiles"]["abstract"])
+        default = numeric["ordinary_display_default"]
+        self.assertEqual(default["governance_level"], "default")
+        self.assertEqual(default["decimal_places"], 2)
+        self.assertIn("no_explicit_prompt_or_verified_official_precision", default["applies_when_all"])
+        self.assertIn("prompt_or_verified_official_precision", default["exceptions"])
+        self.assertNotIn("high_precision_default", numeric)
+        for term in ("题目", "两位", "accepted", "提交数据"):
+            self.assertIn(term, principle)
         protocol = (ROOT / "modules/05_writing/paper_writing_protocol.md").read_text(encoding="utf-8")
         cleanup = (ROOT / "modules/05_writing/ai_cleanup.md").read_text(encoding="utf-8")
         abstract_check = (ROOT / "templates/writing/abstract_result_check.md").read_text(encoding="utf-8")
-        for text in (protocol, cleanup, abstract_check):
-            self.assertIn("6--7", text)
-        self.assertIn("核心答案的精度不得为了摘要简洁而擅自降低", protocol)
-        self.assertNotIn("摘要只写实际有意义的 3--4 位", protocol)
-        self.assertEqual(self.output["writing_policy"]["core_result_precision_priority"], "scoring_and_official_output_requirements")
+        for text in (protocol, abstract_check):
+            self.assertIn("未明确要求时", text)
+            self.assertIn("小数点后两位", text)
+            self.assertNotIn("6--7", text)
+        self.assertIn("Cleanup 只读，不改 accepted 工作簿", cleanup)
+        self.assertNotIn("6--7", cleanup)
+        self.assertEqual(self.output["writing_policy"]["numeric_style_contract"],
+                         "core/writing_reasoning_contract.yaml#numeric_style_contract")
+        self.assertNotIn("high_precision_default_when_scoring_sensitive",
+                         self.output["writing_policy"])
+        self.assertEqual(self.output["writing_policy"]["core_result_precision_priority"],
+                         "scoring_and_official_output_requirements")
 
     def test_framework_v08_contains_project_memory_registries(self):
         text = (ROOT / "templates/model/model_paper_framework.md").read_text(encoding="utf-8")
@@ -75,7 +84,7 @@ class TestV770PaperSemanticGovernance(unittest.TestCase):
             "**深化证据处置**",
         ):
             self.assertIn(heading, text)
-        self.assertIn("若小数后 6--7 位可能影响结果分", text)
+        self.assertIn("未明确要求时，论文数值默认保留小数点后两位", text)
 
     def test_project_state_schema_keeps_new_fields_optional_for_legacy_read(self):
         paper_props = self.schema["properties"]["paper_framework"]["properties"]

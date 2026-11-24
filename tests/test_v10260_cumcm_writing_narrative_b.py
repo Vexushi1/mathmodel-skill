@@ -62,14 +62,15 @@ class CUMCMWritingBTests(unittest.TestCase):
             self.assertIn(phrase, self.protocol)
         self.assertIn("Paper Writing Protocol §11", self.cleanup)
 
-    def test_two_decimals_only_for_ordinary_display(self):
+    def test_default_two_decimals_for_paper_display(self):
         policy = self.reasoning["numeric_style_contract"]
-        self.assertEqual(policy["ordinary_display_default"]["governance_level"], "recommendation")
+        self.assertEqual(policy["ordinary_display_default"]["governance_level"], "default")
         self.assertEqual(policy["ordinary_display_default"]["decimal_places"], 2)
-        self.assertIn("core_answers_or_submission_values",
+        self.assertIn("prompt_or_verified_official_precision",
                       policy["ordinary_display_default"]["exceptions"])
-        self.assertEqual(policy["high_precision_default"]["preferred_decimal_places_when_not_otherwise_specified"],
-                         [6, 7])
+        self.assertIn("scientific_notation_to_preserve_order_of_magnitude",
+                      policy["ordinary_display_default"]["exceptions"])
+        self.assertNotIn("high_precision_default", policy)
         self.assertIn("不改 accepted 工作簿", self.cleanup)
 
     def test_evaluation_budget_is_not_a_hard_quota(self):

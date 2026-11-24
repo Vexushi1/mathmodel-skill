@@ -120,7 +120,6 @@ writing_policy:
   prose_audit_default_mode: report_only
   prose_audit_strict_blocks_on: [blocking, review_required]
   core_result_precision_priority: scoring_and_official_output_requirements
-  high_precision_default_when_scoring_sensitive: 6--7_decimal_places_unless_more_specific_requirement
   carrier_specific:
     docx: modules/05_writing/docx.md
     latex: packs/artifact/latex.md

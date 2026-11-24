@@ -12,7 +12,7 @@
 - **公式与中文推导**：内联、行间与 LaTeX math 环境中的全部符号、上下标、运算方向、变量、关系、编号、标签、单位、精度和既定位置均逐字保留。公式间纯文字表达的前提→变换→结论、定义、关键近似、约束来源、初边值、误差、solver precondition、Reduction Provenance 与 Core Derivation Body Closure 也只读。**公式来源、推导、命题证明、伪代码及求解细节**一旦在正文定稿，Cleanup 不缩减、迁移、重排或删除；“代码能复现”不能替代数学论证。
 - **已定稿的所有公式角色均只读**：`final_model_relation`、`key_bridge_relation`、`supporting_derivation`、`routine_algebra`。不能仅因“不是最终模型公式”删除；不能以旧 Formula Role 的 Keep / Compress / Re-locate / Delete 裁决对当前正文动手。删除机械代数或重写关键证明须回到前置 Protocol / Reasoning 阶段裁决。
 - **证明与算法**：planned/current Proposition、Proof、stepwise/pseudocode Algorithm Trace、求解步骤、停机条件、条件句、限定词和推理次序只读。用户本轮没有再次提到这些能力，也不意味着可清除。若 `Core Derivation Body Closure Test` 或 Preflight 指出缺口，只报告给上游，不在 Cleanup 直接修补。
-- **核心数值与全部数字**：包括非关键说明数字、目标值、阈值、比较基准、baseline、`accepted 数值`、单位、`绝对/相对误差`、百分比/百分点、`Numeric Profile` 和答题精度，均不舍入、不重写、不改变显示格式、计算或工作簿。此前已定的普通数字两位小数与关键精度 6--7 位规范仍由前置写作阶段决定；Cleanup 只读，不改 accepted 工作簿。
+- **核心数值与全部数字**：包括非关键说明数字、目标值、阈值、比较基准、baseline、`accepted 数值`、单位、`绝对/相对误差`、百分比/百分点、`Numeric Profile` 和答题精度，均不舍入、不重写、不改变显示格式、计算或工作簿。具体展示精度由前置写作阶段按题目要求或默认两位小数确定；Cleanup 只读，不改 accepted 工作簿。
 - **术语与主张**：`Terminology Registry`、canonical term、首次准确解释、`Citation Evidence`、BibTeX key、`Title Claim`、证据等级、当前结果和 stale 状态只读。数值实验不能成为数学证明；局部或启发式求解不能写成无依据的全局最优。发现 unsupported claim 或缺少来源，只提交原有 review finding，**不得**自行增删论断、引用或研究结论；不得为了“更简洁”删成裸术语/裸缩写。
 - **源文件与图表实体**：章标题、小节名称及层级、目录顺序、文件边界、caption、表头、行列、图例、标签与交叉引用命令均只读。不限制也不重排一级章节；写作顺序优化也没有权限重排既定一级大章节。二三级小节的 Merge / Split 属于上游写作/审查，不是 Cleanup 的主动编辑动作。
 
