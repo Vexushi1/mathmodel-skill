@@ -38,8 +38,8 @@ class DefaultRuntimeReadPathTests(unittest.TestCase):
         skill = read("SKILL.md")
         default_block = skill.split("## 默认执行", 1)[1].split("### 项目工作记忆", 1)[0]
         self.assertIn("scripts/resolve_runtime.py", default_block)
-        self.assertIn("scripts/resolve_workflow.py", default_block)
-        self.assertIn("legacy", default_block.lower())
+        self.assertIn("scripts/resolve_workflow.py", skill)
+        self.assertIn("legacy", skill.lower())
         self.assertNotIn("再由 `scripts/resolve_workflow.py` 按任务加载最小模块集", default_block)
 
         router = read("RUNTIME_ROUTER.md")

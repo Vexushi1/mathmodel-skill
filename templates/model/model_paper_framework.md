@@ -253,7 +253,7 @@
 
 #### 当前模型口径
 
-<!-- SIB SLOT：填写当前模型的完整结构化定义。显式机器验收时用 scripts/semantic_identity.py 校验；普通接续按模型批准合同读取当前模型与批准记录。 -->
+<!-- SIB SLOT（Semantic Identity Block）：填写当前模型的完整结构化定义。显式机器验收时用 scripts/semantic_identity.py 校验；普通接续按模型批准合同读取当前模型与批准记录。 -->
 
 **题意口径（Problem Contract）**
 

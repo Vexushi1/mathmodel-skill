@@ -379,11 +379,14 @@ class PhaseCPlanSurfaceTests(unittest.TestCase):
 
     def test_model_design_documents_structured_binding_and_legacy_migration(self):
         text = (ROOT / "modules/02_model_design.md").read_text(encoding="utf-8")
-        self.assertIn("approved_semantic_identity_hash", text)
-        self.assertIn("semantic_identity_hash", text)
+        self.assertIn("core/model_approval_contract.yaml#human_approval", text)
         self.assertIn("SIB", text)
-        self.assertIn("只读", text)
-        self.assertIn("不得根据旧 prose", text)
+        contract = yaml.safe_load((ROOT / "core/model_approval_contract.yaml").read_text(encoding="utf-8"))
+        approval = contract["human_approval"]
+        self.assertEqual(approval["binding"]["scope"], "explicit_machine_validation")
+        self.assertTrue(approval["binding"]["structured_identity"]["approved_semantic_identity_hash_must_equal_current"])
+        self.assertIn("validated SIB first", approval["machine_binding_rule"])
+        self.assertIn("historical read-only provenance", approval["machine_binding_rule"])
 
 
 if __name__ == "__main__":
