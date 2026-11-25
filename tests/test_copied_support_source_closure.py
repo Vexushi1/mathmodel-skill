@@ -333,5 +333,100 @@ assert result_io.read_workbook_tables(path)["维护微例"]["数值"].iloc[0] ==
             self.assertEqual(process.returncode, 0, process.stderr)
 
 
+class AnswerDeliveryOutsideRepositoryTests(unittest.TestCase):
+    def prepare_answer(self, root: Path, *, copied_io: bool) -> Path:
+        fixture = ROOT / "tests/fixtures/r2_answer_delivery"
+        folder = root / QUESTION
+        folder.mkdir()
+        shutil.copyfile(fixture / "input.json", root / "input.json")
+        source = (fixture / "python_primary.py").read_text(encoding="utf-8")
+        if copied_io:
+            support = folder / "hsk_pipeline"
+            support.mkdir()
+            (support / "__init__.py").write_text("", encoding="utf-8")
+            for name in ("result_io.py", "workbook_validation.py"):
+                shutil.copyfile(ROOT / "templates/code/hsk_pipeline" / name, support / name)
+            start = source.index("def write_results(path, sheets):")
+            end = source.index("\ndef main():", start)
+            source = source[:start] + '''def write_results(path, sheets):
+    import pandas as pd
+    from hsk_pipeline import result_io
+    assert result_io.load_workbook_schema() is result_io._FALLBACK_SCHEMA
+    tables = {name: pd.DataFrame(rows[1:], columns=rows[0]) for name, rows in sheets.items()}
+    result_io.write_workbook(path, tables, workbook_kind="solution",
+                             answer_sheets=("站点峰值", "事件状态"))
+    book = openpyxl.load_workbook(path)
+    try:
+        apply_submission_formats(book)
+        book.save(path)
+    finally:
+        book.close()
+
+''' + source[end:]
+        code = folder / "问题一求解.py"
+        code.write_text(source, encoding="utf-8", newline="\n")
+        return code
+
+    def execute_answer(self, root: Path, code: Path, scenario: str) -> Path:
+        env = {key: value for key, value in os.environ.items()
+               if key not in {"PYTHONPATH", "HSK_WORKBOOK_SCHEMA"}}
+        env["PYTHONUTF8"] = "1"
+        process = subprocess.run([sys.executable, "-B", str(code), scenario], cwd=root,
+                                 env=env, capture_output=True, encoding="utf-8", timeout=45)
+        self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
+        return code.parent / "问题一求解结果.xlsx"
+
+    def test_self_contained_and_copied_io_preserve_all_answers(self):
+        from tests.test_solver_backend_end_to_end import verify_r2_answer_workbook
+
+        for copied_io in (False, True):
+            with self.subTest(copied_io=copied_io), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary).resolve()
+                code = self.prepare_answer(root, copied_io=copied_io)
+                self.assertFalse((code.parent / "hsk_pipeline/main_pipeline.py").exists())
+                for scenario in ("baseline", "ties", "precision"):
+                    with self.subTest(scenario=scenario):
+                        workbook = self.execute_answer(root, code, scenario)
+                        verify_r2_answer_workbook(workbook, scenario, submission_formats=True)
+                self.assertEqual([path.name for path in code.parent.glob("*.xlsx")], ["问题一求解结果.xlsx"])
+
+    def test_independent_submission_oracle_rejects_actual_cell_omissions(self):
+        from tests.test_solver_backend_end_to_end import verify_r2_answer_workbook
+
+        cases = ("wrong_station", "swapped_times", "missing_time", "missing_row", "missing_column",
+                 "duplicate_record", "missing_tied_time", "missing_event_reason", "display_precision")
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            code = self.prepare_answer(root, copied_io=True)
+            for case in cases:
+                with self.subTest(case=case):
+                    scenario = "ties" if case == "missing_tied_time" else "baseline"
+                    workbook = self.execute_answer(root, code, scenario)
+                    book = openpyxl.load_workbook(workbook)
+                    sheet = book["站点峰值"]
+                    if case == "wrong_station":
+                        sheet["A3"] = "baseline-C-4"
+                        sheet["B3"] = "C"
+                    elif case == "swapped_times":
+                        sheet["D2"], sheet["D3"] = 4, 2
+                    elif case == "missing_time":
+                        sheet["D3"] = None
+                    elif case in {"missing_row", "missing_tied_time"}:
+                        sheet.delete_rows(sheet.max_row)
+                    elif case == "missing_column":
+                        sheet.delete_cols(4)
+                    elif case == "duplicate_record":
+                        for source, target in zip(sheet[2], sheet[3]):
+                            target.value = source.value
+                    elif case == "missing_event_reason":
+                        book["事件状态"]["D2"] = None
+                    else:
+                        sheet["C2"].number_format = "0"
+                    book.save(workbook)
+                    book.close()
+                    with self.assertRaises(AssertionError):
+                        verify_r2_answer_workbook(workbook, scenario, submission_formats=True)
+
+
 if __name__ == "__main__":
     unittest.main()

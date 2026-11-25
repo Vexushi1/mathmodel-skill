@@ -9,6 +9,8 @@ import argparse
 import hashlib
 import importlib.util
 import json
+import math
+from numbers import Real
 import os
 from pathlib import Path
 import re
@@ -30,6 +32,7 @@ from templates.code.hsk_pipeline import result_io
 QUESTION = "问题一求解"
 NEGATIVE_ANALYSIS = Path("negative/ordinary-claim")
 CONFIG = re.compile(r"RUN_CONFIG = jsondecode\('([^\n]*)'\);")
+R2_FIXTURE = ROOT / "tests/fixtures/r2_answer_delivery"
 
 
 def load_module(name: str, relative: str):
@@ -75,6 +78,45 @@ def check_ordinary_experiments(book, expected, kept):
         assert claim["主张处置"] == ("support" if kept[identifier] else "reject")
         assert claim["证据工作表"] == "参数敏感性"
     return observed
+
+
+def verify_r2_answer_workbook(path: Path, scenario: str, *, submission_formats: bool = False) -> None:
+    expected = json.loads((R2_FIXTURE / "expected.json").read_text(encoding="utf-8"))[scenario]
+    template = json.loads((R2_FIXTURE / "submission_template.json").read_text(encoding="utf-8"))
+    book = openpyxl.load_workbook(path, data_only=True)
+    try:
+        assert {"站点峰值", "执行停止证据", "事件状态", "核心指标"}.issubset(book.sheetnames)
+        sheet = book[template["sheet"]]
+        rows = list(sheet.iter_rows(values_only=True))
+        assert list(rows[0]) == template["columns"], "提交模板列不完整或顺序改变"
+        observed = rows[1:]
+        expected_rows = expected["peaks"]
+        assert len(observed) == len(expected_rows), "必答记录或并列峰时遗漏"
+        assert len({row[0] for row in observed}) == len(observed), "答案记录键重复"
+        for actual, (station, peak, time) in zip(observed, expected_rows):
+            assert actual[0] == f"{scenario}-{station}-{time}", "提交模板行键不匹配"
+            assert actual[1] == station, "站点集合或顺序错误"
+            for value, target in ((actual[2], peak), (actual[3], time)):
+                assert isinstance(value, Real) and not isinstance(value, bool), "必答数值为空或类型错误"
+                assert math.isclose(value, target, rel_tol=0, abs_tol=1e-12), "必答数值或峰时错误"
+            assert actual[4:] == ("1", "s")
+        if scenario == "baseline":
+            assert [row[0] for row in observed] == template["baseline_record_keys"]
+        if submission_formats:
+            for column, number_format in template["number_formats"].items():
+                index = template["columns"].index(column) + 1
+                assert all(sheet.cell(row, index).number_format == number_format
+                           for row in range(2, sheet.max_row + 1)), "提交显示精度不符"
+        stop = list(book["执行停止证据"].iter_rows(values_only=True))
+        assert stop == [("迭代或样本数", "指标", "数值", "单位"), (4, "末采样时刻", 6, "s")]
+        events = list(book["事件状态"].iter_rows(values_only=True))
+        assert events == [("站点", "状态", "时刻", "原因"),
+                          ("A", "未触发", None, "全部采样值低于阈值"),
+                          ("B", "未触发", None, "全部采样值低于阈值")]
+        metrics = dict(book["核心指标"].iter_rows(min_row=2, values_only=True))
+        assert math.isclose(metrics["全网峰值"], expected["network_peak"], rel_tol=0, abs_tol=1e-12)
+    finally:
+        book.close()
 
 
 def instantiate(root: Path, stage: str, **updates) -> Path:
@@ -203,6 +245,11 @@ end
 
 '''
     (root / "native_writer_probe.m").write_text(probe + writer, encoding="utf-8", newline="\n")
+    answer_root = root / "r2-answers"
+    answer_root.mkdir()
+    shutil.copyfile(R2_FIXTURE / "input.json", answer_root / "input.json")
+    answer_probe = (R2_FIXTURE / "r2_answer_probe.m").read_text(encoding="utf-8")
+    (root / "r2_answer_probe.m").write_text(answer_probe + writer, encoding="utf-8", newline="\n")
     source = (ROOT / "templates/code/matlab/q1_solver.m").read_text(encoding="utf-8")
     hashes = source[source.index("function path = project_path("):source.index("function receipt = make_receipt(")]
     probe = '''function native_hash_probe(root)
@@ -305,6 +352,12 @@ def verify(root: Path, stage: str) -> None:
             assert rows[2] == ("9007199254740993", None, False)
         finally:
             book.close()
+    if stage == "primary" and not (root / "preprocessing_native_fixture.json").exists():
+        assert runtime_report["answer_delivery_probe"] == "baseline_ties_precision_passed"
+        for scenario in ("baseline", "ties", "precision"):
+            answers = root / "r2-answers" / scenario / QUESTION / "问题一求解结果.xlsx"
+            result_io.validate_workbook_file(answers, "solution")
+            verify_r2_answer_workbook(answers, scenario)
     if (root / "preprocessing_native_fixture.json").exists():
         baseline = json.loads((root / "preprocessing_native_fixture.json").read_text(encoding="utf-8"))
         assert state["preprocessing"] == baseline["preprocessing"]
@@ -565,6 +618,10 @@ class SolverBackendFixtureTests(unittest.TestCase):
             self.assertEqual(config["data_sha256"], reference_digest(root, ["input.json"]))
             self.assertEqual(config["solver_backend"], "matlab")
             self.assertFalse(list(root.rglob("*.xlsx")))
+            self.assertEqual((root / "r2-answers/input.json").read_bytes(), (R2_FIXTURE / "input.json").read_bytes())
+            writer = (ROOT / "templates/code/matlab/q1_solver.m").read_text(encoding="utf-8")
+            self.assertTrue((root / "r2_answer_probe.m").read_text(encoding="utf-8").endswith(
+                writer[writer.index("function write_workbook("):]))
             self.assertTrue((root / "negative/nonfinite_result" / QUESTION / "q1_solver.m").is_file())
             approved_code = root / "approved-primary-quality" / QUESTION / "q1_solver.m"
             approved = json.loads(CONFIG.search(approved_code.read_text(encoding="utf-8")).group(1))

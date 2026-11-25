@@ -6,6 +6,8 @@
 
 两个入口均放在本问 `问题一求解/`，主函数名与文件名一致；其他问题相应改为 `q2_solver` 等，并更新 problem_name、输入与输出位置。代码通过自身位置找到项目根目录，不依赖启动 cwd。默认 local functions 使每份交付代码自包含，用户不需要把 Skill 仓库加入 MATLAB path。
 
+按本问每项需求把计算返回值加入 `sheets`：例如逐站峰值表同时保存站点、峰值和全部并列峰时，再调用 `write_workbook`。回读实际 XLSX 核对字段、记录键、单位和必答数值；未触发事件保留状态、原因和空时刻。
+
 主函数的首条语句是唯一 `RUN_CONFIG = jsondecode('...');`。配置使用可静态读取的 JSON 字面量；不要动态拼接、重赋值或改用外部配置。新主/分析使用回执 1.1，`solver_backend=matlab`。种子、容差、完整求解范围实际由配置驱动。例子的直接求解只支持 `iteration_or_time_limit=direct`；分析必须执行声明的全部场景。
 
 在 `q1_analysis.m` 的静态 `RUN_CONFIG.ordinary_experiments` 中预先登记两项参数敏感性检验。对每个系数，模板记录解及其相对已验收基准的绝对偏离，保留零值，并分别按判据记录支持或拒绝。实例化其他模型时同步更新实验目标、主张、计算与判据。普通实验字段与工作簿要求见 `core/user_execution_contract.yaml` 和 `core/workbook_schema.yaml`。

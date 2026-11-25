@@ -25,10 +25,12 @@ if stage == "primary"
     workbook = q1_solver();
     negative = strings(0, 1);
     typeProbe = "not_run_for_preprocessing";
+    answerProbe = "not_run_for_preprocessing";
     if ~preprocessed
         negative = run_negative_cases(projectRoot, primary);
         typeProbe = run_type_probe(projectRoot);
         native_hash_probe(projectRoot);
+        answerProbe = run_answer_probe(projectRoot);
     end
 else
     diagnostics = checkcode(fullfile(folder,"q1_analysis.m"),'-id','-cyc');
@@ -37,6 +39,7 @@ else
     assert(isequal(before,fileread_bytes(primary)), 'Analysis changed the primary workbook.');
     negative = strings(0, 1);
     typeProbe = "not_run_for_analysis";
+    answerProbe = "not_run_for_analysis";
 end
 books = hsk_read_result_workbooks(folder);
 assert(books.solution == primary, 'The original reader selected another primary workbook.');
@@ -44,7 +47,7 @@ raw = readcell(primary,'Sheet','核心指标');
 assert(isequal(string(raw(1,:)),["指标","数值"]), 'Native headers changed.');
 report = struct('stage',stage,'matlab_release',version('-release'),'matlab_version',version, ...
     'workbook',workbook,'actual_matlab_execution',true,'code_analyzer',diagnostics, ...
-    'negative_cases',negative,'type_probe',typeProbe,'status','passed');
+    'negative_cases',negative,'type_probe',typeProbe,'answer_delivery_probe',answerProbe,'status','passed');
 if preprocessed
     assert(isequal(preprocessingBytes,fileread_bytes(preprocessingBook)), 'Solver changed the preprocessing workbook.');
     report.preprocessing_workbook_unchanged = true;
@@ -61,6 +64,34 @@ fid = fopen(fullfile(projectRoot,stage + "_matlab_report.json"),'w','n','UTF-8')
 assert(fid >= 0, 'Cannot write smoke report.');
 reportCleanup = onCleanup(@() fclose(fid));
 fwrite(fid,jsonencode(report),'char');
+end
+
+function result = run_answer_probe(projectRoot)
+answerRoot = fullfile(projectRoot,"r2-answers");
+for scenario = ["baseline","ties","precision"]
+    filename = r2_answer_probe(answerRoot,scenario);
+    peakSpec = struct('headers',["记录键","站点","峰值","时刻","单位","时间单位"], ...
+        'key_header',"记录键",'numeric_headers',["峰值","时刻"]);
+    stopSpec = struct('headers',["迭代或样本数","指标","数值","单位"], ...
+        'numeric_headers',["迭代或样本数","数值"]);
+    eventSpec = struct('headers',["站点","状态","时刻","原因"], ...
+        'key_header',"站点",'numeric_headers',"时刻",'allow_missing_headers',"时刻");
+    requirements.solution = {'站点峰值',peakSpec;'执行停止证据',stopSpec;'事件状态',eventSpec};
+    hsk_read_result_workbooks(string(fileparts(filename)),"",requirements);
+    actual = readcell(filename,'Sheet','站点峰值');
+    if scenario == "ties"
+        expected = ["A","2";"A","6";"B","2";"B","4"];
+        assert(size(actual,1) == 5 && isequal(string(actual(2:end,[2,4])),expected), ...
+            'Tied peak records were lost.');
+    elseif scenario == "baseline"
+        assert(isequal(string(actual(2:end,[2,4])),["A","2";"B","4"]), 'Station or peak-time mismatch.');
+        assert(isequal(cell2mat(actual(2:end,3)),[9;7]), 'Peak values changed.');
+    else
+        assert(all(abs(cell2mat(actual(2:end,3)) - [9.123456789;7.987654321]) < 1e-12), ...
+            'Stored precision changed.');
+    end
+end
+result = "baseline_ties_precision_passed";
 end
 
 function workbook = run_primary_fixture(projectRoot)

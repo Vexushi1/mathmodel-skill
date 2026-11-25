@@ -60,6 +60,22 @@ class ModelApprovalContractTests(unittest.TestCase):
         self.assertIn("may be not_applicable", field_semantics["rejected_route_reason"])
         self.assertIn("fixed two-route comparison", field_semantics["rejected_route_reason"])
 
+    def test_both_passes_cover_each_required_answer_from_independent_directions(self):
+        contract = yaml.safe_load((ROOT / "core/model_approval_contract.yaml").read_text(encoding="utf-8"))
+        challenge = contract["model_challenge"]
+        self.assertIn("required_answer_closure", challenge["reviewer_pass"]["must_check"])
+        self.assertIn("output_omission_or_substitution", challenge["devils_advocate_pass"]["must_check"])
+        positive = challenge["check_semantics"]["required_answer_closure"]
+        negative = challenge["check_semantics"]["output_omission_or_substitution"]
+        for link in ("Qn-REQ-xx", "input data", "mathematical relations", "algorithm return values"):
+            self.assertIn(link, positive)
+        for omission in ("original prompt", "per-object answers", "missing peak", "granularity"):
+            self.assertIn(omission, negative)
+        self.assertIn("without adopting the first pass's checklist", negative)
+        self.assertIn("required_answers", contract["human_approval"]["approval_brief_fields"])
+        brief = contract["human_approval"]["approval_brief_field_semantics"]["required_answers"]
+        self.assertIn("key conditions", brief)
+
     def test_solve_module_uses_model_approval_authority(self):
         text = (ROOT / "modules" / "03_solve_validate.md").read_text(encoding="utf-8")
         self.assertIn("core/model_approval_contract.yaml", text)

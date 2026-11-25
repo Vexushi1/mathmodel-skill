@@ -4,16 +4,22 @@ import logging
 import random
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Literal, Mapping
+from typing import Any, Callable, Literal, Mapping, Sequence
 
 import numpy as np
 import pandas as pd
 
 # Use the actual sibling in a package; do not mask its dependency errors.
 if __package__:
-    from .result_io import find_project_root, workbook_paths, write_workbook
+    from .result_io import (
+        find_project_root, load_workbook_schema, validate_answer_sheet_names,
+        workbook_paths, write_workbook,
+    )
 else:  # Explicit historical flat-module imports.
-    from result_io import find_project_root, workbook_paths, write_workbook
+    from result_io import (
+        find_project_root, load_workbook_schema, validate_answer_sheet_names,
+        workbook_paths, write_workbook,
+    )
 
 VALID_OBJECTIVES = {"explanation", "inference", "prediction", "evaluation", "optimization", "simulation"}
 VALID_STRUCTURES = {"physical_mechanism", "temporal", "spatial", "network", "scheduling", "game", "stochastic", "static_tabular"}
@@ -246,12 +252,14 @@ def assert_primary_quality(quality_report: pd.DataFrame) -> None:
         raise RuntimeError(f"主结果质量门未通过，禁止进入结果深化分析: {failed}")
 
 
-def build_solution_tables(
+def _assemble_solution_tables(
     solution: dict[str, Any],
     constraints: pd.DataFrame | None,
     quality_report: pd.DataFrame,
     audit: AuditLog,
-) -> dict[str, Any]:
+    answer_sheets: Sequence[str],
+) -> tuple[dict[str, Any], list[str]]:
+    answers = validate_answer_sheet_names(answer_sheets)
     for required_sheet in ("运行配置", "核心指标"):
         if required_sheet not in solution:
             raise KeyError(f"solution 必须包含“{required_sheet}”")
@@ -267,13 +275,42 @@ def build_solution_tables(
         "可识别性检查", "空间诊断", "参数估计", "节点结果", "边结果", "路径或流结果",
         "机理分析", "状态明细", "边界检验", "量纲检查", "决策变量明细", "方案对比",
         "Pareto结果", "仿真明细", "逐时刻结果", "逐场景结果", "重复试验结果",
-        "均衡残差", "守恒残差", "离散精度", "收敛诊断",
+        "均衡残差", "守恒残差", "离散精度", "收敛诊断", "执行停止证据",
     )
     for sheet in optional_sheets:
         if sheet in solution:
             tables[sheet] = solution[sheet]
     if constraints is not None:
         tables["约束违反检查"] = constraints
+    missing: list[str] = []
+    if answers:
+        section = load_workbook_schema()["solution_workbook"]
+        standard_names = {**section.get("common_required_sheets", {}), **section.get("common_recommended_sheets", {})}
+        standard_case = {name.lower(): name for name in standard_names}
+        for name in answers:
+            canonical = standard_case.get(name.lower())
+            if canonical is not None and canonical != name:
+                raise ValueError(f"答案工作表名称与标准表冲突: {name} / {canonical}")
+            if name in tables:
+                continue
+            if name not in {"数据审计", "主结果质量门", "约束违反检查"} and name in solution:
+                tables[name] = solution[name]
+            else:
+                missing.append(name)
+    return tables, missing
+
+
+def build_solution_tables(
+    solution: dict[str, Any],
+    constraints: pd.DataFrame | None,
+    quality_report: pd.DataFrame,
+    audit: AuditLog,
+    *,
+    answer_sheets: Sequence[str] = (),
+) -> dict[str, Any]:
+    tables, missing = _assemble_solution_tables(solution, constraints, quality_report, audit, answer_sheets)
+    if missing:
+        raise ValueError(f"缺少必答结果表: {missing}")
     return tables
 
 
@@ -303,9 +340,11 @@ def run_primary_pipeline(
     solve_hook: SolveHook,
     constraint_hook: ConstraintHook,
     quality_hook: QualityHook,
+    answer_sheets: Sequence[str] = (),
 ) -> PrimarySolveResult:
     """主求解数学骨架：只写工作簿，失败证据先落盘；不登记项目验收或框架。"""
     config.validate()
+    answers = validate_answer_sheet_names(answer_sheets)
     logger = setup_logger()
     set_random_seed(config.random_seed)
     audit = AuditLog()
@@ -317,20 +356,26 @@ def run_primary_pipeline(
     constraints = constraint_hook(solution, config)
     quality_report = quality_hook(context, constraints)
     failures = _quality_failures(quality_report)
+    tables, missing = _assemble_solution_tables(solution, constraints, quality_report, audit, answers)
+    if missing and not failures:
+        raise ValueError(f"缺少必答结果表: {missing}")
     solution_path, _ = workbook_paths(config.project_root, config.problem_name)
     write_workbook(
         solution_path,
-        build_solution_tables(solution, constraints, quality_report, audit),
+        tables,
         workbook_kind="solution",
         objective=config.objective,
         structures=config.structures,
         capabilities=config.capabilities,
         require_quality_passed=False,
+        answer_sheets=tuple(name for name in answers if name in tables),
     )
     primary = PrimarySolveResult(context, solution_path, quality_report, constraints)
     if failures:
+        missing_note = f"；缺少必答结果表: {missing}" if missing else ""
         raise RuntimeError(
             f"主结果质量门未通过；失败证据已写入 {solution_path.as_posix()}，禁止进入结果深化分析: {failures}"
+            f"{missing_note}"
         )
     logger.info("主工作簿已生成且本地质量检查通过，仍需独立回执验收: %s", solution_path.as_posix())
     return primary

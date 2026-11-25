@@ -28,10 +28,11 @@ from w3_proposition_reference import (
 )
 from v1120_release_reference import prior_v1120_release_bytes
 from r1_continuity_reference import prior_r1_text
+from r2_answer_reference import prior_r2_text
 
 
 def accepted_w3_source_text(relative: str) -> str:
-    text = prior_r1_text(relative, (ROOT / relative).read_text(encoding="utf-8"))
+    text = prior_r1_text(relative, prior_r2_text(relative, (ROOT / relative).read_text(encoding="utf-8")))
     raw = text.encode("utf-8")
     if relative == "core/output_contract.yaml":
         raw = prior_v1120_release_bytes(relative, raw)

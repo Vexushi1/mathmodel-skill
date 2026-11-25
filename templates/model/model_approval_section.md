@@ -41,6 +41,7 @@
 | 核心变量 |  |
 | objective |  |
 | 关键约束 |  |
+| 必答量及关键计算条件 |  |
 | preprocessing_decision |  |
 | 结构化简 / Reduction Provenance / 最小充分性 |  |
 | 求解器/算法 |  |

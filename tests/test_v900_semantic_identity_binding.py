@@ -138,6 +138,75 @@ def bound_quality_identity() -> dict:
     return payload
 
 
+def station_answer_identity(*, include_station_answers: bool = True) -> dict:
+    payload = {
+        "schema_version": "1.0.0", "question": "Q1", "research_object": "两站离散时序",
+        "data_scope": [{"id": "D_series", "source": "题目观测", "keys": ["station", "time"]}],
+        "variables": [
+            {"id": "V_total", "symbol": "s_t", "role": "derived", "unit": "m3/s",
+             "expression": "sum_i c_it", "granularity": "network,time"},
+        ],
+        "parameters": [], "assumptions": [], "constraints": [],
+        "objective": {"sense": "report", "expression": "s_t"},
+        "preprocessing_decision": "not_needed",
+        "algorithm_semantics": {"method": "sum_observed_flows"}, "dependencies": [],
+    }
+    if include_station_answers:
+        payload["variables"].extend([
+            {"id": "V_peak", "symbol": "p_i", "role": "derived", "unit": "m3/s",
+             "expression": "max_t c_it", "granularity": "station"},
+            {"id": "V_peak_times", "symbol": "T_i", "role": "derived", "unit": "h",
+             "expression": "{t: c_it=p_i}", "granularity": "station,time"},
+        ])
+        payload["algorithm_semantics"]["peak_time_rule"] = "all_argmax_times"
+    return payload
+
+
+class RequiredAnswerIdentityTests(unittest.TestCase):
+    def test_new_per_station_answers_change_identity_and_stale_total_only_approval(self):
+        approved = station_answer_identity(include_station_answers=False)
+        changed = station_answer_identity()
+        self.assertNotEqual(SEMANTIC.semantic_identity_hash(approved), SEMANTIC.semantic_identity_hash(changed))
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            write_project(root, state_question=structured_question(approved), framework_text=framework(changed))
+            row = locked_row(RUNTIME.hydrate_project_context(root, "Q1"))
+        self.assertEqual(row["status"], "stale")
+
+    def test_derived_variable_order_preserves_identity_but_peak_time_rule_does_not(self):
+        original = station_answer_identity()
+        reordered = deepcopy(original)
+        reordered["variables"].reverse()
+        self.assertEqual(SEMANTIC.semantic_identity_hash(original), SEMANTIC.semantic_identity_hash(reordered))
+        changed = deepcopy(original)
+        changed["algorithm_semantics"]["peak_time_rule"] = "first_argmax_time"
+        self.assertNotEqual(SEMANTIC.semantic_identity_hash(original), SEMANTIC.semantic_identity_hash(changed))
+
+    def test_answer_location_changes_preserve_model_in_compact_and_full(self):
+        payload = station_answer_identity()
+        authored = framework(payload)
+        start = "<!-- HSK_SEMANTIC_IDENTITY_BEGIN Q1 -->"
+        end = "<!-- HSK_SEMANTIC_IDENTITY_END Q1 -->"
+        block = authored[authored.index(start):authored.index(end) + len(end)]
+        rows = (
+            "| Q1-REQ-01 | 问题一求解结果.xlsx | 站点峰值 | 站点=A/B；峰值；m3/s |\n"
+            "| Q1-REQ-02 | 问题一求解结果.xlsx | 站点峰值 | 站点=A/B；时刻；h |\n"
+            "| Q1-REQ-03 | 问题一求解结果.xlsx | 全网总量 | 时间；总流量；m3/s |\n"
+        )
+        compact = instantiate("compact").replace("#### 当前模型口径\n", "#### 当前模型口径\n\n" + block + "\n", 1)
+        compact = compact.replace("| 求解工作簿 / Q1-REQ-01 |  |  |  |\n", rows, 1)
+        self.assertIn(rows, compact)
+        for text in (compact, expand_to_full(compact)):
+            with self.subTest(mode="compact" if text == compact else "full"):
+                renamed = text.replace("站点峰值", "各站极值").replace("；时刻；", "；峰时；")
+                old = SEMANTIC.inspect_question_semantics(SEMANTIC.question_sections(text)["Q1"], "Q1")
+                new = SEMANTIC.inspect_question_semantics(SEMANTIC.question_sections(renamed)["Q1"], "Q1")
+                self.assertEqual(old["semantic_identity_hash"], new["semantic_identity_hash"])
+                self.assertEqual(old["semantic_text_hash"], new["semantic_text_hash"])
+                self.assertNotEqual(SEMANTIC.sha256_text(text), SEMANTIC.sha256_text(renamed))
+                self.assertEqual(new["identity"], payload)
+
+
 class BoundQualityIdentityTests(unittest.TestCase):
     def test_threshold_and_evidence_locator_are_bound_but_order_and_prose_are_not(self):
         payload = bound_quality_identity()

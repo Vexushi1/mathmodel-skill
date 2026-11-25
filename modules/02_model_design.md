@@ -207,7 +207,7 @@ analytic / numerical / exact / heuristic / independent_solver / stress_model
 
 ## 4. 题面—数学—代码—输出语义闭环
 
-每个核心对象、条件、变量、约束和输出至少建立：
+每个核心对象、条件、变量、约束和输出至少建立以下链条；同一问按 `Qn-REQ-xx` 逐项展开必答量：
 
 ```text
 题面对象/要求
@@ -216,13 +216,16 @@ analytic / numerical / exact / heuristic / independent_solver / stress_model
 → 工作簿输出或验证证据
 ```
 
-| 题面来源 | 数学层 | 计算层 | 输出证据 | 状态 |
+| 题面来源/需求编号 | 数学层 | 计算层/返回值 | 预期输出位置 | 状态 |
 |---|---|---|---|---|
 |  |  |  |  | closed / gap |
+
+逐项说明输出的对象、粒度、单位及并列值处理。新增派生量写入现有 SIB `variables` 与相关数学关系/算法语义，用稳定 ID 关联此表；实际文件、工作表、字段、记录键和数值在求解后写入“结果摘要→证据位置”。已定义的量只缺导出时补返回与落表；新增数学量或改变求解含义时按模型变更复审。
 
 Hard gap 包括：
 
 - 题目要求有、代码没有；
+- 只返回总量而遗漏逐对象答案，或已计算的必答量未进入返回值与输出；
 - 核心代码对象有、数学来源没有；
 - 论文隐含约束/变换无法由题意、数据或机制支持；
 - 同名不同义；
@@ -536,7 +539,7 @@ surrogate 可以承担筛选、分配、产生初值或缩域角色，但最终�
 
 Model Reviewer 是正向适配审查，至少检查（涉及外部研究方法时，同步执行 `core/model_approval_contract.yaml` 中条件式文献适用与来源边界检查；研究记录的格式验证不能替代该审查）：
 
-- 当前主模型是否真正回答冻结后的 Problem Contract；
+- 按 `core/model_approval_contract.yaml#model_challenge` 的 `required_answer_closure` 逐项确认当前主模型回答冻结后的 Problem Contract；
 - 当前主模型是否已经利用题面条件完成可证明的消元、降维、分解或等价变换，且没有为了展示算法保留冗余复杂度；
 - 当前主模型是否达到“最小充分”：若存在更简单且仍完整的模型，是否说明为什么当前结构仍有必要；
 - comparator 是否各自有明确比较问题，且没有因为“更高级”自动取得主模型地位；
@@ -560,7 +563,7 @@ Model Reviewer 是正向适配审查，至少检查（涉及外部研究方法�
 
 Devil's Advocate 是反方挑战，至少检查（若存在文献候选，还须独立质疑近期研究偏好、原文假设/本题边界不一致、数据不可获得和夸大的创新声明）：
 
-- 是否存在另一种会改变答案的合理题意解释；
+- 按 `core/model_approval_contract.yaml#model_challenge` 的 `output_omission_or_substitution` 独立检查题面必答量，再检查是否存在另一种会改变答案的合理题意解释；
 - 是否为了求解方便引入题目不允许的假设；
 - 是否闲置关键题面条件或附件字段；
 - 是否遗漏题面条件能够带来的精确化简，导致主模型保留了不必要的变量、维度、搜索空间或算法复杂度；
@@ -594,7 +597,7 @@ Devil's Advocate 是反方挑战，至少检查（若存在文献候选，还须
 
 ## 7. Human Model Approval 与正式锁模
 
-`model_challenge_status=passed` 后，不直接进入代码交付。先向用户提供简洁但完整的 Model Approval Brief，至少包含：研究对象、selected model、标准模型类型、核心变量、目标、关键约束、**modeling gap 与 why-this-structure**、关键适用条件/失效边界、`preprocessing_decision`、结构化简及其 provenance、为什么当前模型已达到最小充分、Comparator Envelope（若启用）及各自比较目的、Solver/Validator 角色与算法适配理由、关键 solver preconditions、Algorithm presentation、关键数值建模参数的证据计划、主求解 PQS 的关键门槛、主要被否决路线理由、residual warnings 与下一阶段实际实现范围（包括项目根唯一后端、各问具体数学求解器及依赖核验情况）。若 4.8 适用，Brief 还应简要暴露真正会改变求解语义的精确判据、事件边界策略、缩域 evidence level、组合算子、条件式 solver probe/分支以及 surrogate→original 回算要求；不适用项不机械列空字段。
+`model_challenge_status=passed` 后，不直接进入代码交付。先向用户提供简洁但完整的 Model Approval Brief，至少包含：研究对象、selected model、标准模型类型、核心变量、目标、关键约束、必答量及交付它们的关键条件、**modeling gap 与 why-this-structure**、关键适用条件/失效边界、`preprocessing_decision`、结构化简及其 provenance、为什么当前模型已达到最小充分、Comparator Envelope（若启用）及各自比较目的、Solver/Validator 角色与算法适配理由、关键 solver preconditions、Algorithm presentation、关键数值建模参数的证据计划、主求解 PQS 的关键门槛、主要被否决路线理由、residual warnings 与下一阶段实际实现范围（包括项目根唯一后端、各问具体数学求解器及依赖核验情况）。若 4.8 适用，Brief 还应简要暴露真正会改变求解语义的精确判据、事件边界策略、缩域 evidence level、组合算子、条件式 solver probe/分支以及 surrogate→original 回算要求；不适用项不机械列空字段。
 
 用户必须明确批准当前模型。自然语言如“OK，就按这个模型求解”“这个框架可以，进入主求解”“Q1-Q3 全部冻结”可视为批准；“我看看”“继续说”“还有别的方案吗”“这个模型怎么样”以及用户沉默不得推断为批准。
 
