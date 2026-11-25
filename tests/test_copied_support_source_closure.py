@@ -353,8 +353,8 @@ class AnswerDeliveryOutsideRepositoryTests(unittest.TestCase):
     from hsk_pipeline import result_io
     assert result_io.load_workbook_schema() is result_io._FALLBACK_SCHEMA
     tables = {name: pd.DataFrame(rows[1:], columns=rows[0]) for name, rows in sheets.items()}
-    result_io.write_workbook(path, tables, workbook_kind="solution",
-                             answer_sheets=("站点峰值", "事件状态"))
+    result_io.validate_answer_tables(tables, ("站点峰值", "事件状态"))
+    result_io.write_workbook(path, tables, workbook_kind="solution")
     book = openpyxl.load_workbook(path)
     try:
         apply_submission_formats(book)
