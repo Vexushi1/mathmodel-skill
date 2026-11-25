@@ -1,6 +1,6 @@
 # 建模求解解释示例（按需读取）
 
-只在需要相关改写示范时读取。普通正文规则唯一来源是 [Paper Writing Protocol](../paper_writing_protocol.md) §5、§7—9、§11/13；本文件不新增规定。下面均为说明性情境，不是当前项目的结果、默认算法或可以照抄的句式。
+只在需要相关改写示范时读取。普通正文规则唯一来源是 [Paper Writing Protocol](../paper_writing_protocol.md) §5、§7—9、§11/13。下面均为说明性情境，不是当前项目的结果、默认算法或可以照抄的句式。
 
 本页说明建模认知动作的表达方式。作者表达按 Paper Writing Protocol §7.3，段落必要性按 §5。
 

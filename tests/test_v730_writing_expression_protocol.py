@@ -24,7 +24,8 @@ class TestWritingExpressionProtocol(unittest.TestCase):
             self.assertIn(protocol, text, relative)
             self.assertIn(reasoning, text, relative)
         cleanup = (ROOT / "modules/05_writing/ai_cleanup.md").read_text(encoding="utf-8")
-        self.assertIn("不建立第二套正文写作规则", cleanup)
+        self.assertIn("仅编辑普通自然语言的表达层", cleanup)
+        self.assertIn("定位并返回相应 Authority / 原有 review finding", cleanup)
 
     def test_output_contract_points_to_shared_authorities(self):
         policy = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))["writing_policy"]

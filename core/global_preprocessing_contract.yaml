@@ -60,7 +60,7 @@ judgment_framework:
   - 通过掩蔽验证、留出验证、残差、边界检查、物理约束或处理前后对照验证处理是否合理
   - 再锁定not_needed、question_local或project_level及operations
   general_rules:
-  - 有数据问题不等于一定要修复；若问题不影响当前模型或模型可原生处理，可以保持原样并记录原因。
+  - 若问题不影响当前模型或模型可原生处理，可以保持原样并记录原因。
   - 没有数据问题时不得为“完整流程”添加无效清洗步骤。
   - 任何方法都由数据结构、题意机制和模型需求共同决定，不从某一赛题的固定操作模板迁移到其他题目。
   - 数据预处理的目标是得到可信且与题意一致的模型输入，不是让曲线更平滑、指标更好看或结果更接近预期答案。
@@ -148,7 +148,7 @@ operation_gate:
   - 无法验证且对结论敏感的预测填补、强平滑或异常替换不得作为默认唯一口径。
 
 method_selection:
-  principle: 优先选择能满足模型要求且引入假设最少的方法，不按“方法高级程度”排序。
+  principle: 优先选择能满足模型要求且引入假设最少的方法。
   preference_order:
   - 保持原始数据或使用模型原生缺失/不规则输入能力
   - 仅做确定性的结构修正，如单位、坐标、类型、合法编码或明确错位修正
@@ -214,7 +214,7 @@ preprocessing_figure_contract:
   - 人工掩蔽或留出样本的真实值—恢复值对比与误差分布
   - 重采样前后网格/采样间隔/覆盖变化
   - 异常判定边界与保留/处理样本对比
-  style: 完全服从modules/04_figure_evidence.md现有科研绘图总规范；本合同不另定义配色、整体标题或网格规则。正式data_process论文图采用caption-owned的正式图名语义，Python/MATLAB图内不设置整体title/suptitle/sgtitle；默认不自动导出。
+  style: 完全服从modules/04_figure_evidence.md科研绘图规范。正式data_process论文图采用caption-owned的正式图名语义，Python/MATLAB图内不设置整体title/suptitle/sgtitle；默认不自动导出。
   filename_rule: 按项目绘图后端固定为data_process.py或data_process.m；需要导出正式图片时文件基名使用data_process或data_process_<evidence>，不得使用中文文件名。
 
 source_policy:
@@ -329,7 +329,7 @@ downstream_contract:
   - 若某小问需要改变公共预处理口径，必须回退本阶段；若只新增本问派生特征，则保持question_local并在本问语义闭环中说明。
 
 seismic_guidance:
-  role: 领域专项示例，只说明地震数据如何应用通用判定框架，不得反向成为其他赛题的默认预处理模板。
+  role: 地震数据应用通用判定框架的示例。
   principle: 先审计后处理；推荐检查不等于推荐修改。
   audits:
   - 采样间隔、记录长度、NaN/Inf、道数和坐标一致性

@@ -52,10 +52,11 @@ class TestV741SkillClosureHygiene(unittest.TestCase):
         cleanup = (ROOT / "modules/05_writing/ai_cleanup.md").read_text(encoding="utf-8")
         docx = (ROOT / "modules/05_writing/docx.md").read_text(encoding="utf-8")
         review = (ROOT / "modules/06_review_delivery.md").read_text(encoding="utf-8")
-        self.assertIn("不建立第二套正文写作规则", cleanup)
-        self.assertIn("不复制第二套正文规则", docx)
-        self.assertIn("不重新定义正文写作规则", review)
+        self.assertIn("仅编辑普通自然语言的表达层", cleanup)
+        self.assertIn("Word 专属排版规则", docx)
+        self.assertIn("检查、分级、返修排序和交付判定", review)
         for text in (cleanup, docx, review):
+            self.assertIn("modules/05_writing/paper_writing_protocol.md", text)
             self.assertIn("core/writing_reasoning_contract.yaml", text)
 
     def test_model_design_has_no_assumption_quota_and_enforces_approved_proposition_limit(self):

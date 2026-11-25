@@ -146,7 +146,8 @@ class ModelConstructionRationaleContractTests(unittest.TestCase):
 
     def test_examples_are_explicitly_non_template_and_cover_anti_bloat(self):
         for phrase in (
-            "不是当前项目事实、算法推荐表或固定句式库",
+            "具体模型、算法、参数、标题和证据必须回到当前",
+            "`模型论文框架.md`、Formula/Algorithm Trace、工作簿",
             "Model Construction Rationale 是重要选择的闭环，不是所有题的扩写器",
             "见 Paper Writing Protocol §2.1",
             "不以标题字数、第一人称数量、理由句数量或小节数量评分",

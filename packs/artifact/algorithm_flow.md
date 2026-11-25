@@ -2,7 +2,7 @@
 
 本 Pack 只负责把**已经确定的数学模型与真实求解逻辑**转成论文可读的算法流程。跨竞赛的准入、三态选择、Algorithm Trace 与证据闭环服从 `core/writing_reasoning_contract.yaml#algorithm_presentation`；正文位置与表达服从 `modules/05_writing/paper_writing_protocol.md`。本文件不得把通用算法百科、求解源码或题目专属实现复制成第二套模型规则。
 
-机理/几何题中的精确事件判据、Event Topology、Reduction Provenance、Multi-resource Composition 和 Solver Applicability 由 `modules/02_model_design.md` 与对应 Task Pack 在模型设计阶段确定；本 Pack 只消费 current 语义并把真实控制逻辑呈现出来，不重新定义第二套结构有效性规则。
+机理/几何题中的精确事件判据、Event Topology、Reduction Provenance、Multi-resource Composition 和 Solver Applicability 由 `modules/02_model_design.md` 与对应 Task Pack 在模型设计阶段确定；本 Pack 只消费 current 语义并把真实控制逻辑呈现出来。
 
 ## 一、加载条件
 
@@ -101,7 +101,7 @@ Trace 的目标闭环为：
 → 工作簿结果或验证证据
 ```
 
-Algorithm Trace 不替代 Formula Trace。公式回答“关系为何成立以及去哪里”，算法 Trace 回答“这些关系以什么顺序、状态和判定被计算”。
+公式回答“关系为何成立以及去哪里”，算法 Trace 回答“这些关系以什么顺序、状态和判定被计算”。
 
 当 current 模型包含需要进入算法控制流的结构有效性语义时，Trace 只记录与真实控制流相关的已批准信息：
 

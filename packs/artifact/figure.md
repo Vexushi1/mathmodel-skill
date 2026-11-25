@@ -6,7 +6,7 @@
 
 用户要求结果图、敏感性图、鲁棒性图、多算法图、机理图或 Python/MATLAB 绘图代码时加载。图表必须服务明确结论，不以复杂图型、固定版式或面板数量替代证据。
 
-本 Pack 只做阶段摘要，不重新定义 Figure Evidence 规则。Scientific Figure Synthesis、Basic-form Challenge、Composite Encoding、Scientific Rendering Profiles、布局、证据层级、数据事实源、Figure Enhancement Gate、配色、Portfolio Gate 和 Figure Contract 的**唯一权威为 `modules/04_figure_evidence.md`**；每问文件是否存在只服从 `core/output_contract.yaml` 与 current project state。若本文件与这些 Authority 不一致，以 Authority 为准。高级增强的实现模式集中在 `templates/figure/figure_enhancement_patterns.md`，该模板只提供实现参考，不拥有独立决策权。
+Scientific Figure Synthesis、Basic-form Challenge、Composite Encoding、Scientific Rendering Profiles、布局、证据层级、数据事实源、Figure Enhancement Gate、配色、Portfolio Gate 和 Figure Contract 的**唯一权威为 `modules/04_figure_evidence.md`**；每问文件是否存在只服从 `core/output_contract.yaml` 与 current project state。高级增强的实现模式集中在 `templates/figure/figure_enhancement_patterns.md`。
 
 ## 数据前置条件
 

@@ -35,7 +35,7 @@ v8.x 继续读取下列 v7 形式：
 | `not_applicable` | `omitted` | 不生成形式化汇总块 |
 | 全文统一结果/验证章 | 各问题局部 RESULT / VALIDATE | 只在人工确认后迁移，禁止自动剪切正文 |
 
-上述核心模型状态映射的机器权威仍为 `core/writing_reasoning_contract.yaml#v8_compatibility`；本表只是面向维护者的说明。
+上述核心模型状态映射的机器权威仍为 `core/writing_reasoning_contract.yaml#v8_compatibility`。
 
 ## 4. 人工迁移检查（默认 dry-run）
 

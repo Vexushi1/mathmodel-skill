@@ -1,7 +1,7 @@
 function workbook = q1_solver()
 RUN_CONFIG = jsondecode('{"stage":"primary","problem_name":"问题一","solver_backend":"matlab","data_paths":["input.json"],"data_sha256":"__DATA_SHA256__","solver":"mldivide","random_seed":2026,"tolerance":1e-10,"iteration_or_time_limit":"direct","expected_workbook":"问题一求解/问题一求解结果.xlsx","run_receipt_protocol_version":"1.1.0","primary_quality_protocol_version":"1.0.0","code_dependencies":[]}');
 % Instantiation example: solve a*x=b. Replace the model and its PQS together.
-% This template does not authorize a project model or mark results accepted.
+% Instantiate the approved model; assess results after the actual run.
 entrypoint = string(mfilename('fullpath')) + ".m";
 root = string(fileparts(fileparts(entrypoint)));
 assert(usejava('jvm'), 'HSK:Environment', 'SHA-256 requires the MATLAB JVM.');

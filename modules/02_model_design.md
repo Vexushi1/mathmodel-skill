@@ -1,10 +1,10 @@
 # Module 02：模型设计、语义闭环、复杂度复审、独立挑战、人工锁模与论文框架
 
-本模块负责把审题结果转成可求解、可验证、可写作的当前模型语义。跨竞赛的公式推理、Model/Solver/Validator 角色、优化模型表达、**Model Construction Rationale**、Algorithm Trace、规则等级、命题预算和 Citation Evidence 由 `core/writing_reasoning_contract.yaml` 唯一定义；Model Challenge 与 Human Model Approval 的唯一行为合同为 `core/model_approval_contract.yaml`；主求解内在数值有效性的字段级规则由 `core/numerical_verification_contract.yaml` 唯一定义。本模块只记录本题实际选择，不复制第二套写作、审批或数值验证规范。
+本模块负责把审题结果转成可求解、可验证、可写作的当前模型语义。跨竞赛的公式推理、Model/Solver/Validator 角色、优化模型表达、**Model Construction Rationale**、Algorithm Trace、规则等级、命题预算和 Citation Evidence 由 `core/writing_reasoning_contract.yaml` 唯一定义；Model Challenge 与 Human Model Approval 的唯一行为合同为 `core/model_approval_contract.yaml`；主求解内在数值有效性的字段级规则由 `core/numerical_verification_contract.yaml` 唯一定义。本模块只记录本题实际选择。
 
 ## 0. 前置条件
 
-题意和结构明确后，可按需选择 `case_memory_retrieve`，依照 `packs/artifact/case_memory_retrieval.md` 比较既有模式、条件差异与不可迁移项，并显式记录采用/拒绝理由及本题证据。它提供有边界的建议；当前模型的语义闭环、Model Challenge 与 Human Model Approval 仍按原 Authority 执行。
+题意和结构明确后，可按需选择 `case_memory_retrieve`，依照 `packs/artifact/case_memory_retrieval.md` 比较既有模式、条件差异与不可迁移项，并显式记录采用/拒绝理由及本题证据。当前模型的语义闭环、Model Challenge 与 Human Model Approval 仍按原 Authority 执行。
 
 只接受 `problem_contract_status=frozen` 的小问。若题意对象、数据角色、约束来源或小问依赖仍存在会改变答案的歧义，退回 Module 01；不得通过代码试错替代审题。
 
@@ -72,7 +72,7 @@ Problem Contract 冻结只回答“题目是什么意思”，不等于模型已
 
 ### 1.2A 文献证据增强型模型研究（新设计/实质修订时）
 
-本节在前述 **Problem Contract 冻结与独立题目结构判断**之后、正式最小充分主模型确定之前执行。检索与方法证据的唯一细则在 `core/literature_research_contract.yaml`，执行说明见 `packs/artifact/literature_research.md`。当前任务只需记录本题实际使用的方法依据、未解决条件和选择理由；不复制第二套 Citation Evidence 或审批规则。
+本节在前述 **Problem Contract 冻结与独立题目结构判断**之后、正式最小充分主模型确定之前执行。检索与方法证据的唯一细则在 `core/literature_research_contract.yaml`，执行说明见 `packs/artifact/literature_research.md`。当前任务只需记录本题实际使用的方法依据、未解决条件和选择理由。
 
 1. **触发范围**：首次设计当前问、明确要求重选模型、或既有数学结构发生实质修订时，默认评估定向检索需求并在外部工具获授权且可用时实际查询；纯审题、已批准模型的常规代码/结果/绘图/论文编辑不自动重搜。当前问必须满足 `problem_contract_status=frozen`；若不满足则返回 Module 01。
 2. **检索前独立结构基准**：先写出研究对象、状态/决策变量、核心约束、数据条件、数学结构、可严格推导的关系及不可自证的外部机制；不从搜索结果反向定义题意或先选模型名。
@@ -413,7 +413,7 @@ downstream_use
 
 ### 4.8 机理/几何结构有效性（按需）
 
-本节不是新的生命周期 Gate，也不新增 task taxonomy 字段。只有当当前小问确实包含几何判定、连续事件、机理约束嵌套优化、多资源协同、候选域缩减或 surrogate / decomposition 时，才把相应要求纳入现有 `semantic_closure`、Complexity Sanity、Model Challenge 和 Human Approval。
+只有当当前小问确实包含几何判定、连续事件、机理约束嵌套优化、多资源协同、候选域缩减或 surrogate / decomposition 时，才把相应要求纳入现有 `semantic_closure`、Complexity Sanity、Model Challenge 和 Human Approval。
 
 #### 4.8.1 Predicate Closure：先闭合“成功/失败到底是什么”
 
@@ -505,7 +505,7 @@ surrogate 可以承担筛选、分配、产生初值或缩域角色，但最终�
 
 #### 4.8.7 与 03A / 03B 的边界
 
-本节只强化**当前模型语义和当前主算法适配性**，不改变 `core/numerical_verification_contract.yaml`：
+当前模型语义和主算法适配性按以下分工衔接 `core/numerical_verification_contract.yaml`：
 
 - 当前精确判据、事件定位精度、当前缩域/solver 策略内部成立所必需的证据，以及当前推荐方案的 original-model 回算，可进入 03A；
 - 参数敏感性、现实扰动、压力场景、替代算法/结构、多 seed / 多初值结论稳定性、广义失效边界仍只属于 accepted 后的 03B；
@@ -625,7 +625,7 @@ selected_models
 
 ## 8. 模型语义修订、审批失效与跨问传播
 
-`模型论文框架.md` 只保存当前有效模型，不作为第二份变更日志。Git 保存历史；`state/project_state.yaml` 记录当前语义修订号、变更类别、依赖、structured identity/text provenance、challenge/approval 状态和 stale。
+`模型论文框架.md` 只保存当前有效模型。Git 保存历史；`state/project_state.yaml` 记录当前语义修订号、变更类别、依赖、structured identity/text provenance、challenge/approval 状态和 stale。
 
 题意解释、数据范围、变量、参数、假设、目标、约束、预处理、算法语义或小问依赖变化时递增 `semantic_revision`。对 4.8 适用的问题，精确判据、事件拓扑、候选域/缩域依据、组合算子、solver 条件分支或 original-model 回算语义发生实质变化时，应归入现有最贴近的 `constraint / assumption / algorithm / dependency / objective` 等变更类别，而不是为 v7.17 新造 Project State 枚举。
 
@@ -680,11 +680,11 @@ selected_models
 - Condition → Consequence / Reduction 只保存**本题实际采用且会改变模型、可行域、状态空间或 solver 结构**的高价值项目事实，不保存通用结构检索清单；
 - 最小充分性只保存当前主模型、为什么仍然充分以及“继续简化首先损失什么”；若 comparator 未启用，可记录 not_applicable，不机械制造对照路线；
 - comparator 只有存在真实 comparison question 时才登记 comparison purpose；baseline / alternative / validator 只有存在真实 artifact 时才进入框架；
-- Model Construction Rationale 只保存当前 structure、gap、选择理由、适用条件/边界和下游作用，不复制通用“为什么建模”写作手册；
+- Model Construction Rationale 只保存当前 structure、gap、选择理由、适用条件/边界和下游作用；
 - Algorithm Trace 只记录真实求解结构、角色与锚点，不复制求解源码或通用算法定义；
 - 优化题保存 objective 现实含义与主决策对象，使摘要和正文无需从聊天记忆重建“优化什么”；
 - 小节规划保存真实独立任务、依赖和拆分理由，不保存“每问固定四个小节”之类模板；
-- 对 4.8 适用的问题，只保存本题实际采用的判据、事件/缩域/组合/solver 适配/原模型回算语义及证据锚点，不复制本模块的通用检查清单；
+- 对 4.8 适用的问题，只保存本题实际采用的判据、事件/缩域/组合/solver 适配/原模型回算语义及证据锚点；
 - PQS 只保存本题选择的主数值有效性规格和阈值来源，不复制 `core/numerical_verification_contract.yaml` 的通用规则；
 - accepted 后候选深化风险只作导航，不在主求解前生成具体分析结果；
 - 通用命题、证明、语言、排版规则不写入框架；
@@ -704,7 +704,7 @@ selected_models
 
 S/A 级机理图必须绑定核心公式、约束、命题或已批准的结构关系。若 4.8 的 line/ray/segment、活动边界、临界状态、量词作用域、多资源协同、移动边界或参考系仅靠文字难以恢复，应优先把该关系纳入 `mechanism_contracts`，而不是另画与题目无关的通用流程图。
 
-本节只定义**解释合同**，不替代 `modules/04_figure_evidence.md` 的 Figure Evidence 选择、draw.io 生成/验证或正式论文图形审查，也不新增独立 Gate。
+Figure Evidence 选择、draw.io 生成/验证及正式图形审查见 `modules/04_figure_evidence.md`。
 
 ## 阶段门槛
 

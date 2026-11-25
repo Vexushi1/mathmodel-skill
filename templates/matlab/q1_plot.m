@@ -7,7 +7,7 @@
 % 选定视觉结构后进入 Scientific Rendering Profile，再通过 Figure Layout Gate 动态判断单图、1×2、2×1、1×3、2×2 或拆图。
 % 基础布局确定后执行 Figure Enhancement Gate；按需使用 Local Zoom、Small Multiples、Focus Highlighting、Semantic Background、Composite Diagnostic 或 Conditional 3D。
 % 视觉结构确定后再进入 Publication Rendering Grammar：palette profile / open-axis / adaptive canvas / legend strategy；不得反向用样式决定图型。
-% Enhancement 的实现模式参考 templates/figure/figure_enhancement_patterns.md，不得在本模板建立第二套绘图决策规则。
+% Enhancement 的实现模式参考 templates/figure/figure_enhancement_patterns.md。
 % 正式论文图不设置整体 title/sgtitle；正式图题由 LaTeX/DOCX caption 承担，多面板按需只保留 a/b/c/d 等 panel label。
 
 clearvars;

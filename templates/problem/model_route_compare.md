@@ -15,4 +15,4 @@
 - `comparator`：数量可以为 0；启用时必须写清 comparison question、相对主模型增加/删除的结构、证据目标和为什么不作为当前主模型。
 - simple baseline、high-fidelity、advanced method、ablation、alternative structure、bound、independent solver 等都可以成为 comparator。
 - 若 comparator 证明主模型遗漏题面必要结构，应返回模型设计并只加回最小必要结构，而不是自动把最复杂模型升级为主模型。
-- 本表不是 Model Approval Authority；Challenge 与 Human Approval 仍服从 `core/model_approval_contract.yaml`。
+- Challenge 与 Human Approval 仍服从 `core/model_approval_contract.yaml`。

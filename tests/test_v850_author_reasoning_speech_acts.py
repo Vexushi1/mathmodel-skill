@@ -38,7 +38,8 @@ class AuthorReasoningContractTests(unittest.TestCase):
         self.assertEqual(self.reasoning["schema_version"], "1.11.0")
         self.assertEqual(self.trace["prose_authority"], AUTHORITY)
         self.assertIn("### 7.3 作者视角与建模解释", self.protocol)
-        self.assertIn("本文件不新增规定", self.examples)
+        self.assertIn("[Paper Writing Protocol](../paper_writing_protocol.md)", self.examples)
+        self.assertIn("作者表达按 Paper Writing Protocol §7.3", self.examples)
 
     def test_speech_act_taxonomy_is_complete_without_pronoun_quota(self):
         expected = {

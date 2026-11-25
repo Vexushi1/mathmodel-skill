@@ -96,9 +96,9 @@ metadata:
 
 ## 能力发现标签
 
-以下名称仅用于能力发现与回归，不在本入口重复定义规则：**Condition-Driven Reduction、Minimal Sufficient Main Model、Comparison Envelope、Structure-Matched Solver、Template Manifest、Paper Writing Protocol、Cross-File Chapter Handoff、Primary Evidence Capture、Scientific Figure Synthesis、Editable Mechanism Diagram、Model/Solver/Validator、Model Construction Rationale、Solver Preconditions、Claim Strength Calibration、Final Review Compliance & Evidence Sweep、within-question local dependency architecture、decisiveness-based detail allocation、adaptive subsection separation、adaptive figure-result narrative**。具体定义只读取上表 Authority。
+能力发现与回归标签：**Condition-Driven Reduction、Minimal Sufficient Main Model、Comparison Envelope、Structure-Matched Solver、Template Manifest、Paper Writing Protocol、Cross-File Chapter Handoff、Primary Evidence Capture、Scientific Figure Synthesis、Editable Mechanism Diagram、Model/Solver/Validator、Model Construction Rationale、Solver Preconditions、Claim Strength Calibration、Final Review Compliance & Evidence Sweep、within-question local dependency architecture、decisiveness-based detail allocation、adaptive subsection separation、adaptive figure-result narrative**。具体定义只读取上表 Authority。
 
-能力发现只保留名称与委托：`preprocessing_decision`、**Algorithm Trace**；当前主求解与独立深化入口按 `core/output_contract.yaml#per_question.solver_scripts` 和项目根后端解析，不以旧 Python 文件名推定交付。入口不重新定义预处理、结果分析或算法呈现规则。
+能力发现只保留名称与委托：`preprocessing_decision`、**Algorithm Trace**；当前主求解与独立深化入口按 `core/output_contract.yaml#per_question.solver_scripts` 和项目根后端解析，不以旧 Python 文件名推定交付。
 
 ## 兼容与版本信息
 

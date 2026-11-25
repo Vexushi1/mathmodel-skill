@@ -1,0 +1,937 @@
+{
+  "schema_version": 1,
+  "scope": "v11_4_0_r3_rule_concision_source_spans",
+  "version": "11.4.0",
+  "authorizing_reason": "R3 exact prose inverses and physical read ranges from accepted R2 source 63e8dbac8c8210e8f157ad71a3d40d505176ac58.",
+  "required_case_ids": [
+    "pure_model_design",
+    "pure_python_figures",
+    "review_word_readonly",
+    "two_carrier_legacy_protected",
+    "explicit_figure_scope",
+    "natural_language_two_actions_probe",
+    "full_workflow_boundary",
+    "analysis_stage_request"
+  ],
+  "migrations": [
+    {
+      "path": "core/workflow_router.yaml",
+      "baseline_sha256": "eb9d4200cc7196e72e414d590e9f7a9ffdc782986d2d13a17c5ac99e976189b6",
+      "candidate_sha256": "9479a61a5c8df30499d9d3ce6bff4ccf12801189db8ef3841efb33b11c0df248",
+      "old_ranges": [
+        [
+          416,
+          416
+        ],
+        [
+          419,
+          430
+        ]
+      ],
+      "new_ranges": [
+        [
+          473,
+          473
+        ],
+        [
+          476,
+          487
+        ]
+      ]
+    },
+    {
+      "path": "core/model_approval_contract.yaml",
+      "baseline_sha256": "d1b607ea5a7704b4e18f01defb69c24e5b82ffc0f70661e28d880f9a8fbbee25",
+      "candidate_sha256": "92f70e21f5c11162db17b4eef48d98f9fb02a2b42fe2ffafcc7bcbe9f9de8fb1",
+      "old_ranges": [
+        [
+          1,
+          272
+        ]
+      ],
+      "new_ranges": [
+        [
+          1,
+          331
+        ]
+      ]
+    },
+    {
+      "path": "modules/01_problem_audit.md",
+      "baseline_sha256": "6e0d674e4afe4f93b6f948d66a446114a01b4777a1550ef1251d45873a97abdc",
+      "candidate_sha256": "3c1abfbf3b4b4bfd37fdc8ab836553f3e0313a320c16e43dd4610371ec430acb",
+      "old_ranges": [
+        [
+          1,
+          83
+        ]
+      ],
+      "new_ranges": [
+        [
+          1,
+          92
+        ]
+      ]
+    },
+    {
+      "path": "modules/02_model_design.md",
+      "baseline_sha256": "5541bb8e44b80aefece95a5a785b3386a0433aac79320065a71f37fb262f6b1f",
+      "candidate_sha256": "1ea52f1d8a63e132f24209c0548e9bd46c80e3a3f790e06943d6d48a5868c2a6",
+      "old_ranges": [
+        [
+          1,
+          700
+        ]
+      ],
+      "new_ranges": [
+        [
+          1,
+          718
+        ]
+      ]
+    }
+  ],
+  "model_intake": {
+    "case_ids": [
+      "pure_model_design",
+      "full_workflow_boundary",
+      "analysis_stage_request"
+    ],
+    "resources": [
+      {
+        "path": "core/literature_research_contract.yaml",
+        "candidate_sha256": "92ef6b1ea2ae2ce12113386b3700946f92fa126c98566cd6ddeaa9ae8d5a9011",
+        "ranges": [
+          [
+            1,
+            169
+          ]
+        ]
+      },
+      {
+        "path": "packs/artifact/literature_research.md",
+        "candidate_sha256": "a0f8d4f7d7366ef503da8d8569073922cd914d108f3412ff240882b33910826f",
+        "ranges": [
+          [
+            1,
+            60
+          ]
+        ]
+      }
+    ]
+  },
+  "output_read_shift": {
+    "path": "core/output_contract.yaml",
+    "candidate_sha256": "27dbef3c6f7ed0d3558feac8c6457b69d26361cb690913e0053b3ba7316e7566",
+    "cases": [
+      {
+        "case_id": "review_word_readonly",
+        "current_ranges": [
+          [
+            470,
+            516
+          ]
+        ],
+        "historical_ranges": [
+          [
+            443,
+            489
+          ]
+        ],
+        "selectors": {
+          "yaml_paths": [
+            "per_question"
+          ]
+        }
+      },
+      {
+        "case_id": "natural_language_two_actions_probe",
+        "current_ranges": [
+          [
+            1,
+            639
+          ]
+        ],
+        "historical_ranges": [
+          [
+            1,
+            612
+          ]
+        ],
+        "selectors": {}
+      }
+    ]
+  },
+  "output_conditional_shift": {
+    "path": "core/output_contract.yaml",
+    "candidate_sha256": "27dbef3c6f7ed0d3558feac8c6457b69d26361cb690913e0053b3ba7316e7566",
+    "current_ranges": [
+      [
+        1,
+        639
+      ]
+    ],
+    "historical_ranges": [
+      [
+        1,
+        612
+      ]
+    ],
+    "when": "current_delivery_scope_or_file_layout_requires_definition",
+    "case_ids": [
+      "pure_python_figures",
+      "review_word_readonly",
+      "two_carrier_legacy_protected",
+      "explicit_figure_scope"
+    ]
+  },
+  "pqs_full_source_spans": [
+    {
+      "path": "core/user_execution_contract.yaml",
+      "baseline_sha256": "b05f8a41a521fa5df10f0f2369b1308f14959abad07701712f185cea3924b795",
+      "candidate_sha256": "2c42b5ab0e83294f5e61b65b2cf54395c2e2332f31d2648ac2634e6f3be1e202",
+      "old_last_line": 507,
+      "new_last_line": 570
+    },
+    {
+      "path": "core/numerical_verification_contract.yaml",
+      "baseline_sha256": "1172bc1abc7c905203fb6d5af254f85dd75467a423b4189082f5e3e259c4ac4a",
+      "candidate_sha256": "c41b2def2f7b92d8d26e6a259e7d51b1040a123e8bab1310f776ee1153dec9c8",
+      "old_last_line": 222,
+      "new_last_line": 243
+    },
+    {
+      "path": "core/workbook_schema.yaml",
+      "baseline_sha256": "d2433f32204cbba294cc8ce0565c850b8c7bf823857cd19e4e6823d2e60526eb",
+      "candidate_sha256": "e216442a489717fd21dcec15fe461288cdf21bf07462697b4b141adca59df067",
+      "old_last_line": 301,
+      "new_last_line": 343
+    }
+  ],
+  "legacy_profile_read_shifts": [
+    {
+      "path": "core/bootstrap.yaml",
+      "baseline_sha256": "bbf02e3f78532e4b24b06359982794859670e9cd2afcf07555cc9634ce4a1a51",
+      "candidate_sha256": "91d7d92e8e605231162aca91bccddf1b1e8b9ae9873eb238c6c644fab5d2928d",
+      "spans": [
+        {
+          "before": [
+            [
+              1,
+              107
+            ]
+          ],
+          "after": [
+            [
+              1,
+              120
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "path": "core/global_preprocessing_contract.yaml",
+      "baseline_sha256": "b74df00c9804c04010f9c68f72923deed6cfe93a1f683ea9cf5c1e3fd98e80d9",
+      "candidate_sha256": "70bfde66922bbc83d46027668e5f9525a3d33683a95916601b79db28d58aa90c",
+      "spans": [
+        {
+          "before": [
+            [
+              1,
+              349
+            ]
+          ],
+          "after": [
+            [
+              1,
+              351
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "path": "core/hsk_core_policy.md",
+      "baseline_sha256": "869f11c53972ac01ac96b6974ed826df9c0941240f0a3cabcf799eb91df82eb2",
+      "candidate_sha256": "35a5fb97c9e5e992b7ed8b48dc8523b2d3fea9687853c90b3ea89b52e4f84416",
+      "spans": [
+        {
+          "before": [
+            [
+              1,
+              101
+            ]
+          ],
+          "after": [
+            [
+              1,
+              109
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "path": "core/state_transition_contract.yaml",
+      "baseline_sha256": "a6b4496d1fe7edc57e5f25839058c9bc8ea853a7d7935a395e4162cd3ad75c26",
+      "candidate_sha256": "eafcc910705e3cc2bdb03d336e381260b590d8c3c4cb204e36196c777a680669",
+      "spans": [
+        {
+          "before": [
+            [
+              1,
+              360
+            ]
+          ],
+          "after": [
+            [
+              1,
+              369
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "path": "core/writing_runtime_contract.yaml",
+      "baseline_sha256": "af9c4c57a018468f7046e7835f1a8063f072fbee4c8788f504507c109fa0f3e7",
+      "candidate_sha256": "5b82e2d6ae692905bdcc035d5eabf50160beffe734068e3f3266a3ec3706ffdc",
+      "spans": [
+        {
+          "before": [
+            [
+              1,
+              722
+            ]
+          ],
+          "after": [
+            [
+              1,
+              732
+            ]
+          ]
+        },
+        {
+          "before": [
+            [
+              98,
+              233
+            ]
+          ],
+          "after": [
+            [
+              107,
+              242
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/04_figure_evidence.md",
+      "baseline_sha256": "5e66608cf8e4afc1cb802da5cd0fc909db7c7049c4aa6815b218089e2d0d47f5",
+      "candidate_sha256": "152a6085ea1c81ac5ca24716cabf57f1f8a753b1546599e67a5e466482b97de0",
+      "spans": [
+        {
+          "before": [
+            [
+              1,
+              40
+            ],
+            [
+              116,
+              477
+            ]
+          ],
+          "after": [
+            [
+              1,
+              40
+            ],
+            [
+              118,
+              479
+            ]
+          ]
+        },
+        {
+          "before": [
+            [
+              1,
+              477
+            ]
+          ],
+          "after": [
+            [
+              1,
+              479
+            ]
+          ]
+        },
+        {
+          "before": [
+            [
+              1,
+              15
+            ],
+            [
+              108,
+              115
+            ]
+          ],
+          "after": [
+            [
+              1,
+              15
+            ],
+            [
+              110,
+              117
+            ]
+          ]
+        },
+        {
+          "before": [
+            [
+              1,
+              15
+            ],
+            [
+              116,
+              147
+            ],
+            [
+              438,
+              466
+            ],
+            [
+              473,
+              477
+            ]
+          ],
+          "after": [
+            [
+              1,
+              15
+            ],
+            [
+              118,
+              149
+            ],
+            [
+              440,
+              468
+            ],
+            [
+              475,
+              479
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/05_writing/paper_writing_protocol.md",
+      "baseline_sha256": "5ddc999475401d2cad726e3111d97e0e60b332a78f6d5cf958fc1f0593480f26",
+      "candidate_sha256": "e98f35b5e766b98747922e9ab431df72f65d796bcf14cb1a321e3241c6f9f533",
+      "spans": [
+        {
+          "before": [
+            [
+              1,
+              6
+            ],
+            [
+              34,
+              173
+            ],
+            [
+              219,
+              674
+            ],
+            [
+              726,
+              792
+            ]
+          ],
+          "after": [
+            [
+              1,
+              6
+            ],
+            [
+              36,
+              131
+            ],
+            [
+              177,
+              618
+            ],
+            [
+              670,
+              738
+            ]
+          ]
+        },
+        {
+          "before": [
+            [
+              1,
+              819
+            ]
+          ],
+          "after": [
+            [
+              1,
+              763
+            ]
+          ]
+        },
+        {
+          "before": [
+            [
+              1,
+              6
+            ],
+            [
+              174,
+              218
+            ]
+          ],
+          "after": [
+            [
+              1,
+              6
+            ],
+            [
+              132,
+              176
+            ]
+          ]
+        },
+        {
+          "before": [
+            [
+              1,
+              6
+            ],
+            [
+              675,
+              725
+            ]
+          ],
+          "after": [
+            [
+              1,
+              6
+            ],
+            [
+              619,
+              669
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "path": "templates/review/final_review_matrix.yaml",
+      "baseline_sha256": "aefdb6d05242e5f79b2429f3d79fc2bc80355fd0c3bb91916ab3e35d0a1fe1a5",
+      "candidate_sha256": "fa5bf4362ace5d176d3bd0230601eeb00c2faf5e8113f3977dd9bac7329dec63",
+      "spans": [
+        {
+          "before": [
+            [
+              1,
+              69
+            ]
+          ],
+          "after": [
+            [
+              1,
+              78
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "path": "core/project_state.schema.yaml",
+      "baseline_sha256": "348e981de6a66f028f742e56f9e0cd872567baf685b4f507ff62cfff435ccd73",
+      "candidate_sha256": "7c8a0b7fc7ec42d96c2528aac63e328eb77c3825af31d392344c33644375e9ac",
+      "spans": [
+        {
+          "before": [
+            [
+              1,
+              2055
+            ]
+          ],
+          "after": [
+            [
+              1,
+              2059
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/05_writing/ai_cleanup.md",
+      "baseline_sha256": "a2574e04006daa4ab9156cd5ae051fa42f4ee289e05193892b19919d254c11d6",
+      "candidate_sha256": "016acf8e1a22dfecbe3d0870af59afa9882dd825e8f18c49c0c2ddc7795fcbd4",
+      "spans": [
+        {
+          "before": [
+            [
+              1,
+              51
+            ]
+          ],
+          "after": [
+            [
+              1,
+              52
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "path": "core/writing_reasoning_contract.yaml",
+      "baseline_sha256": "d64b0ce75987d5581ce9342800a2e73b0fccc9184cce613f12699aaf3a723bd1",
+      "candidate_sha256": "c7a48a771602a12e5cecb65a5ddc6832db595a3af1aed1cce6e2624c327a824c",
+      "spans": [
+        {
+          "before": [
+            [
+              1,
+              1950
+            ]
+          ],
+          "after": [
+            [
+              1,
+              1728
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "path": "packs/artifact/review.md",
+      "baseline_sha256": "3b54a34d7b86ba4f6f86d225b65a99faa0bbbff8a8fab93b7aa32db0e7fbdc34",
+      "candidate_sha256": "c56edd0f8d8a28560c5c1f4e55ac1d095a6ec4e6c4e36d8f6199f7800b2d34d2",
+      "spans": [
+        {
+          "before": [
+            [
+              1,
+              37
+            ]
+          ],
+          "after": [
+            [
+              1,
+              32
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "path": "core/model_code_conformance_contract.yaml",
+      "baseline_sha256": "e43e4e4297d0ab885e1324fdfed398d83233c1dc3e6e9497d077340d796e43f8",
+      "candidate_sha256": "af11575a6581edd996cd770570ead90f8e2b559ce6d253eeeee33eab7110ac68",
+      "spans": [
+        {
+          "before": [
+            [
+              1,
+              115
+            ]
+          ],
+          "after": [
+            [
+              1,
+              114
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/03_result_analysis.md",
+      "baseline_sha256": "248be5e77522ba1d8c4a0664805941cd4653f0df87b697b137c451cd03eb467f",
+      "candidate_sha256": "01c4d7ba0b50e8ff1d86fcca9f20373d5c936738055e84536d3ed57d9dfa53e5",
+      "spans": [
+        {
+          "before": [
+            [
+              1,
+              153
+            ]
+          ],
+          "after": [
+            [
+              1,
+              157
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/05_writing/docx.md",
+      "baseline_sha256": "55ff2337bd99f49cd0149f598257662f87ed3483c3c7c16db4530f29f87e38af",
+      "candidate_sha256": "31f75cf706453bc6197237f37dfba9e5fe28d7a31b18a51c91e2d76241e0db77",
+      "spans": [
+        {
+          "before": [
+            [
+              1,
+              86
+            ]
+          ],
+          "after": [
+            [
+              1,
+              82
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "path": "packs/artifact/docx.md",
+      "baseline_sha256": "afdf76049fcbf247754e48ded10e346b60afa1e047e126e1a0711110337e98c9",
+      "candidate_sha256": "c636cb6244f6da8a818bab571d4262a64c46259d8a45439fc9c80dfae5562825",
+      "spans": [
+        {
+          "before": [
+            [
+              1,
+              47
+            ]
+          ],
+          "after": [
+            [
+              1,
+              43
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "path": "packs/artifact/latex.md",
+      "baseline_sha256": "bb1b10933ba3ae0911c99c1e1b43845e728dba213d62f9b498d7657e7be5d341",
+      "candidate_sha256": "e14fb724043ae14cc81bbbc7d4d06bb93e16bab9f12f31f95226a17708d32dbd",
+      "spans": [
+        {
+          "before": [
+            [
+              1,
+              197
+            ]
+          ],
+          "after": [
+            [
+              1,
+              195
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "path": "templates/code/matlab/README.md",
+      "baseline_sha256": "5c399dde7b590df677abe0cdce8f6414508704e982842a0e8a25e40ec51a453a",
+      "candidate_sha256": "986f1bb0c978436489e8b4f86afb8ee3585131cf376d7d478229d1ba81c0bde2",
+      "spans": [
+        {
+          "before": [
+            [
+              1,
+              44
+            ]
+          ],
+          "after": [
+            [
+              1,
+              50
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "path": "templates/code/starter/README.md",
+      "baseline_sha256": "69940d4a97de9374f8d611fbcb44668687f19f65f89a259bc539f76ba70ca279",
+      "candidate_sha256": "900ff0720275eef901e740cf07a4aaf907a09ecbd11b0daf6a1c23e1e343c61e",
+      "spans": [
+        {
+          "before": [
+            [
+              1,
+              60
+            ]
+          ],
+          "after": [
+            [
+              1,
+              62
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "path": "templates/figure/mechanism_drawio_spec.yaml",
+      "baseline_sha256": "38e4db6169c2912ba260ddaf4d6b0a513f93789bfe28fe468a09cc23e294e022",
+      "candidate_sha256": "0a2710b0e77082b18fb18f1dea9bf869333b0f0727c753ff0d2f91b74b24d50f",
+      "spans": [
+        {
+          "before": [
+            [
+              1,
+              42
+            ]
+          ],
+          "after": [
+            [
+              1,
+              41
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "path": "templates/figure/result_figure_qa.md",
+      "baseline_sha256": "368e0e02e3f27b239c619862dae369e11fe9fa80753648c908c56bf40d2cf4ae",
+      "candidate_sha256": "d97e0063d34f030d8137c464330669e78a193984f7375b02aa7757fb53bfb484",
+      "spans": [
+        {
+          "before": [
+            [
+              1,
+              51
+            ]
+          ],
+          "after": [
+            [
+              1,
+              49
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "path": "templates/latex/cumcm/hsk/config/commands.tex",
+      "baseline_sha256": "ee671d7bf4957185cd2f3369b94aa0e58d6689a1ec9e1c4892e343ba36abf93c",
+      "candidate_sha256": "7b31b42129843479b494fb1918ba6ebd16cc84115f2b3f09d53c4c5435d4cfc3",
+      "spans": [
+        {
+          "before": [
+            [
+              1,
+              2
+            ]
+          ],
+          "after": [
+            [
+              1,
+              1
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "path": "templates/latex/cumcm/hsk/sections/05_model_preparation.tex",
+      "baseline_sha256": "aef1e1803927d0299b6c4b81fcae155bd4329f2046af0419e95aec4416a66035",
+      "candidate_sha256": "8c1571a2f1356162334003a41fea5b49024a8fd90bf48ab4f3b05d65913a047d",
+      "spans": [
+        {
+          "before": [
+            [
+              1,
+              24
+            ]
+          ],
+          "after": [
+            [
+              1,
+              23
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "path": "templates/latex/cumcm/hsk/sections/09_evaluation.tex",
+      "baseline_sha256": "4da76d227e7114093e3e986dd94e64317c201bf8d11783170a5ebeb0317ef439",
+      "candidate_sha256": "587cc642b1faa5202efdea2e32db561c003971878725700a3f866b98162d69ea",
+      "spans": [
+        {
+          "before": [
+            [
+              1,
+              22
+            ]
+          ],
+          "after": [
+            [
+              1,
+              20
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "path": "templates/matlab/README.md",
+      "baseline_sha256": "2c403b65f2d3e00a93427e8ee681707cbc8853643405ddf30cca93e33a24ec31",
+      "candidate_sha256": "d8760e934a07129fbc500c7daaff42f585986fee6e90dafd9c7b001976273011",
+      "spans": [
+        {
+          "before": [
+            [
+              1,
+              250
+            ]
+          ],
+          "after": [
+            [
+              1,
+              248
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "path": "templates/plot/python/README.md",
+      "baseline_sha256": "7347e0b4f6dd69976f25fdc470e6b78d7425421f54610af133e39d51d7424eea",
+      "candidate_sha256": "6902509a45e8b429c464b73c4d19831a191c3aea89fbae8fccab2476fd9c84ea",
+      "spans": [
+        {
+          "before": [
+            [
+              1,
+              56
+            ]
+          ],
+          "after": [
+            [
+              1,
+              54
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}

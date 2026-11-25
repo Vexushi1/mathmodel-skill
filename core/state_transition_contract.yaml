@@ -4,8 +4,7 @@ introduced_in_staged_version: 9.0.0
 purpose: >-
   Own deterministic project-state invalidation and typed cross-question stale propagation.
   This contract defines how current semantic/data/code/result changes invalidate lifecycle
-  state. It does not redefine project-state field shape, artifact naming, numerical
-  acceptance, Model Approval semantics, or project-file transaction behavior.
+  state.
 
 authority_boundary:
   owns:

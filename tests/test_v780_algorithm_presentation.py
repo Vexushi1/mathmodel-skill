@@ -78,7 +78,8 @@ class TestV780AlgorithmPresentation(unittest.TestCase):
         self.assertIn("分阶段数学步骤版", self.pack)
         self.assertIn("range(len(...))", self.pack)
         self.assertIn("不把求解源码改写成缩进版论文", self.pack)
-        self.assertIn("Algorithm Trace 不替代 Formula Trace", self.pack)
+        self.assertIn("公式回答“关系为何成立以及去哪里”", self.pack)
+        self.assertIn("算法 Trace 回答“这些关系以什么顺序、状态和判定被计算”", self.pack)
 
     def test_output_contract_exposes_single_authority_pointer(self):
         policy = self.output["writing_policy"]

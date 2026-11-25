@@ -1,6 +1,6 @@
 # 审查交付适配器
 
-本 Pack 只适配 `modules/06_review_delivery.md` 及 `core/module_manifest.yaml#modules.review_delivery.reading_sources` 声明的终审来源，不复制检查规则。审查报告先按致命、重要、一般问题排序，再给六维评分；每个 finding 必须给出规则来源、验证方式、位置、证据、原因和可执行修复动作，不能只给总分。
+本 Pack 只适配 `modules/06_review_delivery.md` 及 `core/module_manifest.yaml#modules.review_delivery.reading_sources` 声明的终审来源。审查报告先按致命、重要、一般问题排序，再给六维评分；每个 finding 必须给出规则来源、验证方式、位置、证据、原因和可执行修复动作。
 
 审查时读取当前框架、题面、论文及对应实物证据，按本次请求范围逐项复核。结果来源按 `core/user_execution_contract.yaml#result_handoff` 核对；仅审阅请求不写入项目。
 

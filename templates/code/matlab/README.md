@@ -1,8 +1,8 @@
 # MATLAB 主求解与条件深化模板
 
-本目录实现 `core/user_execution_contract.yaml`、`core/output_contract.yaml` 和 `core/workbook_schema.yaml`，不另定义批准、质量或状态规则。适用运行基线为 MATLAB R2024b，使用原生 Excel 写出和 JVM SHA-256；需要 MATLAB 许可证，不依赖额外工具箱，不支持 `-nojvm`。其他求解器的工具箱与许可证必须随具体实例另行声明和核验。
+本目录实现 `core/user_execution_contract.yaml`、`core/output_contract.yaml` 和 `core/workbook_schema.yaml`。适用运行基线为 MATLAB R2024b，使用原生 Excel 写出和 JVM SHA-256；需要 MATLAB 许可证，不依赖额外工具箱，不支持 `-nojvm`。其他求解器的工具箱与许可证必须随具体实例另行声明和核验。
 
-`q1_solver.m` 是可实例化的 `a*x=b` 微型例子，`q1_analysis.m` 是已接受主结果之后的系数敏感性例子；它们不是任意题目的默认模型。实例化时同时替换数学结构、变量、求解器、输入、PQS 和结果字段，并先完成现有模型批准。替换配置里的数据摘要；只有主工作簿已验收且 Analysis Necessity Gate 为 `required`，才实例化分析入口并绑定 `primary_workbook_sha256`。`not_required` 不生成分析文件。
+`q1_solver.m` 是可实例化的 `a*x=b` 微型例子，`q1_analysis.m` 是已接受主结果之后的系数敏感性例子。实例化时同时替换数学结构、变量、求解器、输入、PQS 和结果字段，并先完成现有模型批准。替换配置里的数据摘要；只有主工作簿已验收且 Analysis Necessity Gate 为 `required`，才实例化分析入口并绑定 `primary_workbook_sha256`。`not_required` 不生成分析文件。
 
 两个入口均放在本问 `问题一求解/`，主函数名与文件名一致；其他问题相应改为 `q2_solver` 等，并更新 problem_name、输入与输出位置。代码通过自身位置找到项目根目录，不依赖启动 cwd。默认 local functions 使每份交付代码自包含，用户不需要把 Skill 仓库加入 MATLAB path。
 
@@ -39,9 +39,7 @@ matlab -batch "cd('C:/项目/问题一求解'); q1_analysis"
 
 ## 可选辅助输入：回执 1.2
 
-当 `project_level` 求解还需要未被统一工作簿覆盖的独立附件时，按 `core/user_execution_contract.yaml#code_delivery.auxiliary_inputs` 使用 1.2；没有辅助输入仍使用 1.1，项目级预处理仍是 1.0。主 `data_paths` 和 `data_sha256` 保持唯一 accepted 预处理 XLSX 及其普通 SHA；另以完整 `auxiliary_data_paths` / `auxiliary_data_sha256` 登记辅助文件。字段不能只写一半，不能重复主来源、使用已覆盖原始数据或改写旧版本标记规避校验。
-
-生成入口在运行前后同时核对主数据、辅助数据与源码，辅助值实际进入本题模型。回执仍写现有工作簿“运行配置”，路径数组以 JSON 文本传输，摘要与已交付配置一致。旧工具不支持 1.2 时应拒绝，不可静默省略辅助来源。原生合成用例见 `tests/audit_auxiliary_smoke.py`，不是可照抄的本题数学模型。
+项目级预处理已验收后，主求解或深化分析只将该 XLSX 路径及其普通 SHA 登入 `data_paths`、`data_sha256`。若另需未覆盖的独立附件，按 `core/user_execution_contract.yaml#code_delivery.auxiliary_inputs` 使用 1.2，成对登记 `auxiliary_data_paths` 与 `auxiliary_data_sha256`，排除主来源及已覆盖原始数据。辅助值实际进入模型；运行前后核对主数据、附件和源码。回执在工作簿“运行配置”按 JSON 文本写路径数组，摘要与交付配置一致。本节基础回执无辅助输入时用 1.1，项目级预处理本身用 1.0。旧读取器须拒绝不支持的 1.2 回执，不得略去附件或降版。合成用例见 `tests/audit_auxiliary_smoke.py`。
 
 ## 两类条件式比较例子
 

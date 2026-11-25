@@ -1,6 +1,6 @@
 # HSK Runtime Router
 
-机器路由以 `core/workflow_router.yaml` 为唯一事实源。本文件只解释运行时顺序，不复制完整路由表。
+机器路由以 `core/workflow_router.yaml` 为唯一事实源。
 
 ## Declarative candidate surface 与 effective resolved plan
 
@@ -25,7 +25,7 @@
 
 ## Runtime Assurance
 
-`core/runtime_assurance_contract.yaml` 只管理运行时证明层，不重新定义 Router、Manifest、Model Approval、Workbook 或 User Execution 的业务语义。默认 resolver 保留旧 plan 字段，同时输出 `runtime_plan` 与 `assurance`：context 说明字段来自 explicit input 还是 project state；intent resolution 给出关键词证据与歧义；artifact assurance 记录 scope、accepted/stale 状态、路径和 SHA-256；dependency closure 记录由选中 module/gate 自动补入的 contracts；authority fingerprint 绑定本次计划所依据的配置所列 Authority 文件。旧 `scripts/resolve_workflow.py` 继续用于无状态兼容调用。
+`core/runtime_assurance_contract.yaml` 管理运行时证明层。默认 resolver 保留旧 plan 字段，同时输出 `runtime_plan` 与 `assurance`：context 说明字段来自 explicit input 还是 project state；intent resolution 给出关键词证据与歧义；artifact assurance 记录 scope、accepted/stale 状态、路径和 SHA-256；dependency closure 记录由选中 module/gate 自动补入的 contracts；authority fingerprint 绑定本次计划所依据的配置所列 Authority 文件。旧 `scripts/resolve_workflow.py` 继续用于无状态兼容调用。
 
 ## 项目级、逐问与全题收尾的衔接
 
@@ -180,6 +180,6 @@ python scripts/resolve_runtime.py algorithm_presentation \
   --preprocessing-decision not_needed
 ```
 
-解析结果返回 `module_terminal_outputs`、`pre_delivery_gates` 和 `terminal_outputs`。正式交付必须把 resolver 返回的 `pre_delivery_gates` 视为完整且有序的执行序列，不在入口文档维护第二套固定列表。`semantic_governance` 负责当前题意口径、语义闭环、复杂度复审和跨问 stale；`model_approval` 在当前代码阶段被返回时验证 Challenge/Human Approval 与 current `semantic_revision` / validated `semantic_identity_hash`；legacy hash 仅保留只读 provenance；`project_sync` 按 exact scope 检查产物、工作簿、图表链和哈希且不自动提升质量状态；`submission_package_validation` 在返回时负责最终 submission manifest、归档内容与绑定哈希验证。
+解析结果返回 `module_terminal_outputs`、`pre_delivery_gates` 和 `terminal_outputs`。正式交付必须把 resolver 返回的 `pre_delivery_gates` 视为完整且有序的执行序列。`semantic_governance` 负责当前题意口径、语义闭环、复杂度复审和跨问 stale；`model_approval` 在当前代码阶段被返回时验证 Challenge/Human Approval 与 current `semantic_revision` / validated `semantic_identity_hash`；legacy hash 仅保留只读 provenance；`project_sync` 按 exact scope 检查产物、工作簿、图表链和哈希且不自动提升质量状态；`submission_package_validation` 在返回时负责最终 submission manifest、归档内容与绑定哈希验证。
 
 赛题计算代码的执行权、full-fidelity 配置和禁止降采样/粗网格/短时域/少重复/宽容差/静默 solver fallback 等规则，以 `core/user_execution_contract.yaml` 为唯一事实源。

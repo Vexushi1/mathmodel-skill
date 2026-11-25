@@ -34,7 +34,9 @@ class TestV715ScientificFigureElevation(unittest.TestCase):
         self.assertIn("是否改变当前主计算条件并重新运行", readme)
         self.assertIn("Scientific Figure Synthesis", readme)
         self.assertIn("参数敏感性", readme)
-        self.assertIn("主工作簿 accepted 后进入 03B", readme)
+        self.assertIn("主工作簿验收后", readme)
+        self.assertIn("Analysis Necessity Gate", readme)
+        self.assertIn("仅在 Gate=`required` 时根据真实主结果单独生成", readme)
 
     def test_figure_authority_has_synthesis_basic_form_composite_rendering_and_portfolio_gates(self):
         module = (ROOT / "modules/04_figure_evidence.md").read_text(encoding="utf-8")

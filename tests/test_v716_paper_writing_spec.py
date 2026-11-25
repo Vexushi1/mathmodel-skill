@@ -112,7 +112,8 @@ class TestV716PaperWritingSpec(unittest.TestCase):
             self.assertIn(fragment, self.framework)
 
     def test_cleanup_detects_teacher_feedback_risks_without_becoming_second_authority(self):
-        self.assertIn("不建立第二套正文写作规则", self.cleanup)
+        self.assertIn("modules/05_writing/paper_writing_protocol.md", self.cleanup)
+        self.assertIn("定位并返回相应 Authority / 原有 review finding", self.cleanup)
         self.assertIn("优化类模型先出现 DE、GA、PSO、ALNS、Dual Annealing", self.cleanup)
         self.assertIn("自定义模型名", self.cleanup)
         self.assertIn("标题或章节问题按 Protocol §2、§3.1 报告上游", self.cleanup)

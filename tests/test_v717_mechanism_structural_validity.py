@@ -34,7 +34,7 @@ class TestV717MechanismStructuralValidity(unittest.TestCase):
             "数值一致不能替代等价性证明",
         ):
             self.assertIn(token, self.module)
-        self.assertIn("本节不是新的生命周期 Gate", self.module)
+        self.assertIn("才把相应要求纳入现有 `semantic_closure`、Complexity Sanity、Model Challenge 和 Human Approval", self.module)
         self.assertNotIn("G1.5", self.module)
         self.assertNotIn("Mechanism Gate", self.module)
 

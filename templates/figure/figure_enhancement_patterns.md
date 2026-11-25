@@ -1,6 +1,6 @@
 # Figure Enhancement Patterns
 
-本文件只提供 `modules/04_figure_evidence.md` 中 Figure Enhancement Gate、Composite Encoding Preference 与 Scientific Rendering Profile 的实现模式，**不建立第二套绘图决策权威**。是否启用 Enhancement、Evidence level、Primary question、Evidence structure、布局、数据来源和视觉预算仍由 Module 04 决定。
+本文件只提供 `modules/04_figure_evidence.md` 中 Figure Enhancement Gate、Composite Encoding Preference 与 Scientific Rendering Profile 的实现模式。是否启用 Enhancement、Evidence level、Primary question、Evidence structure、布局、数据来源和视觉预算仍由 Module 04 决定。
 
 ## 1. Local Zoom
 
@@ -350,7 +350,7 @@ Figure Enhancement 不能改变结果语义。
 
 ## 11. MATLAB 实现提示
 
-本节只提示实现工具，不改变 Gate。颜色、字号、数据线宽、轴线宽、网格与边框在脚本参数区集中设置，不建立所有图共用的固定外观。线条、散点和色块按其支持的 `Color`、`FaceColor`、`EdgeColor` 等属性显式给出当前图的 RGB；连续场显式选择 colormap。具体 SCI / Nature 论文的配色可作为参考，不对应仓库默认值或统一官方色板。
+颜色、字号、数据线宽、轴线宽、网格与边框在脚本参数区集中设置，不建立所有图共用的固定外观。线条、散点和色块按其支持的 `Color`、`FaceColor`、`EdgeColor` 等属性显式给出当前图的 RGB；连续场显式选择 colormap。具体 SCI / Nature 论文的配色可作为参考，不对应仓库默认值或统一官方色板。
 
 样式接口的调用顺序：
 

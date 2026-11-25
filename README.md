@@ -8,12 +8,12 @@ v11.4.0 保留正式任务的启动方式升级为固定来源、完整规范读
 
 模型双审、用户明确批准、用户本地 full-fidelity 数值执行、工作簿复核与 LaTeX/PDF 终审继续按对应阶段完成。已有项目沿用固定版本；主动升级后从当前模型、批准和实际结果接续。
 
-HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构化简、最小充分的 `proposed_model_spec`、独立 Model Reviewer / Devil's Advocate、`awaiting_model_approval` 到用户明确批准后的 `locked_model_spec`，以及数值求解、证据绘图、论文和终稿交付。每问保留自己的数学模型、算法、源码与结果；数值求解语言与科研绘图语言分别在项目根统一选择；一个竞赛的所有结果图只使用一次选定的 Python 或 MATLAB 后端，保留原 Figure 设计 Authority 和历史 MATLAB 项目。仓库改造不代表任何具体项目已完成后端选择、迁移或数值验收。 竞赛专属 Pack、模板与 profile 是可选适配器；缺失时回退通用规则。建模方案和框架草稿不触发仅适用于论文终稿或提交包的正式交付门禁。
+HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构化简、最小充分的 `proposed_model_spec`、独立 Model Reviewer / Devil's Advocate、`awaiting_model_approval` 到用户明确批准后的 `locked_model_spec`，以及数值求解、证据绘图、论文和终稿交付。每问保留自己的数学模型、算法、源码与结果；数值求解语言与科研绘图语言分别在项目根统一选择；一个竞赛的所有结果图只使用一次选定的 Python 或 MATLAB 后端，保留原 Figure 设计 Authority 和历史 MATLAB 项目。后端选择、迁移和数值验收以各项目的实际记录为准。 竞赛专属 Pack、模板与 profile 是可选适配器；缺失时回退通用规则。建模方案和框架草稿不触发仅适用于论文终稿或提交包的正式交付门禁。
 
 ## 文献研究：模型设计实际研究与显式只读核验
 
 - 字段与证据边界：core/literature_research_contract.yaml；方法说明：packs/artifact/literature_research.md。
-- 对已有外部研究 JSON 显式选择 literature_evidence_audit，使用 python scripts/literature_evidence.py validate --report <research.json>；检查器不联网、不写入项目状态、不授予 Human Model Approval。
+- 对已有外部研究 JSON 显式选择 literature_evidence_audit，使用 python scripts/literature_evidence.py validate --report <research.json>；该命令离线只读，校验报告结构。
 - 新模型设计路线在当前问题已完成冻结且外部来源确有价值时执行 Research Brief → 实际检索 → E0–E3 核验 → 逐问方法迁移性审查 → 独立最小充分模型选择；单纯审题、锁模后的例行求解与论文编辑不自动重开搜索。
 
 ## P3 学术元数据检索（需明确授权）
@@ -22,11 +22,11 @@ HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构�
 
 ## P4 可选研究证据快照与来源当前性
 
-在当前小问确有跨聊天恢复需要时，可明确选择 `scripts/literature_snapshot.py preview` 查看 Problem Contract 原文件和研究报告文件的字节哈希，再由用户确认后以 `record --write --expected-contract-sha256 ... --expected-report-sha256 ...` 创建 `research_evidence/Qn.snapshot.json`；该文件仅作研究证据副本，不修改模型框架和项目状态，默认排除官方提交包。新聊天使用 `inspect` 核对原件是否变化，变更则 stale。该检查不能证明论文方法真实、引用正确或模型已获批准。详见 `core/output_contract.yaml#literature_research_snapshot` 和 `packs/artifact/literature_research.md`。
+在当前小问确有跨聊天恢复需要时，可明确选择 `scripts/literature_snapshot.py preview` 查看 Problem Contract 原文件和研究报告文件的字节哈希，再由用户确认后以 `record --write --expected-contract-sha256 ... --expected-report-sha256 ...` 创建 `research_evidence/Qn.snapshot.json`；该文件仅作研究证据副本，不修改模型框架和项目状态，默认排除官方提交包。新聊天使用 `inspect` 核对原件是否变化，变更则 stale。详见 `core/output_contract.yaml#literature_research_snapshot` 和 `packs/artifact/literature_research.md`。
 
 ## P6 历史赛题成对评估（独立工具留档；收益实验已取消）
 
-新增 docs/literature_p6_historical_case_catalog.json 与 scripts/literature_p6_benchmark.py，以 2024 COMAP 官方 MCM A/C、ICM D 为真实历史题来源目录。工具要求提供**真实原题与附件文件及哈希**、原模型/文献增强模型的独立设计产物和评审记录后，才可计算七轴描述性比较。目录或 CI 合成测试本身不证明模型质量提高，也不授权数值执行/模型批准。评估协议与 P5 不加新 Gate 的裁决见 docs/literature_p6_evaluation_protocol.md。**2026-11-15 用户已明确取消历史题双条件质量收益实验**（Issue #323：not_planned），工具保留为独立只读维护资料，不是当前发布条件，也不属于日常新赛题的文献检索链。
+新增 docs/literature_p6_historical_case_catalog.json 与 scripts/literature_p6_benchmark.py，以 2024 COMAP 官方 MCM A/C、ICM D 为真实历史题来源目录。工具要求提供**真实原题与附件文件及哈希**、原模型/文献增强模型的独立设计产物和评审记录后，才可计算七轴描述性比较。模型质量收益以真实成对评估为据。评估协议与 P5 不加新 Gate 的裁决见 docs/literature_p6_evaluation_protocol.md。**2026-11-15 用户已明确取消历史题双条件质量收益实验**（Issue #323：not_planned），工具保留为独立只读维护资料，不是当前发布条件，也不属于日常新赛题的文献检索链。
 
 ## 最短启动
 
@@ -71,8 +71,6 @@ HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构�
 | 复杂数学与证据裁决 | `core/writing_reasoning_contract.yaml`；Algorithm Trace 的 `not_needed / stepwise / pseudocode` 呈现按需读取 `packs/artifact/algorithm_flow.md` |
 | 最终审查与交付 | `modules/06_review_delivery.md`、`core/output_contract.yaml` 和 resolver 返回的门 |
 
-这些路径负责当前规范。README 只提供入口和职责导航，不替它们设第二套规则。
-
 ## 仓库维护验收
 
 Skill 仓库维护的正式验收仅由 GitHub Actions 完成：提交并推送源文件，由 `refresh-generated` 在远端更新受管索引和 MANIFEST；即使无生成差异，也验证对应最终 head。开发分支与 draft PR 先运行专项，ready PR / 显式 full dispatch / main 执行完整回归。Windows Python 3.10/3.14 各采用 4 个文件分片，完整 coverage 与标准 unittest discovery 等价；保留 `Python 3.10`、`Windows Python 3.14` check 验证分片全集、版本、commit 和结果。冻结前还须核对 lint、生成物、Windows MATLAB、Linux LaTeX 与适用的 Optimization baseline；合并后复核 main。本地不要求运行仓库测试或生成器，用户要求 GitHub-only 时不运行本地诊断。完整安全与证据规则见 `SKILL_CHANGE_GOVERNANCE.md`，逐项远端计时用于核对实际收益。
@@ -96,12 +94,12 @@ python scripts/project_solver_backend.py --help
 
 许可证与第三方声明见 `LICENSE`、`THIRD_PARTY_NOTICES.md`。
 
-建模证据增强的阶段范围见 [A—D 演进计划](docs/modeling_intelligence_evidence_evolution_plan.md)，实际行为验收见 [E1 场景映射](docs/modeling_intelligence_e1_acceptance_matrix.md)。[E2 发布评审与交接](docs/modeling_intelligence_e2_release_review_handoff.md) 记录当前协议、兼容与回退、具体材料来源、未核验范围和发布状态；这些维护记录不另设运行资格规则。
+建模证据增强的阶段范围见 [A—D 演进计划](docs/modeling_intelligence_evidence_evolution_plan.md)，实际行为验收见 [E1 场景映射](docs/modeling_intelligence_e1_acceptance_matrix.md)。[E2 发布评审与交接](docs/modeling_intelligence_e2_release_review_handoff.md) 记录当前协议、兼容与回退、具体材料来源、未核验范围和发布状态。
 
 
 ## A2：结构核验接入已有执行链
 
-显式选择阶段的项目，可按 [Conformance Authority](core/model_code_conformance_contract.yaml) 使用 A2 交付、回执与失效绑定；[实施台账](docs/modeling_intelligence_a2_execution_plan.md) 记录具体范围与验证。该功能不强制迁移旧项目，不把结构对应当成数学等价证明。本段说明 A2 的职责；当前 B/C/D 能力及边界见对应章节。最新 GitHub Release 与开发主干版本分别以实际发布记录和 bootstrap 为准。
+显式选择阶段的项目，可按 [Conformance Authority](core/model_code_conformance_contract.yaml) 使用 A2 交付、回执与失效绑定；[实施台账](docs/modeling_intelligence_a2_execution_plan.md) 记录具体范围与验证。该功能不强制迁移旧项目，不把结构对应当成数学等价证明。最新 GitHub Release 与开发主干版本分别以实际发布记录和 bootstrap 为准。
 
 ## B1：声明来源、选择与有限算术核验
 
@@ -117,7 +115,7 @@ python scripts/project_solver_backend.py --help
 
 ## C1：可选审查回执只读核验
 
-`python scripts/review_receipts.py <项目根>` 按 `core/review_receipt_contract.yaml` 检查可选 `review_receipts` 的结构、被审输入与 Authority 快照、执行来源声明和复验范围。旧项目缺少回执时报告 `not_assessed`，继续既有双轮审查路径；回执结论即使为 PASS，也不证明独立执行，不授予模型批准、accepted 工作簿或交付资格。该入口保持只读，不创建回执或代替现有审查。
+`python scripts/review_receipts.py <项目根>` 按 `core/review_receipt_contract.yaml` 检查可选 `review_receipts` 的结构、被审输入与 Authority 快照、执行来源声明和复验范围。旧项目缺少回执时报告 `not_assessed`，继续既有双轮审查路径；回执结论即使为 PASS，也不证明独立执行，不授予模型批准、accepted 工作簿或交付资格。
 
 ## C2：显式范围内的审查回执门禁消费
 

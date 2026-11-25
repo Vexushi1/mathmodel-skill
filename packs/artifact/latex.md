@@ -1,6 +1,6 @@
 # Artifact Pack：LaTeX 终稿
 
-本 Pack 只负责 **LaTeX 工程、编译和交付**。普通正文结构与表达服从 `modules/05_writing/paper_writing_protocol.md`，跨竞赛推理、规则等级、命题预算和 Citation Evidence 服从 `core/writing_reasoning_contract.yaml`；`modules/05_writing/latex.md` 只负责 LaTeX 载体、环境、引用、审计与编译接口。本文件不得复制第二套正文规范。
+本 Pack 只负责 **LaTeX 工程、编译和交付**。普通正文结构与表达服从 `modules/05_writing/paper_writing_protocol.md`，跨竞赛推理、规则等级、命题预算和 Citation Evidence 服从 `core/writing_reasoning_contract.yaml`；`modules/05_writing/latex.md` 只负责 LaTeX 载体、环境、引用、审计与编译接口。
 
 ## 一、进入条件
 
@@ -165,7 +165,7 @@ model_review  -> final_latex/sections/09_evaluation.tex
 
 模块化工程会递归展开项目内 `\input` / `\include`；兼容单文件工程会自然退化为单文件展开。`scripts/audit_paper_prose.py` 继续作为包装器内部的 prose/structure/BibTeX/framework 审查实现，可用于维护级单元测试，但不再作为活动 LaTeX route 的默认入口。
 
-`audit_latex_project.py` 负责按 `main.tex` 所在工程根目录解析并递归展开项目内 `\input` / `\include`，执行确定性工程图检查，再把展开后的完整正文委托给 `audit_paper_prose.py` 的现有 prose/structure/BibTeX/framework 审查逻辑。它不是第二套写作规则，也不会接受正式编译无法按同一工程根目录解析的“子文件目录相对路径”。
+`audit_latex_project.py` 负责按 `main.tex` 所在工程根目录解析并递归展开项目内 `\input` / `\include`，执行确定性工程图检查，再把展开后的完整正文委托给 `audit_paper_prose.py` 的现有 prose/structure/BibTeX/framework 审查逻辑。拒绝正式编译无法按同一工程根目录解析的“子文件目录相对路径”。
 
 模块化工程应确定性检查：
 
@@ -193,5 +193,3 @@ model_review  -> final_latex/sections/09_evaluation.tex
 - 目录、页码、摘要、命题、图表和附录编号正确；
 - CUMCM、MCM/ICM、电工杯模板通过仓库 CI smoke build；
 - 助手已按 `modules/05_latex_compile_quality.md#终稿检查` 完成当前 PDF 逐页检查，正文数值、命题、图表和参考文献与当前框架/工作簿一致。
-
-命题超过默认 0--4 预算、优点/缺点数量关系、简单问题未单列“核心模型汇总”等写作选择不在 Artifact Pack 中重新判定；统一交给 Authority 与终审分级处理。

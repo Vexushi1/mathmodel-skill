@@ -484,6 +484,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/fixtures/v1120_release_source_spans.json`
 - `tests/fixtures/v1130_r1_source_spans.json`
 - `tests/fixtures/v1140_r2_source_spans.json`
+- `tests/fixtures/v1140_r3_source_spans.json`
 - `tests/fixtures/v11_business_baseline.yaml`
 - `tests/fixtures/v11_candidate_source_spans.json`
 - `tests/fixtures/v11_web_app_cases.yaml`
@@ -511,6 +512,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/plot_v11_baseline_smoke.py`
 - `tests/r1_continuity_reference.py`
 - `tests/r2_answer_reference.py`
+- `tests/r3_concision_reference.py`
 - `tests/reading_plan_cases.py`
 - `tests/reading_plan_evidence.py`
 - `tests/solver_backend_hash_smoke.py`
@@ -638,6 +640,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_question_scheduler.py`
 - `tests/test_question_scoped_semantic_governance.py`
 - `tests/test_question_scoped_sync.py`
+- `tests/test_r3_source_projection.py`
 - `tests/test_read_path_semantic_closure.py`
 - `tests/test_read_stage.py`
 - `tests/test_reading_module06.py`

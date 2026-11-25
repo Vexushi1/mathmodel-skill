@@ -1,6 +1,6 @@
 # Module 06：评委式终审与交付
 
-本模块只负责**检查、分级、返修排序和交付判定**，**不重新定义正文写作规则**。普通正文写法只消费 `modules/05_writing/paper_writing_protocol.md`，作者声音检查直接消费 `paper_writing_protocol.md#7.3-作者视角与建模解释`，复杂数学/证据语义只消费 `core/writing_reasoning_contract.yaml`，固定 CUMCM 骨架只消费 Template Manifest；Review 不复制这些规则。
+本模块只负责**检查、分级、返修排序和交付判定**。普通正文写法只消费 `modules/05_writing/paper_writing_protocol.md`，作者声音检查直接消费 `paper_writing_protocol.md#7.3-作者视角与建模解释`，复杂数学/证据语义只消费 `core/writing_reasoning_contract.yaml`，固定 CUMCM 骨架只消费 Template Manifest。
 
 消费时机只有两类：
 

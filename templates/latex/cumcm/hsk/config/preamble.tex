@@ -11,7 +11,7 @@
 \usepackage{cleveref}
 \usepackage[most]{tcolorbox}
 
-% 保留用户参考模板中与官方 cumcmthesis 兼容的代码附录能力；不覆盖官方页面与标题格式。
+% 代码附录样式兼容 cumcmthesis；不覆盖官方页面与标题格式。
 \lstset{
   basicstyle=\ttfamily\small,
   keywordstyle=\color{blue!70!black}\bfseries,
@@ -32,7 +32,7 @@
 \usepackage[backend=biber,style=numeric,sorting=none]{biblatex}
 \addbibresource{references.bib}
 
-% 命题按阿拉伯章节号编号。0--4 是默认正文阅读预算，不是数学硬上限。
+% 命题按阿拉伯章节号编号；全文正文正式命题总数不超过 4 个。
 % 短证明默认自然分段；只有明显多阶段证明才使用 enumerate。
 \newtheorem{proposition}{命题}[section]
 \renewcommand{\theproposition}{\arabic{section}.\arabic{proposition}}
