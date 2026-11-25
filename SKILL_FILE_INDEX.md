@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：11.1.0
+当前 Skill 版本：11.2.0
 
 本索引按使用语义分区。只有 **Active Runtime & Reference** 表示默认活动导航；
 Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenance，不因此成为 Runtime Authority。
@@ -478,6 +478,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/fixtures/v1110_w2_numeric_source_spans.json`
 - `tests/fixtures/v1110_w3_proposition_source_spans.json`
 - `tests/fixtures/v1110_writing_draft_source_spans.json`
+- `tests/fixtures/v1120_release_source_spans.json`
 - `tests/fixtures/v11_business_baseline.yaml`
 - `tests/fixtures/v11_candidate_source_spans.json`
 - `tests/fixtures/v11_web_app_cases.yaml`
@@ -781,6 +782,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_w3_proposition_body_limit.py`
 - `tests/v10270_action_observation.py`
 - `tests/v10270_runtime_measurement.py`
+- `tests/v1120_release_reference.py`
 - `tests/v11_business_baseline.py`
 - `tests/v11_evidence_observations.py`
 - `tests/v11_model_observations.py`

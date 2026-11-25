@@ -26,6 +26,15 @@ from w3_proposition_reference import (
     W3_APPROVED_REWRITES, W3_SOURCE_IDENTITIES,
     prior_w3_proposition_text,
 )
+from v1120_release_reference import prior_v1120_release_bytes
+
+
+def accepted_w3_source_text(relative: str) -> str:
+    raw = (ROOT / relative).read_bytes()
+    if relative == "core/output_contract.yaml":
+        raw = prior_v1120_release_bytes(relative, raw)
+    return raw.decode("utf-8")
+
 
 def prior_writing_slimming_text(relative: str, text: str) -> str:
     """First reverse W2 D02, then W1; historical digest guards remain unchanged."""
@@ -915,7 +924,7 @@ def m3_predecessor_code_delivery(relative: str, text: str) -> str:
 
 
 def p4a_authority_text(relative: str) -> str:
-    text = (ROOT / relative).read_text(encoding="utf-8")
+    text = accepted_w3_source_text(relative)
     text = prior_w3_proposition_text(relative, text)
     text = m3_predecessor_code_delivery(relative, text)
     text = _prior_reviewed_blocks(relative, text, P5_COMPATIBILITY_BLOCKS, "P5 compatibility")
@@ -1718,7 +1727,7 @@ class ContractAndDriftTests(unittest.TestCase):
     def test_w2_d02_authority_inverse_retains_historical_hash_guards(self):
         for relative, digests in W2_D02_SOURCE_IDENTITIES.items():
             with self.subTest(relative=relative):
-                current_w3 = (ROOT / relative).read_text(encoding="utf-8")
+                current_w3 = accepted_w3_source_text(relative)
                 actual = prior_w3_proposition_text(relative, current_w3)
                 self.assertEqual(hashlib.sha256(actual.encode("utf-8")).hexdigest(), digests[0])
                 predecessor = prior_w2_numeric_display_text(relative, actual)
@@ -1737,7 +1746,7 @@ class ContractAndDriftTests(unittest.TestCase):
     def test_w3_i01_i02_exact_inverse_preserves_historical_authorities(self):
         for relative, digests in W3_SOURCE_IDENTITIES.items():
             with self.subTest(relative=relative):
-                source = (ROOT / relative).read_text(encoding="utf-8")
+                source = accepted_w3_source_text(relative)
                 self.assertEqual(hashlib.sha256(source.encode("utf-8")).hexdigest(), digests[0])
                 prior = prior_w3_proposition_text(relative, source)
                 self.assertEqual(hashlib.sha256(prior.encode("utf-8")).hexdigest(), digests[1])

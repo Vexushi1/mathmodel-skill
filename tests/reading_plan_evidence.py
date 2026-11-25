@@ -15,6 +15,7 @@ import yaml
 from reading_plan_cases import CASES, build_project
 from writing_slimming_reference import prior_writing_slimming_plan
 from w3_proposition_reference import W3_SOURCE_IDENTITIES, prior_w3_proposition_text
+from v1120_release_reference import V1120_SOURCE_IDENTITIES, prior_v1120_release_bytes
 
 HERE = Path(__file__).resolve()
 ALLOWED_CHANGED_AUTHORITIES = {
@@ -2039,6 +2040,10 @@ V1110_RELEASE_AUTHORITY_VERSIONS = {
     **V11_DEFAULT_AUTHORITY_VERSIONS,
     "skill": "11.1.0",
 }
+V1120_RELEASE_AUTHORITY_VERSIONS = {
+    **V1110_RELEASE_AUTHORITY_VERSIONS,
+    "skill": "11.2.0",
+}
 
 # Exact-current unified Question Runtime source migration for historical v10.27/v11 reader tests.
 # This is comparison evidence only: no current gate or approval is projected.
@@ -2064,6 +2069,7 @@ def _registered_m2_source_predecessor(plan, authority_versions):
     supported = (
         (authority_versions == V11_DEFAULT_AUTHORITY_VERSIONS and plan.get("version") == "11.0.0")
         or (authority_versions == V1110_RELEASE_AUTHORITY_VERSIONS and plan.get("version") == "11.1.0")
+        or (authority_versions == V1120_RELEASE_AUTHORITY_VERSIONS and plan.get("version") == "11.2.0")
         or (authority_versions == old_versions and plan.get("version") == old_versions["skill"])
     )
     if not supported:
@@ -2085,7 +2091,7 @@ def _registered_m2_source_predecessor(plan, authority_versions):
         # Historical M2 source bytes remain immutable. The new successor must
         # match a complete, separate, v11-only source tuple (never a mixture).
         profiles = [("frozen_m2", M2_CURRENT_SOURCE_SHA256)]
-        if authority_versions in (V11_DEFAULT_AUTHORITY_VERSIONS, V1110_RELEASE_AUTHORITY_VERSIONS):
+        if authority_versions in (V11_DEFAULT_AUTHORITY_VERSIONS, V1110_RELEASE_AUTHORITY_VERSIONS, V1120_RELEASE_AUTHORITY_VERSIONS):
             profiles.append(("explicit_qn_only", EXPLICIT_QN_SUCCESSOR_SOURCE_SHA256))
         observed = {path: hashlib.sha256((root / path).read_bytes()).hexdigest()
                     for path in M2_CURRENT_SOURCE_SHA256}
@@ -2177,6 +2183,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
         V10353_LITERATURE_QUERY_COVERAGE_AUTHORITY_VERSIONS,
         V11_DEFAULT_AUTHORITY_VERSIONS,
         V1110_RELEASE_AUTHORITY_VERSIONS,
+        V1120_RELEASE_AUTHORITY_VERSIONS,
     )
     matched_carrier = next((
         carrier for carrier in accepted_carriers
@@ -2199,6 +2206,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
         V10353_LITERATURE_QUERY_COVERAGE_AUTHORITY_VERSIONS,
         V11_DEFAULT_AUTHORITY_VERSIONS,
         V1110_RELEASE_AUTHORITY_VERSIONS,
+        V1120_RELEASE_AUTHORITY_VERSIONS,
     ):
         # P2 historical comparison can borrow the v10.28 inverse only when
         # the new literature-resource pair was NOT loaded. Real modeling-route
@@ -2233,12 +2241,28 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
             raw = (HERE.parent.parent / path).read_bytes()
             patch_header = ("version: " + matched_carrier["skill"] + "\n").encode("utf-8")
             previous_header = b"version: 10.27.0\n"
+            if matched_carrier == V1120_RELEASE_AUTHORITY_VERSIONS:
+                prior_sha, release_sha = V1120_SOURCE_IDENTITIES[path]
+                if actual[0]["sha256"] != release_sha:
+                    return deepcopy(original), []
+                try:
+                    raw = prior_v1120_release_bytes(path, raw)
+                except ValueError:
+                    return deepcopy(original), []
+                actual[0]["sha256"] = prior_sha
+                patch_header = b"version: 11.1.0\n"
+                changes.append({
+                    "path": "assurance.authority_fingerprint.sources.core/output_contract.yaml",
+                    "baseline": prior_sha,
+                    "candidate": release_sha,
+                    "approval": "v11.2.0 exact version-header inverse to accepted W3 source",
+                })
             # Exact W3 source projection first, followed by frozen W2 and W1
             # source inverses. Every source SHA and reconstructed byte sequence
             # must match the approved predecessor before any business projection.
             w3_digest, w3_predecessor = W3_SOURCE_IDENTITIES[path]
             w3_source = (
-                matched_carrier == V1110_RELEASE_AUTHORITY_VERSIONS
+                matched_carrier in (V1110_RELEASE_AUTHORITY_VERSIONS, V1120_RELEASE_AUTHORITY_VERSIONS)
                 and actual[0]["sha256"] == w3_digest
             )
             if w3_source:
@@ -2261,7 +2285,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
             w2_digest = "e78a4092760319cee25c94d3eb4a4fe41ea814a85395ef16d15b25d3cd15e7c9"
             w1_digest = "281b9c5da5a7e70c422244c1de44eb54fa1b738ed045e2a911ce3d9bffbb2d84"
             w2_source = (
-                matched_carrier == V1110_RELEASE_AUTHORITY_VERSIONS
+                matched_carrier in (V1110_RELEASE_AUTHORITY_VERSIONS, V1120_RELEASE_AUTHORITY_VERSIONS)
                 and (actual[0]["sha256"] == w2_digest or w3_source)
             )
             if w2_source:
@@ -2287,7 +2311,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
             if not raw.startswith(patch_header) or hashlib.sha256(raw).hexdigest() != expected_sha:
                 return deepcopy(original), []
             # Only the exact candidate's selector paragraph may be reversed here.
-            if matched_carrier in (V11_DEFAULT_AUTHORITY_VERSIONS, V1110_RELEASE_AUTHORITY_VERSIONS):
+            if matched_carrier in (V11_DEFAULT_AUTHORITY_VERSIONS, V1110_RELEASE_AUTHORITY_VERSIONS, V1120_RELEASE_AUTHORITY_VERSIONS):
                 # The v11 output-contract carrier is exactly the v10.35.3 body plus its
                 # pinned mechanism selector; reconstruct that predecessor before the
                 # existing v10.27.0 inverse is applied.
@@ -2297,7 +2321,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
                     return deepcopy(original), []
                 patch_header = v10353_header
             if (matched_carrier in (V10353_LITERATURE_QUERY_COVERAGE_AUTHORITY_VERSIONS,
-                                   V11_DEFAULT_AUTHORITY_VERSIONS, V1110_RELEASE_AUTHORITY_VERSIONS)
+                                   V11_DEFAULT_AUTHORITY_VERSIONS, V1110_RELEASE_AUTHORITY_VERSIONS, V1120_RELEASE_AUTHORITY_VERSIONS)
                     and hashlib.sha256(raw).hexdigest() == "d1a395266067db570001e23813b90941e409ce73d0911c70aba401abf81a2cbf"):
                 selector = (
                     "  mechanism_spec_selector: With an explicit mechanism scope, --mechanism-spec selects one "
@@ -2322,6 +2346,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
                 V10353_LITERATURE_QUERY_COVERAGE_AUTHORITY_VERSIONS,
         V11_DEFAULT_AUTHORITY_VERSIONS,
         V1110_RELEASE_AUTHORITY_VERSIONS,
+        V1120_RELEASE_AUTHORITY_VERSIONS,
             ):
                 # Reconstruct only two exact P4 output-layout additions.
                 # Do not generalize into ignoring the output contract hash.
@@ -2372,6 +2397,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
             V10353_LITERATURE_QUERY_COVERAGE_AUTHORITY_VERSIONS,
         V11_DEFAULT_AUTHORITY_VERSIONS,
         V1110_RELEASE_AUTHORITY_VERSIONS,
+        V1120_RELEASE_AUTHORITY_VERSIONS,
         ):
             # Only this exact resolver pair may project onto the frozen source identities.
             # The projected plan must still match the historical behavior field by field.
@@ -2389,6 +2415,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
                 V10353_LITERATURE_QUERY_COVERAGE_AUTHORITY_VERSIONS,
         V11_DEFAULT_AUTHORITY_VERSIONS,
         V1110_RELEASE_AUTHORITY_VERSIONS,
+        V1120_RELEASE_AUTHORITY_VERSIONS,
             ):
                 resolver_hashes = {
                     "scripts/resolve_workflow.py": "706a97aa937e38df4ea7cfe1a2607859209b47be8f8fffcc28bd7af1c6361f42",
@@ -2405,6 +2432,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
                 V10353_LITERATURE_QUERY_COVERAGE_AUTHORITY_VERSIONS,
         V11_DEFAULT_AUTHORITY_VERSIONS,
         V1110_RELEASE_AUTHORITY_VERSIONS,
+        V1120_RELEASE_AUTHORITY_VERSIONS,
             ):
                 resolver_hashes["core/user_execution_contract.yaml"] = "b61f52a6ad68f0f5234bc4dec8182d52e3bd23f3e75e6c7fe85d59f8014ba6bb"
                 approval = "v10.35.0 reviewed opt-in execution scale receipt contract"
@@ -2413,11 +2441,12 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
                 V10353_LITERATURE_QUERY_COVERAGE_AUTHORITY_VERSIONS,
         V11_DEFAULT_AUTHORITY_VERSIONS,
         V1110_RELEASE_AUTHORITY_VERSIONS,
+        V1120_RELEASE_AUTHORITY_VERSIONS,
             ):
                 resolver_hashes["scripts/resolve_workflow.py"] = "6a57aa603ba6e300a9ce9521f62771d2de60bee76ae82277ce06387645f7dce2"
                 approval = "v10.35.2 reviewed affirmative full-workflow routing patch"
             if matched_carrier in (V10353_LITERATURE_QUERY_COVERAGE_AUTHORITY_VERSIONS,
-                                   V11_DEFAULT_AUTHORITY_VERSIONS, V1110_RELEASE_AUTHORITY_VERSIONS):
+                                   V11_DEFAULT_AUTHORITY_VERSIONS, V1110_RELEASE_AUTHORITY_VERSIONS, V1120_RELEASE_AUTHORITY_VERSIONS):
                 observed_readers = {
                     row["path"]: row["sha256"] for row in fingerprint["sources"]
                     if row["path"] in V11_P3_DEFAULT_READER_HASHES
@@ -2470,7 +2499,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
                 # M2 successor matches the separately pinned current raw bytes.
                 exact_m2_successor = (
                     m2_identity_profile in {"frozen_m2", "explicit_qn_only"}
-                    and matched_carrier in (V11_DEFAULT_AUTHORITY_VERSIONS, V1110_RELEASE_AUTHORITY_VERSIONS)
+                    and matched_carrier in (V11_DEFAULT_AUTHORITY_VERSIONS, V1110_RELEASE_AUTHORITY_VERSIONS, V1120_RELEASE_AUTHORITY_VERSIONS)
                     and path == "scripts/resolve_runtime.py"
                     and digest == V11_P5_DEFAULT_SOURCE_HASHES[path]
                     and raw_digest == (
@@ -2541,7 +2570,9 @@ def compare(before, after):
         old = legacy_projection(a["plan"])
         new = legacy_projection(b["plan"])
         writing_deltas = []
-        if new.get("version") == "11.1.0" and b.get("authority_versions") == V1110_RELEASE_AUTHORITY_VERSIONS:
+        if ((b.get("authority_versions"), new.get("version")) in (
+                (V1110_RELEASE_AUTHORITY_VERSIONS, "11.1.0"),
+                (V1120_RELEASE_AUTHORITY_VERSIONS, "11.2.0"))):
             new, writing_deltas = prior_writing_slimming_plan(new)
         projected, expected = runtime_consistency_predecessor(a["id"], new, b.get("authority_versions"))
         candidate_authority_versions = (V10263_RELEASE_AUTHORITY_VERSIONS
