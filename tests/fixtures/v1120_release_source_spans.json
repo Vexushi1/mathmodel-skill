@@ -1,0 +1,622 @@
+{
+  "schema_version": 1,
+  "scope": "v11_2_0_release_writing_source_spans",
+  "version": "11.2.0",
+  "authorizing_reason": "v11.2.0 release identity for W1/W2/W3 accepted on main 74fa01f843ccfd6eb6b3ab805ac4ad2be633ab07. Only exact version-line source identities change; all physical ranges, historical source fixtures, selectors and approved behavior remain frozen.",
+  "required_case_ids": [
+    "pure_model_design",
+    "pure_python_figures",
+    "review_word_readonly",
+    "two_carrier_legacy_protected",
+    "explicit_figure_scope",
+    "natural_language_two_actions_probe",
+    "full_workflow_boundary",
+    "analysis_stage_request"
+  ],
+  "migrations": [
+    {
+      "path": "core/workflow_router.yaml",
+      "baseline_sha256": "eb9d4200cc7196e72e414d590e9f7a9ffdc782986d2d13a17c5ac99e976189b6",
+      "candidate_sha256": "fcfb4c1da8ceedf2c0fafdf1371832a7d4147c36f9fb03df36ffcd677d46911a",
+      "old_ranges": [
+        [
+          416,
+          416
+        ],
+        [
+          419,
+          430
+        ]
+      ],
+      "new_ranges": [
+        [
+          473,
+          473
+        ],
+        [
+          476,
+          487
+        ]
+      ]
+    },
+    {
+      "path": "core/model_approval_contract.yaml",
+      "baseline_sha256": "d1b607ea5a7704b4e18f01defb69c24e5b82ffc0f70661e28d880f9a8fbbee25",
+      "candidate_sha256": "3d97b5a170b1ddd6155fe47b0864caa4a2a4bf513238d6cf38ab85a0436bbc3d",
+      "old_ranges": [
+        [
+          1,
+          272
+        ]
+      ],
+      "new_ranges": [
+        [
+          1,
+          296
+        ]
+      ]
+    },
+    {
+      "path": "modules/01_problem_audit.md",
+      "baseline_sha256": "6e0d674e4afe4f93b6f948d66a446114a01b4777a1550ef1251d45873a97abdc",
+      "candidate_sha256": "2fc8fecefd068f918f4a6bc698d763081bd27b73c85464c0545be9e4b176444f",
+      "old_ranges": [
+        [
+          1,
+          83
+        ]
+      ],
+      "new_ranges": [
+        [
+          1,
+          92
+        ]
+      ]
+    },
+    {
+      "path": "modules/02_model_design.md",
+      "baseline_sha256": "5541bb8e44b80aefece95a5a785b3386a0433aac79320065a71f37fb262f6b1f",
+      "candidate_sha256": "ca5c299e4cbeea9caff80fbbaba2e3711262081ffe258ef5ca51e0ee7fcaf306",
+      "old_ranges": [
+        [
+          1,
+          700
+        ]
+      ],
+      "new_ranges": [
+        [
+          1,
+          715
+        ]
+      ]
+    }
+  ],
+  "model_intake": {
+    "case_ids": [
+      "pure_model_design",
+      "full_workflow_boundary",
+      "analysis_stage_request"
+    ],
+    "resources": [
+      {
+        "path": "core/literature_research_contract.yaml",
+        "candidate_sha256": "92ef6b1ea2ae2ce12113386b3700946f92fa126c98566cd6ddeaa9ae8d5a9011",
+        "ranges": [
+          [
+            1,
+            169
+          ]
+        ]
+      },
+      {
+        "path": "packs/artifact/literature_research.md",
+        "candidate_sha256": "6966319982f7d67aed7058058828974404e299168601c60d1293205e3b71204b",
+        "ranges": [
+          [
+            1,
+            60
+          ]
+        ]
+      }
+    ]
+  },
+  "output_read_shift": {
+    "path": "core/output_contract.yaml",
+    "candidate_sha256": "7e69b8b4f7c6c4225c65fd0f37a93dcc1239ce18fabccb5cef02af5d0a62fd67",
+    "cases": [
+      {
+        "case_id": "review_word_readonly",
+        "current_ranges": [
+          [
+            468,
+            514
+          ]
+        ],
+        "historical_ranges": [
+          [
+            443,
+            489
+          ]
+        ],
+        "selectors": {
+          "yaml_paths": [
+            "per_question"
+          ]
+        }
+      },
+      {
+        "case_id": "natural_language_two_actions_probe",
+        "current_ranges": [
+          [
+            1,
+            637
+          ]
+        ],
+        "historical_ranges": [
+          [
+            1,
+            612
+          ]
+        ],
+        "selectors": {}
+      }
+    ]
+  },
+  "output_conditional_shift": {
+    "path": "core/output_contract.yaml",
+    "candidate_sha256": "7e69b8b4f7c6c4225c65fd0f37a93dcc1239ce18fabccb5cef02af5d0a62fd67",
+    "current_ranges": [
+      [
+        1,
+        637
+      ]
+    ],
+    "historical_ranges": [
+      [
+        1,
+        612
+      ]
+    ],
+    "when": "current_delivery_scope_or_file_layout_requires_definition",
+    "case_ids": [
+      "pure_python_figures",
+      "review_word_readonly",
+      "two_carrier_legacy_protected",
+      "explicit_figure_scope"
+    ]
+  },
+  "pqs_full_source_spans": [
+    {
+      "path": "core/user_execution_contract.yaml",
+      "baseline_sha256": "b05f8a41a521fa5df10f0f2369b1308f14959abad07701712f185cea3924b795",
+      "candidate_sha256": "1b018787540da4f7a9adbc21d85655c194e80eedeb34622aeb3bfe05ff2d9306",
+      "old_last_line": 507,
+      "new_last_line": 562
+    },
+    {
+      "path": "core/numerical_verification_contract.yaml",
+      "baseline_sha256": "1172bc1abc7c905203fb6d5af254f85dd75467a423b4189082f5e3e259c4ac4a",
+      "candidate_sha256": "d6c112a1bce14a7d1dd1b03b94f9e57eab8d6492dd2c9b6eb7ff9c1a143af31b",
+      "old_last_line": 222,
+      "new_last_line": 246
+    },
+    {
+      "path": "core/workbook_schema.yaml",
+      "baseline_sha256": "d2433f32204cbba294cc8ce0565c850b8c7bf823857cd19e4e6823d2e60526eb",
+      "candidate_sha256": "e216442a489717fd21dcec15fe461288cdf21bf07462697b4b141adca59df067",
+      "old_last_line": 301,
+      "new_last_line": 343
+    }
+  ],
+  "legacy_profile_read_shifts": [
+    {
+      "path": "core/bootstrap.yaml",
+      "baseline_sha256": "bbf02e3f78532e4b24b06359982794859670e9cd2afcf07555cc9634ce4a1a51",
+      "candidate_sha256": "f0d1314f657e7c6ef47b052ad018511ad58fef16578660a087a093606fa6a43c",
+      "spans": [
+        {
+          "before": [
+            [
+              1,
+              107
+            ]
+          ],
+          "after": [
+            [
+              1,
+              120
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "path": "core/global_preprocessing_contract.yaml",
+      "baseline_sha256": "b74df00c9804c04010f9c68f72923deed6cfe93a1f683ea9cf5c1e3fd98e80d9",
+      "candidate_sha256": "1e0220cf0a2f7f8a0309363993a37a441a5926de166e04c3b89c5f32c11f85f2",
+      "spans": [
+        {
+          "before": [
+            [
+              1,
+              349
+            ]
+          ],
+          "after": [
+            [
+              1,
+              351
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "path": "core/hsk_core_policy.md",
+      "baseline_sha256": "869f11c53972ac01ac96b6974ed826df9c0941240f0a3cabcf799eb91df82eb2",
+      "candidate_sha256": "35aded644ce7b978a02498d93c00a1f5e59e54d3f70a8d80efef7facac585a73",
+      "spans": [
+        {
+          "before": [
+            [
+              1,
+              101
+            ]
+          ],
+          "after": [
+            [
+              1,
+              109
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "path": "core/state_transition_contract.yaml",
+      "baseline_sha256": "a6b4496d1fe7edc57e5f25839058c9bc8ea853a7d7935a395e4162cd3ad75c26",
+      "candidate_sha256": "8c4a399fca657619f5b3e435ee9ecce8ec0eb433ff720f6ad202a8a8f53c8ab8",
+      "spans": [
+        {
+          "before": [
+            [
+              1,
+              360
+            ]
+          ],
+          "after": [
+            [
+              1,
+              370
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "path": "core/writing_runtime_contract.yaml",
+      "baseline_sha256": "af9c4c57a018468f7046e7835f1a8063f072fbee4c8788f504507c109fa0f3e7",
+      "candidate_sha256": "80b0ecff6a962fef52aad606e2bff9b0abb3501d8a9fe9b248a0c70584c1cc38",
+      "spans": [
+        {
+          "before": [
+            [
+              1,
+              722
+            ]
+          ],
+          "after": [
+            [
+              1,
+              733
+            ]
+          ]
+        },
+        {
+          "before": [
+            [
+              98,
+              233
+            ]
+          ],
+          "after": [
+            [
+              108,
+              243
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/04_figure_evidence.md",
+      "baseline_sha256": "5e66608cf8e4afc1cb802da5cd0fc909db7c7049c4aa6815b218089e2d0d47f5",
+      "candidate_sha256": "1ff0c1d742f0b9f8e0a64e5d8d6d7931ec77bba1ff1824d39c206e8d3974d046",
+      "spans": [
+        {
+          "before": [
+            [
+              1,
+              40
+            ],
+            [
+              116,
+              477
+            ]
+          ],
+          "after": [
+            [
+              1,
+              40
+            ],
+            [
+              118,
+              479
+            ]
+          ]
+        },
+        {
+          "before": [
+            [
+              1,
+              477
+            ]
+          ],
+          "after": [
+            [
+              1,
+              479
+            ]
+          ]
+        },
+        {
+          "before": [
+            [
+              1,
+              15
+            ],
+            [
+              108,
+              115
+            ]
+          ],
+          "after": [
+            [
+              1,
+              15
+            ],
+            [
+              110,
+              117
+            ]
+          ]
+        },
+        {
+          "before": [
+            [
+              1,
+              15
+            ],
+            [
+              116,
+              147
+            ],
+            [
+              438,
+              466
+            ],
+            [
+              473,
+              477
+            ]
+          ],
+          "after": [
+            [
+              1,
+              15
+            ],
+            [
+              118,
+              149
+            ],
+            [
+              440,
+              468
+            ],
+            [
+              475,
+              479
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/05_writing/paper_writing_protocol.md",
+      "baseline_sha256": "5ddc999475401d2cad726e3111d97e0e60b332a78f6d5cf958fc1f0593480f26",
+      "candidate_sha256": "09994c876bc02cacd320d6898429eb95e4e2c095cb2900739dc815ab8deb0094",
+      "spans": [
+        {
+          "before": [
+            [
+              1,
+              6
+            ],
+            [
+              34,
+              173
+            ],
+            [
+              219,
+              674
+            ],
+            [
+              726,
+              792
+            ]
+          ],
+          "after": [
+            [
+              1,
+              6
+            ],
+            [
+              36,
+              131
+            ],
+            [
+              177,
+              618
+            ],
+            [
+              670,
+              738
+            ]
+          ]
+        },
+        {
+          "before": [
+            [
+              1,
+              819
+            ]
+          ],
+          "after": [
+            [
+              1,
+              763
+            ]
+          ]
+        },
+        {
+          "before": [
+            [
+              1,
+              6
+            ],
+            [
+              174,
+              218
+            ]
+          ],
+          "after": [
+            [
+              1,
+              6
+            ],
+            [
+              132,
+              176
+            ]
+          ]
+        },
+        {
+          "before": [
+            [
+              1,
+              6
+            ],
+            [
+              675,
+              725
+            ]
+          ],
+          "after": [
+            [
+              1,
+              6
+            ],
+            [
+              619,
+              669
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "path": "templates/review/final_review_matrix.yaml",
+      "baseline_sha256": "aefdb6d05242e5f79b2429f3d79fc2bc80355fd0c3bb91916ab3e35d0a1fe1a5",
+      "candidate_sha256": "fa5bf4362ace5d176d3bd0230601eeb00c2faf5e8113f3977dd9bac7329dec63",
+      "spans": [
+        {
+          "before": [
+            [
+              1,
+              69
+            ]
+          ],
+          "after": [
+            [
+              1,
+              78
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "path": "core/project_state.schema.yaml",
+      "baseline_sha256": "348e981de6a66f028f742e56f9e0cd872567baf685b4f507ff62cfff435ccd73",
+      "candidate_sha256": "5ab0e1b5897e70e2ce04d1de7f684a6003d9a97ad1e45201e734ae5360c722c1",
+      "spans": [
+        {
+          "before": [
+            [
+              1,
+              2055
+            ]
+          ],
+          "after": [
+            [
+              1,
+              2059
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "path": "modules/05_writing/ai_cleanup.md",
+      "baseline_sha256": "a2574e04006daa4ab9156cd5ae051fa42f4ee289e05193892b19919d254c11d6",
+      "candidate_sha256": "10f5e9b6c8a315bb888893eca03fecb9a772a0f4397cedbee669e8b2014fecf6",
+      "spans": [
+        {
+          "before": [
+            [
+              1,
+              51
+            ]
+          ],
+          "after": [
+            [
+              1,
+              52
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "path": "core/writing_reasoning_contract.yaml",
+      "baseline_sha256": "d64b0ce75987d5581ce9342800a2e73b0fccc9184cce613f12699aaf3a723bd1",
+      "candidate_sha256": "56246364a74bb8a5ec014d1882e9ae2ad12f13d183815a0f5ee6f6a9a029c2e6",
+      "spans": [
+        {
+          "before": [
+            [
+              1,
+              1950
+            ]
+          ],
+          "after": [
+            [
+              1,
+              1729
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}

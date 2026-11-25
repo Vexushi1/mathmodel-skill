@@ -8,6 +8,8 @@ from pathlib import Path
 import tempfile
 import unittest
 
+from v1120_release_reference import V1120_SOURCE_IDENTITIES, prior_v1120_release_bytes
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -24,7 +26,8 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.measurement = load_measurement()
-        cls.fixture = ROOT / "tests/fixtures/v1110_w3_proposition_source_spans.json"
+        cls.fixture = ROOT / "tests/fixtures/v1120_release_source_spans.json"
+        cls.frozen_w3 = ROOT / "tests/fixtures/v1110_w3_proposition_source_spans.json"
         cls.frozen_w2 = ROOT / "tests/fixtures/v1110_w2_numeric_source_spans.json"
         cls.frozen_w1_draft = ROOT / "tests/fixtures/v1110_writing_draft_source_spans.json"
         cls.frozen_v1110 = ROOT / "tests/fixtures/v1110_release_source_spans.json"
@@ -172,6 +175,7 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
             (self.frozen_v1110, "v11_1_0_release_legacy_stage_scoped_spans"),
             (self.frozen_w1_draft, "v11_1_0_writing_draft_legacy_stage_scoped_spans"),
             (self.frozen_w2, "v11_1_0_w2_numeric_display_source_spans"),
+            (self.frozen_w3, "v11_1_0_w3_proposition_cap_source_spans"),
         ):
             previous = json.loads(path.read_text(encoding="utf-8"))
             self.assertEqual(previous["scope"], expected_scope)
@@ -181,10 +185,14 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
 
         w2 = json.loads(self.frozen_w2.read_text(encoding="utf-8"))
         current = self.measurement.approved_source_span_migrations(self.fixture)
-        self.assertEqual(current["scope"], "v11_1_0_w3_proposition_cap_source_spans")
+        self.assertEqual(current["scope"], "v11_2_0_release_writing_source_spans")
         for field in ("required_case_ids", "model_intake", "pqs_full_source_spans"):
             self.assertEqual(current[field], w2[field])
-        self.assertEqual(current["migrations"][:3], w2["migrations"][:3])
+        self.assertEqual(current["migrations"][1:3], w2["migrations"][1:3])
+        router = deepcopy(current["migrations"][0])
+        self.assertEqual(router["candidate_sha256"], V1120_SOURCE_IDENTITIES[router["path"]][1])
+        router["candidate_sha256"] = V1120_SOURCE_IDENTITIES[router["path"]][0]
+        self.assertEqual(router, w2["migrations"][0])
         design = current["migrations"][-1]
         self.assertEqual(design["path"], "modules/02_model_design.md")
         self.assertEqual(design["candidate_sha256"], "ca5c299e4cbeea9caff80fbbaba2e3711262081ffe258ef5ca51e0ee7fcaf306")
@@ -192,7 +200,7 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
         self.assertEqual(current["output_read_shift"]["cases"][0]["current_ranges"], [[468, 514]])
         self.assertEqual(current["output_read_shift"]["cases"][1]["current_ranges"], [[1, 637]])
         self.assertEqual(current["output_conditional_shift"]["current_ranges"], [[1, 637]])
-        self.assertEqual(current["output_read_shift"]["candidate_sha256"], "11a647712355a29de942062fa26c09d21baa5bfe3360c79df90d34021a78be05")
+        self.assertEqual(current["output_read_shift"]["candidate_sha256"], V1120_SOURCE_IDENTITIES["core/output_contract.yaml"][1])
         protocol = next(x for x in current["legacy_profile_read_shifts"]
                         if x["path"] == "modules/05_writing/paper_writing_protocol.md")
         self.assertEqual(protocol["candidate_sha256"], "09994c876bc02cacd320d6898429eb95e4e2c095cb2900739dc815ab8deb0094")
@@ -205,6 +213,42 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
         self.assertEqual(cleanup["candidate_sha256"],
                          "10f5e9b6c8a315bb888893eca03fecb9a772a0f4397cedbee669e8b2014fecf6")
         self.assertEqual(cleanup["spans"], [{"before": [[1, 51]], "after": [[1, 52]]}])
+
+    def test_release_manifest_is_exact_version_only_successor_to_frozen_w3(self):
+        self.assertEqual(self.measurement.digest(self.frozen_w3.read_bytes()),
+                         "522f3e96ed3c07df6a870681321e35ec03e1fb4546bb25ec4e5c164d3c76236f")
+        frozen = json.loads(self.frozen_w3.read_text(encoding="utf-8"))
+        current = self.measurement.approved_source_span_migrations(self.fixture)
+        projected = deepcopy(current)
+        for field in ("scope", "version", "authorizing_reason"):
+            projected[field] = frozen[field]
+        seen = set()
+
+        def restore(value):
+            if isinstance(value, dict):
+                path = value.get("path")
+                if path in V1120_SOURCE_IDENTITIES and "candidate_sha256" in value:
+                    prior_sha, current_sha = V1120_SOURCE_IDENTITIES[path]
+                    self.assertEqual(value["candidate_sha256"], current_sha)
+                    value["candidate_sha256"] = prior_sha
+                    seen.add(path)
+                for child in value.values():
+                    restore(child)
+            elif isinstance(value, list):
+                for child in value:
+                    restore(child)
+
+        restore(projected)
+        self.assertEqual(projected, frozen)
+        self.assertEqual(seen, set(V1120_SOURCE_IDENTITIES))
+        for path, (prior_sha, current_sha) in V1120_SOURCE_IDENTITIES.items():
+            with self.subTest(path=path):
+                raw = (ROOT / path).read_bytes()
+                self.assertEqual(self.measurement.digest(raw), current_sha)
+                prior = prior_v1120_release_bytes(path, raw)
+                self.assertEqual(self.measurement.digest(prior), prior_sha)
+                with self.assertRaisesRegex(ValueError, "release source identity drift"):
+                    prior_v1120_release_bytes(path, raw + b"\n")
 
     def test_writing_draft_cleanup_g2_full_read_projects_only_pinned_span(self):
         fixture = self.measurement.approved_source_span_migrations(self.fixture)
@@ -280,7 +324,7 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
         before = {"id": "pure_model_design", "behavior": {"read_now": [], "load_order": []},
                   "source_identity": {"skill_version": "10.27.0", "sources": []}}
         after = {"id": "pure_model_design", "behavior": {"read_now": [], "load_order": []},
-                 "source_identity": {"skill_version": "11.1.0", "sources": []}}
+                 "source_identity": {"skill_version": "11.2.0", "sources": []}}
         for item in manifest["migrations"]:
             original = {
                 "origin": "skill", "path": item["path"],
@@ -307,7 +351,7 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
 
     def test_exact_current_bytes_and_spans_project_without_mutating_actual_evidence(self):
         fixture, old, new = self.cases()
-        self.assertEqual(fixture["version"], "11.1.0")
+        self.assertEqual(fixture["version"], "11.2.0")
         preserved = deepcopy(new)
         projected, evidence = self.measurement.project_exact_approved_source_spans(
             old, new, fixture)
