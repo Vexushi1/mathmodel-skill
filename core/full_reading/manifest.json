@@ -344,13 +344,13 @@
     },
     {
       "path": "core/full_reading/volumes/068.md",
-      "bytes": 11798,
-      "sha256": "19daa33ccadd67c151d956e58c72d8c0faae64643af35aa1833acfd54d001c85"
+      "bytes": 11862,
+      "sha256": "a9775ee9f21bb66aaeda4e159a01047e2190dd08e8b27307b4a361b515f7d385"
     },
     {
       "path": "core/full_reading/volumes/069.md",
       "bytes": 12161,
-      "sha256": "95f3e4d250c8c6e5c7c85e2d36dd43465287bbf9181574d31d17b13b124ef09f"
+      "sha256": "d7ee5a84b482d787aa1e491161bb95aa8754e8ccca2a870c2717169b4d26d191"
     },
     {
       "path": "core/full_reading/volumes/070.md",
@@ -494,8 +494,8 @@
     },
     {
       "path": "core/full_reading/volumes/098.md",
-      "bytes": 9045,
-      "sha256": "76c9990fbd471e57221d49c1b4ee523a0b1d07f146f27cba57052804897eb976"
+      "bytes": 9111,
+      "sha256": "a9ca92ec6cb70aeb982508d98532c8a737b392a519f167560d7ab0f6db2e8279"
     },
     {
       "path": "core/full_reading/volumes/099.md",
@@ -504,8 +504,8 @@
     },
     {
       "path": "core/full_reading/volumes/100.md",
-      "bytes": 12231,
-      "sha256": "4299f57681a1665044192775ffd9ed7cddd269ac9d9471193c9b6d02f8900565"
+      "bytes": 12267,
+      "sha256": "19c1a3bb1096daa6eeca9ab36cb7a73a4da11fc20507f65f9b206d156d09fcfb"
     },
     {
       "path": "core/full_reading/volumes/101.md",
@@ -1995,9 +1995,9 @@
       "path": "modules/03_solve_validate.md",
       "role": "module",
       "aliases": [],
-      "bytes": 14885,
-      "sha256": "c28d23bdb60bb423d3ebb1286c0d8956b92076aeae992261099b71fbb53af9fc",
-      "git_blob_sha1": "54b0992cb60ad895ea35c6283297a20c1c1a1711",
+      "bytes": 14949,
+      "sha256": "09ae401383b4352b0616bf16aa2abc9e5353aa7210a21618f39a2642d66fef6d",
+      "git_blob_sha1": "5f52d74c0a8639a211c921e0b1aedc4b20d161b1",
       "parts": [
         {
           "volume": "core/full_reading/volumes/067.md",
@@ -2012,17 +2012,17 @@
         {
           "volume": "core/full_reading/volumes/068.md",
           "start": 1762,
-          "end": 13457,
+          "end": 13521,
           "line_start": 20,
           "line_end": 153,
           "volume_start": 103,
-          "volume_end": 11798,
-          "sha256": "cff23ccac30fc48b646e9019c5bd3a951988f81b2cac7cde98453f816ffc7659"
+          "volume_end": 11862,
+          "sha256": "15dca44aa513c82729af55a2da44f1448c97e66de3dd6c3e12acc9a480661c2e"
         },
         {
           "volume": "core/full_reading/volumes/069.md",
-          "start": 13457,
-          "end": 14885,
+          "start": 13521,
+          "end": 14949,
           "line_start": 154,
           "line_end": 159,
           "volume_start": 105,
@@ -2855,19 +2855,19 @@
       "path": "templates/code/hsk_pipeline/README.md",
       "role": "conditional_template",
       "aliases": [],
-      "bytes": 8914,
-      "sha256": "5afda2619e6cab0bafad1d74c465e6d4a6860bfc9b2470194b0f88498887694a",
-      "git_blob_sha1": "ce551c03ccdcd554d48fb4fcbbc120d695dfb44c",
+      "bytes": 8980,
+      "sha256": "912375c0b9b7bc316f899fed3956148d9e90305cdabdd95f0596f341213d6e6d",
+      "git_blob_sha1": "07f3b3eaf15de2e8d16f630e6776bc2c1b42108a",
       "parts": [
         {
           "volume": "core/full_reading/volumes/098.md",
           "start": 0,
-          "end": 8914,
+          "end": 8980,
           "line_start": 1,
           "line_end": 74,
           "volume_start": 131,
-          "volume_end": 9045,
-          "sha256": "5afda2619e6cab0bafad1d74c465e6d4a6860bfc9b2470194b0f88498887694a"
+          "volume_end": 9111,
+          "sha256": "912375c0b9b7bc316f899fed3956148d9e90305cdabdd95f0596f341213d6e6d"
         }
       ]
     },
@@ -2895,9 +2895,9 @@
       "path": "templates/code/starter/README.md",
       "role": "conditional_template",
       "aliases": [],
-      "bytes": 12270,
-      "sha256": "fdee714f9b2d6ef0dbb0f3ff0b5406a0cd344bb302aab36e7f2940bfe6f29a46",
-      "git_blob_sha1": "3becc80f03905c6429f4cbf6b350f52f82c85d2b",
+      "bytes": 12306,
+      "sha256": "e07f670925e2173ce80fe8a6967b9edb7928d7c90072c81e78b84949b7620708",
+      "git_blob_sha1": "437671cfccd14bf8d15a829f618dd9283c527e56",
       "parts": [
         {
           "volume": "core/full_reading/volumes/099.md",
@@ -2912,12 +2912,12 @@
         {
           "volume": "core/full_reading/volumes/100.md",
           "start": 2777,
-          "end": 12270,
+          "end": 12306,
           "line_start": 22,
           "line_end": 64,
           "volume_start": 125,
-          "volume_end": 9618,
-          "sha256": "dcff13b834cc3f2d0f044c9574710b7ce01ea49d52681fd4235b11a850e6c857"
+          "volume_end": 9654,
+          "sha256": "30164b67f2a3487bec2c2403a7fc652008f3b103a871f33680a00c1d2c84e395"
         }
       ]
     },
@@ -2935,8 +2935,8 @@
           "end": 2486,
           "line_start": 1,
           "line_end": 21,
-          "volume_start": 9745,
-          "volume_end": 12231,
+          "volume_start": 9781,
+          "volume_end": 12267,
           "sha256": "ec51a1719c26e07b70f54e52c218563fd8c645d527e8367747203c328c0fba90"
         },
         {
