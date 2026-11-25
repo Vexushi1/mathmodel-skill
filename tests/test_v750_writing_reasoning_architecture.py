@@ -171,7 +171,11 @@ class TestV750WritingReasoningArchitecture(unittest.TestCase):
         data = yaml.safe_load((ROOT / "core/writing_reasoning_contract.yaml").read_text(encoding="utf-8"))
         self.assertEqual(set(data["rule_governance"]["levels"]), {"hard", "default", "recommendation"})
         self.assertIn("citation_evidence", data)
-        self.assertFalse(data["proposition_governance"]["automatic_rejection_over_budget"])
+        proposition = data["proposition_governance"]
+        self.assertTrue(proposition["automatic_rejection_over_budget"])
+        self.assertEqual(proposition["maximum_body_propositions"], 4)
+        self.assertEqual(proposition["governance_level"], "hard")
+        self.assertEqual(proposition["count_scope"], "full_paper_body")
         self.assertEqual(data["adaptive_core_model_summary"]["modes"], ["required", "inline", "not_applicable"])
 
 

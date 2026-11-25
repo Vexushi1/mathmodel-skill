@@ -184,7 +184,6 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `core/full_reading/volumes/126.md`
 - `core/full_reading/volumes/127.md`
 - `core/full_reading/volumes/128.md`
-- `core/full_reading/volumes/129.md`
 - `core/global_preprocessing_contract.yaml`
 - `core/hsk_core_policy.md`
 - `core/literature_research_contract.yaml`
@@ -477,6 +476,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/fixtures/v10353_approved_source_spans.json`
 - `tests/fixtures/v1110_release_source_spans.json`
 - `tests/fixtures/v1110_w2_numeric_source_spans.json`
+- `tests/fixtures/v1110_w3_proposition_source_spans.json`
 - `tests/fixtures/v1110_writing_draft_source_spans.json`
 - `tests/fixtures/v11_business_baseline.yaml`
 - `tests/fixtures/v11_candidate_source_spans.json`
@@ -778,6 +778,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_v931_repository_hygiene_index.py`
 - `tests/test_v931_task_pack_budget_closure.py`
 - `tests/test_v931_writing_readability_w4_acceptance.py`
+- `tests/test_w3_proposition_body_limit.py`
 - `tests/v10270_action_observation.py`
 - `tests/v10270_runtime_measurement.py`
 - `tests/v11_business_baseline.py`
@@ -787,6 +788,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/v11_reading_baseline.py`
 - `tests/v11_web_app_packet.py`
 - `tests/w2_numeric_display_reference.py`
+- `tests/w3_proposition_reference.py`
 - `tests/writing_slimming_reference.py`
 
 ## Current Maintenance Records

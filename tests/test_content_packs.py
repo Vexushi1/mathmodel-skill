@@ -121,7 +121,7 @@ class TestContentPacks(unittest.TestCase):
         for token in (
             "当前有效项目事实、选择、状态与证据位置",
             "## 当前有效口径", "## 论文整体框架", "### 命题与证明规划",
-            "当前计划命题数：0", "默认正文预算：0--4", "### 核心公式 Trace",
+            "当前计划命题数：0", "全文正文正式命题上限：4", "### 核心公式 Trace",
             "### Citation Evidence", "## 各问模型与结果", "#### 当前模型口径",
             "#### 结果摘要", "DOCX/LaTeX 图注", "Figure role", "## 图表证据链", "正文引用位置",
             "## 同步检查",
@@ -141,8 +141,10 @@ class TestContentPacks(unittest.TestCase):
         reasoning = yaml.safe_load((ROOT / "core/writing_reasoning_contract.yaml").read_text(encoding="utf-8"))
         proposition = reasoning["proposition_governance"]
         self.assertEqual(proposition["default_budget"], [0, 4])
-        self.assertFalse(proposition["automatic_rejection_over_budget"])
-        self.assertEqual(proposition["over_budget_action"], "justification_required")
+        self.assertTrue(proposition["automatic_rejection_over_budget"])
+        self.assertEqual(proposition["over_budget_action"], "revise_body_plan_required")
+        self.assertEqual(proposition["maximum_body_propositions"], 4)
+        self.assertEqual(proposition["count_scope"], "full_paper_body")
 
         paths = [
             ROOT / "modules/05_writing/docx.md",
@@ -178,7 +180,7 @@ class TestContentPacks(unittest.TestCase):
         self.assertNotIn("把技术引理移附录", model_design)
 
         protocol = (ROOT / "modules/05_writing/paper_writing_protocol.md").read_text(encoding="utf-8")
-        self.assertIn("证明位置服从数学作用而不是长度", protocol)
+        self.assertIn("全文正文数量、准入、证明等级与位置服从", protocol)
         self.assertIn("核心证明不能仅因篇幅较长", protocol)
 
         cleanup = (ROOT / "modules/05_writing/ai_cleanup.md").read_text(encoding="utf-8")
@@ -260,9 +262,9 @@ class TestContentPacks(unittest.TestCase):
         self.assertEqual(proposition["latex_outer_environment"], "hskproposition")
         self.assertEqual(proposition["display_numbering"], "arabic_section_dot_arabic_proposition")
         self.assertEqual(proposition["default_budget"], [0, 4])
-        self.assertEqual(proposition["over_budget_action"], "justification_required")
-        self.assertFalse(proposition["automatic_rejection_over_budget"])
-        self.assertNotIn("maximum_per_paper", proposition)
+        self.assertEqual(proposition["over_budget_action"], "revise_body_plan_required")
+        self.assertTrue(proposition["automatic_rejection_over_budget"])
+        self.assertEqual(proposition["count_scope"], "full_paper_body")
 
     def test_caption_template_has_no_copyable_fixed_sentence_and_requires_body_reference(self):
         text = (ROOT / "templates/writing/caption_explanation.md").read_text(encoding="utf-8")

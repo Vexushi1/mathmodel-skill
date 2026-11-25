@@ -14,6 +14,7 @@ import yaml
 
 from reading_plan_cases import CASES, build_project
 from writing_slimming_reference import prior_writing_slimming_plan
+from w3_proposition_reference import W3_SOURCE_IDENTITIES, prior_w3_proposition_text
 
 HERE = Path(__file__).resolve()
 ALLOWED_CHANGED_AUTHORITIES = {
@@ -2232,14 +2233,36 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
             raw = (HERE.parent.parent / path).read_bytes()
             patch_header = ("version: " + matched_carrier["skill"] + "\n").encode("utf-8")
             previous_header = b"version: 10.27.0\n"
-            # W2 D02 only removes one duplicated *paper display* default.
-            # Restore the approved W1 exact bytes before the existing historical
-            # carrier inverse. All unknown field/source differences remain visible.
+            # Exact W3 source projection first, followed by frozen W2 and W1
+            # source inverses. Every source SHA and reconstructed byte sequence
+            # must match the approved predecessor before any business projection.
+            w3_digest, w3_predecessor = W3_SOURCE_IDENTITIES[path]
+            w3_source = (
+                matched_carrier == V1110_RELEASE_AUTHORITY_VERSIONS
+                and actual[0]["sha256"] == w3_digest
+            )
+            if w3_source:
+                if hashlib.sha256(raw).hexdigest() != w3_digest:
+                    return deepcopy(original), []
+                try:
+                    raw = prior_w3_proposition_text(path, raw.decode("utf-8")).encode("utf-8")
+                except (UnicodeError, ValueError):
+                    return deepcopy(original), []
+                if hashlib.sha256(raw).hexdigest() != w3_predecessor:
+                    return deepcopy(original), []
+                changes.append({
+                    "path": "assurance.authority_fingerprint.sources.core/output_contract.yaml",
+                    "baseline": w3_predecessor,
+                    "candidate": w3_digest,
+                    "approval": "W3 I01/I02 exact four-proposition body governance source",
+                })
+            # W2 D02 only removes one duplicated paper-display default.
+            # Restore approved W1 bytes before the older carrier inversion.
             w2_digest = "e78a4092760319cee25c94d3eb4a4fe41ea814a85395ef16d15b25d3cd15e7c9"
             w1_digest = "281b9c5da5a7e70c422244c1de44eb54fa1b738ed045e2a911ce3d9bffbb2d84"
             w2_source = (
                 matched_carrier == V1110_RELEASE_AUTHORITY_VERSIONS
-                and actual[0]["sha256"] == w2_digest
+                and (actual[0]["sha256"] == w2_digest or w3_source)
             )
             if w2_source:
                 line = (

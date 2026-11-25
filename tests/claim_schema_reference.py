@@ -71,8 +71,46 @@ def previous_plotting_schema(schema):
     return schema
 
 
+def previous_w3_proposition_schema(schema):
+    """Reverse precisely W3 I01's schema leaves before historical digest checks.
+
+    The current four-proposition hard limit remains active in production; this
+    inverse is test-only and cannot normalize unrelated schema differences.
+    """
+    previous = deepcopy(schema)
+    props = previous["properties"]["paper_framework"]["properties"]
+    approved = {
+        "proposition_count": {"type": "integer", "minimum": 0, "maximum": 4},
+        "propositions": {"type": "array", "maxItems": 4,
+                         "items": {"$ref": "#/$defs/proposition_entry"}},
+        "proposition_budget_status": {
+            "description": "旧项目预算状态只读兼容，justified 不再豁免当前正文上限",
+            "type": "string",
+            "enum": ["within_default_budget", "justification_required", "justified"],
+        },
+        "proposition_budget_reason": {
+            "description": "旧项目预算说明只读兼容，不得用于当前正文超限放行",
+            "type": "string",
+        },
+    }
+    for field, shape in approved.items():
+        if props.get(field) != shape:
+            raise AssertionError(f"W3 proposition schema inverse rejected unapproved {field}")
+    props["proposition_count"] = {"type": "integer", "minimum": 0}
+    props["propositions"] = {
+        "type": "array", "items": {"$ref": "#/$defs/proposition_entry"},
+    }
+    props["proposition_budget_status"] = {
+        "type": "string",
+        "enum": ["within_default_budget", "justification_required", "justified"],
+    }
+    props["proposition_budget_reason"] = {"type": "string"}
+    return previous
+
+
 def previous_comparison_schema(schema):
-    """Remove only this optional extension; retain every pinned predecessor check."""
+    """Remove only reviewed schema leaves; retain every pinned predecessor check."""
+    schema = previous_w3_proposition_schema(schema)
     schema = previous_plotting_schema(schema) if "plotting" in schema["properties"] else deepcopy(schema)
     assert schema['version'] == '8.16.0'
     fields = schema['properties']['subproblems']['additionalProperties']['properties']

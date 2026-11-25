@@ -58,12 +58,12 @@ class TestV741SkillClosureHygiene(unittest.TestCase):
         for text in (cleanup, docx, review):
             self.assertIn("core/writing_reasoning_contract.yaml", text)
 
-    def test_model_design_has_no_fixed_assumption_or_proposition_hard_quota(self):
+    def test_model_design_has_no_assumption_quota_and_enforces_approved_proposition_limit(self):
         text = (ROOT / "modules/02_model_design.md").read_text(encoding="utf-8")
         self.assertIn("假设按必要性而非数量保留", text)
-        self.assertIn("0--4 是默认正文阅读预算，不是绝对上限", text)
+        self.assertIn("全文正文正式命题最多 4 个，不设超额豁免", text)
         self.assertNotIn("3--5 个关键假设", text)
-        self.assertNotIn("不得超过 4 个", text)
+        self.assertIn("核心命题及其必要证明不能因预算外移或被删掉", text)
 
     def test_resolver_respects_prerequisites_and_resolves_when_artifacts_exist(self):
         resolver = load_resolver()

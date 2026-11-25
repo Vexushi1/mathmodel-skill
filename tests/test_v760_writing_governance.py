@@ -26,8 +26,12 @@ class TestV760WritingGovernance(unittest.TestCase):
     def test_reasoning_contract_has_tiered_governance_and_citation_evidence(self):
         contract = yaml.safe_load((ROOT / "core/writing_reasoning_contract.yaml").read_text(encoding="utf-8"))
         self.assertEqual(set(contract["rule_governance"]["levels"]), {"hard", "default", "recommendation"})
-        self.assertFalse(contract["proposition_governance"]["automatic_rejection_over_budget"])
-        self.assertEqual(contract["proposition_governance"]["default_budget"], [0, 4])
+        rule = contract["proposition_governance"]
+        self.assertTrue(rule["automatic_rejection_over_budget"])
+        self.assertEqual(rule["default_budget"], [0, 4])
+        self.assertEqual(rule["maximum_body_propositions"], 4)
+        self.assertEqual(rule["count_scope"], "full_paper_body")
+        self.assertEqual(rule["governance_level"], "hard")
         self.assertIn("citation_evidence", contract)
         self.assertEqual(contract["model_evaluation"], {"authority": "modules/05_writing/paper_writing_protocol.md#15-模型评价逐问结论与附录"})
         self.assertEqual(
@@ -53,8 +57,8 @@ class TestV760WritingGovernance(unittest.TestCase):
         combined = "\n".join(path.read_text(encoding="utf-8") for path in files)
         self.assertNotIn("优点数必须大于缺点数", combined)
         self.assertNotIn("优点数量必须大于缺点数量", combined)
-        self.assertNotIn("全文最终保留数量不得超过 4 个", combined)
-        self.assertNotIn("全文命题不得超过 4 个", combined)
+        self.assertIn("全文正文正式命题最多 4 个", combined)
+        self.assertNotIn("超出预算仍可保留额外命题", combined)
         self.assertIn("required / inline / not_applicable", combined)
 
         protocol = (ROOT / "modules/05_writing/paper_writing_protocol.md").read_text(encoding="utf-8")
@@ -72,7 +76,7 @@ class TestV760WritingGovernance(unittest.TestCase):
         self.assertIn("核心模型收束：`required / inline / not_applicable`", text)
         self.assertNotIn("命题准入检查：", text)
 
-    def test_framework_validator_allows_five_propositions_when_justified(self):
+    def test_framework_validator_rejects_fifth_proposition_even_with_justification(self):
         rows = "\n".join(
             f"| P{i} | Q1 | 命题{i} | 条件 | 结论 | B | 降维 | 边界 | current |"
             for i in range(1, 6)
@@ -117,7 +121,15 @@ class TestV760WritingGovernance(unittest.TestCase):
 ## 同步检查
 """
         issues = FRAMEWORK.validate_framework_text(text, strict=True, mode="full")
-        self.assertEqual(issues, [])
+        self.assertTrue(
+            any("exceeds full-paper body limit 4" in issue for issue in issues), issues
+        )
+        four_rows = "\n".join(
+            f"| P{i} | Q1 | 命题{i} | 条件 | 结论 | B | 降维 | 边界 | current |"
+            for i in range(1, 5)
+        )
+        accepted = text.replace("- 当前计划命题数：5", "- 当前计划命题数：4").replace(rows, four_rows)
+        self.assertEqual(FRAMEWORK.validate_framework_text(accepted, strict=True, mode="full"), [])
 
     def test_bib_audit_blocks_missing_and_duplicate_keys_but_only_warns_unused(self):
         tex = r"""\documentclass{article}
@@ -135,13 +147,15 @@ class TestV760WritingGovernance(unittest.TestCase):
         self.assertEqual(by_code["missing_bib_key"], "blocking")
         self.assertEqual(by_code["unused_bib_entries"], "warning")
 
-    def test_project_state_schema_accepts_p5_and_budget_exception(self):
+    def test_project_state_keeps_stable_p5_ids_but_blocks_body_count_over_four(self):
         schema = yaml.safe_load((ROOT / "core/project_state.schema.yaml").read_text(encoding="utf-8"))
         proposition_id = schema["$defs"]["proposition_entry"]["properties"]["id"]["pattern"]
         self.assertEqual(proposition_id, "^P[1-9][0-9]*$")
         framework = schema["properties"]["paper_framework"]["properties"]
-        self.assertNotIn("maximum", framework["proposition_count"])
+        self.assertEqual(framework["proposition_count"]["maximum"], 4)
+        self.assertEqual(framework["propositions"]["maxItems"], 4)
         self.assertIn("proposition_budget_status", framework)
+        self.assertIn("proposition_budget_reason", framework)
         refs = schema["properties"]["subproblems"]["additionalProperties"]["properties"]["proposition_refs"]
         self.assertNotIn("maxItems", refs)
 
