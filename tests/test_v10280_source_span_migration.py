@@ -738,9 +738,10 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
         self.assertEqual(rule, {
             "path": path,
             "baseline_sha256": "348e981de6a66f028f742e56f9e0cd872567baf685b4f507ff62cfff435ccd73",
-            "candidate_sha256": R1_SOURCE_IDENTITIES[path][1],
+            "candidate_sha256": R3_SOURCE_IDENTITIES[path][1],
             "spans": [{"before": [[1, 2055]], "after": [[1, 2059]]}],
         })
+        self.assertEqual(R3_SOURCE_IDENTITIES[path][0], R1_SOURCE_IDENTITIES[path][1])
         self.assertEqual(R1_SOURCE_IDENTITIES[path][0],
                          "5ab0e1b5897e70e2ce04d1de7f684a6003d9a97ad1e45201e734ae5360c722c1")
         approvals = self.measurement.approved_changes(
