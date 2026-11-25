@@ -335,9 +335,11 @@ $$
 
 **题面—数学—代码—输出闭环**
 
-| 题面对象/要求 | 数学变量、关系、目标或约束 | 实现变量/函数 | 工作簿输出/验证 | 状态 |
+按 Module 02 §4 将同一问的各项必答量逐行闭合，引用 SIB 中对应数学量的稳定 ID。
+
+| 题面对象/要求（需求编号） | 数学变量、关系、目标或约束 | 实现变量/函数与返回值 | 预期工作簿输出/验证位置 | 状态 |
 |---|---|---|---|---|
-|  |  |  |  | closed / gap |
+| Q1-REQ-01： |  |  |  | closed / gap |
 
 **结构化简与复杂度复审**
 
@@ -380,7 +382,7 @@ $$
 - Residual warnings：
 - 批准小问与 semantic revision：
 - 用户批准原话与来源：
-- Model Approval Brief：研究对象、selected model、标准模型类型、核心变量、objective、关键约束、Model Construction Rationale、applicability boundary、preprocessing_decision、结构化简与 provenance、solver/validator 角色、solver preconditions、algorithm presentation、关键数值参数证据、被否决路线理由、下一阶段实现范围；若机理/几何结构有效性适用，摘要暴露真正改变求解语义的判据、事件边界、缩域 evidence level、组合算子、条件式 solver 分支和 original-model 回算要求。
+- Model Approval Brief：研究对象、selected model、标准模型类型、核心变量、objective、关键约束、必答量及关键计算条件、Model Construction Rationale、applicability boundary、preprocessing_decision、结构化简与 provenance、solver/validator 角色、solver preconditions、algorithm presentation、关键数值参数证据、被否决路线理由、下一阶段实现范围；若机理/几何结构有效性适用，摘要暴露真正改变求解语义的判据、事件边界、缩域 evidence level、组合算子、条件式 solver 分支和 original-model 回算要求。
 - 当前模型状态：`proposed_model_spec / locked_model_spec / stale`
 
 **数值参数证据**
@@ -478,10 +480,12 @@ $$
 
 深化分析工作簿仅在 Analysis Necessity Gate=`required` 且 03B 已验收时登记为可用来源；Gate=`not_required` 不要求该文件存在，也不代表已验证稳定性。
 
-| 证据类型 | 文件 | 工作表/函数/命题/图号/citation key | 关键字段或指标 |
+按需求编号登记实际答案位置、记录键与单位。
+
+| 证据类型/需求编号 | 文件 | 工作表/函数/命题/图号/citation key | 关键字段、记录键、指标与单位 |
 |---|---|---|---|
 | 主求解代码 |  |  |  |
-| 求解工作簿 |  |  |  |
+| 求解工作簿 / Q1-REQ-01 |  |  |  |
 | 深化分析工作簿 |  |  |  |
 | Algorithm |  |  |  |
 | 命题 |  |  |  |

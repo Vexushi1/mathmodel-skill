@@ -1,4 +1,4 @@
-version: 11.3.0
+version: 11.4.0
 bootstrap: core/bootstrap.yaml
 
 # default_load / load_policy 描述本次业务动作的路由资源。开场读取方式由

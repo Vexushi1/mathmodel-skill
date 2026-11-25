@@ -30,6 +30,7 @@ from reading_plan_evidence import (
     V1110_RELEASE_AUTHORITY_VERSIONS,
     V1120_RELEASE_AUTHORITY_VERSIONS,
     V1130_R1_AUTHORITY_VERSIONS,
+    V1140_R2_AUTHORITY_VERSIONS,
     REVIEW_SPLIT_WRITING_DELTAS,
     C_REVIEW_STAGE_PINNED_READS,
     STAGE_READING_AUTHORITY_VERSIONS,
@@ -121,6 +122,7 @@ RUNTIME_V11_RELEASE_VERSIONS = V11_DEFAULT_AUTHORITY_VERSIONS
 RUNTIME_V1110_RELEASE_VERSIONS = V1110_RELEASE_AUTHORITY_VERSIONS
 RUNTIME_V1120_RELEASE_VERSIONS = V1120_RELEASE_AUTHORITY_VERSIONS
 RUNTIME_V1130_R1_VERSIONS = V1130_R1_AUTHORITY_VERSIONS
+RUNTIME_V1140_R2_VERSIONS = V1140_R2_AUTHORITY_VERSIONS
 # Phase C: pin the exact review reads separately from the historical
 # Review Split migration and unchanged Phase G golden. Unregistered additions,
 # removals, order changes, or selector substitutions must fail projection.
@@ -182,6 +184,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
             RUNTIME_V1110_RELEASE_VERSIONS["skill"],
             RUNTIME_V1120_RELEASE_VERSIONS["skill"],
             RUNTIME_V1130_R1_VERSIONS["skill"],
+            RUNTIME_V1140_R2_VERSIONS["skill"],
         }:
             plan = copy.deepcopy(plan)
             plan["version"] = RUNTIME_LITERATURE_SNAPSHOT_RELEASE_VERSIONS["skill"]
@@ -409,6 +412,11 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
         self.assertEqual(RUNTIME_V1110_RELEASE_VERSIONS["skill"], "11.1.0")
         self.assertEqual(RUNTIME_V1120_RELEASE_VERSIONS["skill"], "11.2.0")
         self.assertEqual(RUNTIME_V1130_R1_VERSIONS["skill"], "11.3.0")
+        self.assertEqual(RUNTIME_V1140_R2_VERSIONS["skill"], "11.4.0")
+        self.assertEqual(
+            {key: value for key, value in RUNTIME_V1140_R2_VERSIONS.items() if key != "skill"},
+            {key: value for key, value in RUNTIME_V1130_R1_VERSIONS.items() if key != "skill"},
+        )
         self.assertEqual(
             {key: value for key, value in RUNTIME_V1130_R1_VERSIONS.items() if key != "skill"},
             {key: value for key, value in RUNTIME_V1120_RELEASE_VERSIONS.items() if key != "skill"},
@@ -424,7 +432,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
 
     def test_runtime_repair_reuses_exact_writing_projection_without_mutation(self):
         plan = self.runtime.resolve_runtime("latex", competition="CUMCM")
-        self.assertEqual(plan["version"], RUNTIME_V1130_R1_VERSIONS["skill"])
+        self.assertEqual(plan["version"], RUNTIME_V1140_R2_VERSIONS["skill"])
         historical = copy.deepcopy(plan)
         historical["version"] = CUMCM_D_CLEANUP_RELEASE_VERSIONS["skill"]
         saved = copy.deepcopy((plan, historical, self.golden))
@@ -440,7 +448,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
         plan = self.runtime.resolve_runtime(
             "full_workflow", competition="CUMCM", primary="mechanism",
         )
-        self.assertEqual(plan["version"], RUNTIME_V1130_R1_VERSIONS["skill"])
+        self.assertEqual(plan["version"], RUNTIME_V1140_R2_VERSIONS["skill"])
         source = "core/literature_research_contract.yaml"
         pack = "packs/artifact/literature_research.md"
         self.assertEqual(plan["load_order"].count(source), 1)
@@ -465,7 +473,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
 
     def test_review_split_projection_binds_canonical_scopes_without_waiving_stage_fields(self):
         plan = self.runtime.resolve_runtime("latex", competition="CUMCM")
-        self.assertEqual(plan["version"], RUNTIME_V1130_R1_VERSIONS["skill"])
+        self.assertEqual(plan["version"], RUNTIME_V1140_R2_VERSIONS["skill"])
         saved = copy.deepcopy((plan, self.golden, REVIEW_SPLIT_WRITING_DELTAS))
         for index, stage_id, previous_reads, current_reads in REVIEW_SPLIT_WRITING_DELTAS:
             historical = self.golden["routes"]["latex"]["writing_runtime"]["authoring_sequence"][index]

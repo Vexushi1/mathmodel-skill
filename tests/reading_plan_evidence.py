@@ -17,6 +17,7 @@ from writing_slimming_reference import prior_writing_slimming_plan
 from w3_proposition_reference import W3_SOURCE_IDENTITIES, prior_w3_proposition_text
 from v1120_release_reference import V1120_SOURCE_IDENTITIES, prior_v1120_release_bytes
 from r1_continuity_reference import R1_SOURCE_IDENTITIES, prior_r1_bytes
+from r2_answer_reference import R2_SOURCE_IDENTITIES, prior_r2_bytes
 
 HERE = Path(__file__).resolve()
 ALLOWED_CHANGED_AUTHORITIES = {
@@ -2051,6 +2052,11 @@ V1130_R1_AUTHORITY_VERSIONS = {
     "skill": "11.3.0",
 }
 
+V1140_R2_AUTHORITY_VERSIONS = {
+    **V1130_R1_AUTHORITY_VERSIONS,
+    "skill": "11.4.0",
+}
+
 # Exact-current unified Question Runtime source migration for historical v10.27/v11 reader tests.
 # This is comparison evidence only: no current gate or approval is projected.
 M2_CURRENT_SOURCE_SHA256 = {
@@ -2069,7 +2075,38 @@ EXPLICIT_QN_SUCCESSOR_SOURCE_SHA256 = {
 }
 
 
-def _r1_source_predecessor(plan, authority_versions):
+def _r2_source_predecessor(plan, authority_versions):
+    """Verify R2 bytes before projecting the frozen R1 source identities."""
+    if authority_versions != V1140_R2_AUTHORITY_VERSIONS or plan.get("version") != "11.4.0":
+        return deepcopy(plan), [], False
+    candidate = deepcopy(plan)
+    changes = []
+    try:
+        rows = candidate["assurance"]["authority_fingerprint"]["sources"]
+        for row in rows:
+            path = row["path"]
+            if path not in R2_SOURCE_IDENTITIES:
+                continue
+            prior_r2_bytes(path, (HERE.parent.parent / path).read_bytes())
+            prior_sha, current_sha = R2_SOURCE_IDENTITIES[path]
+            expected = ("<EXPECTED_APPROVED_AUTHORITY_CHANGE>"
+                        if path in ALLOWED_CHANGED_AUTHORITIES else current_sha)
+            if row["sha256"] != expected:
+                return None, [], False
+            if expected == current_sha:
+                row["sha256"] = prior_sha
+            changes.append({
+                "path": f"assurance.authority_fingerprint.sources.{path}",
+                "baseline": prior_sha, "candidate": current_sha,
+                "approval": "R2 exact answer-delivery source inverse to v11.3.0",
+            })
+        candidate["version"] = "11.3.0"
+        return candidate, changes, True
+    except (KeyError, TypeError, ValueError, OSError):
+        return None, [], False
+
+
+def _r1_source_predecessor(plan, authority_versions, *, r2_source=False):
     """Verify R1 bytes before reusing the frozen release's source comparisons."""
     if authority_versions != V1130_R1_AUTHORITY_VERSIONS or plan.get("version") != "11.3.0":
         return deepcopy(plan), [], False
@@ -2082,6 +2119,8 @@ def _r1_source_predecessor(plan, authority_versions):
             if path not in R1_SOURCE_IDENTITIES:
                 continue
             raw = (HERE.parent.parent / path).read_bytes()
+            if r2_source:
+                raw = prior_r2_bytes(path, raw)
             prior_r1_bytes(path, raw)
             prior_sha, current_sha = R1_SOURCE_IDENTITIES[path]
             expected = ("<EXPECTED_APPROVED_AUTHORITY_CHANGE>"
@@ -2101,7 +2140,7 @@ def _r1_source_predecessor(plan, authority_versions):
         return None, [], False
 
 
-def _registered_m2_source_predecessor(plan, authority_versions, *, r1_source=False):
+def _registered_m2_source_predecessor(plan, authority_versions, *, r1_source=False, r2_source=False):
     """Project only exact M2 source identities; reject source drift on disk."""
     old_versions = RUNTIME_CONSISTENCY_PROJECTION["authority_versions"]
     supported = (
@@ -2134,6 +2173,8 @@ def _registered_m2_source_predecessor(plan, authority_versions, *, r1_source=Fal
         observed = {}
         for path in M2_CURRENT_SOURCE_SHA256:
             raw = (root / path).read_bytes()
+            if r2_source:
+                raw = prior_r2_bytes(path, raw)
             if r1_source:
                 raw = prior_r1_bytes(path, raw)
             observed[path] = hashlib.sha256(raw).hexdigest()
@@ -2203,13 +2244,20 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
     original = deepcopy(new)
     if "startup_reading" in original or "figure_composition" in original:
         return original, []
-    new, r1_changes, r1_source = _r1_source_predecessor(new, candidate_authority_versions)
+    new, r2_changes, r2_source = _r2_source_predecessor(new, candidate_authority_versions)
+    if new is None:
+        return original, []
+    if r2_source:
+        candidate_authority_versions = V1130_R1_AUTHORITY_VERSIONS
+    new, r1_changes, r1_source = _r1_source_predecessor(
+        new, candidate_authority_versions, r2_source=r2_source,
+    )
     if new is None:
         return original, []
     if r1_source:
         candidate_authority_versions = V1120_RELEASE_AUTHORITY_VERSIONS
     new, m2_changes, m2_identity_profile = _registered_m2_source_predecessor(
-        new, candidate_authority_versions, r1_source=r1_source,
+        new, candidate_authority_versions, r1_source=r1_source, r2_source=r2_source,
     )
     if new is None:
         return original, []
@@ -2286,6 +2334,8 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
             if len(actual) != 1 or len(pinned) != 1:
                 return deepcopy(original), []
             raw = (HERE.parent.parent / path).read_bytes()
+            if r2_source:
+                raw = prior_r2_bytes(path, raw)
             if r1_source:
                 raw = prior_r1_bytes(path, raw)
             patch_header = ("version: " + matched_carrier["skill"] + "\n").encode("utf-8")
@@ -2543,6 +2593,8 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
             for path, digest in resolver_hashes.items():
                 actual = [row for row in fingerprint["sources"] if row["path"] == path]
                 raw = (HERE.parent.parent / path).read_bytes()
+                if r2_source:
+                    raw = prior_r2_bytes(path, raw)
                 if r1_source:
                     raw = prior_r1_bytes(path, raw)
                 raw_digest = hashlib.sha256(raw).hexdigest()
@@ -2607,7 +2659,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
                     "approval": ("v10.28.0 carrier-only patch; exact v10.27.0 inverse verified"
                                  if is_patch_carrier else
                                  "v10.27.0 compatible runtime repair; historical projections remain checked")})
-    return projected, [*r1_changes, *m2_changes, *changes]
+    return projected, [*r2_changes, *r1_changes, *m2_changes, *changes]
 
 
 def compare(before, after):
@@ -2624,7 +2676,8 @@ def compare(before, after):
         if ((b.get("authority_versions"), new.get("version")) in (
                 (V1110_RELEASE_AUTHORITY_VERSIONS, "11.1.0"),
                 (V1120_RELEASE_AUTHORITY_VERSIONS, "11.2.0"),
-                (V1130_R1_AUTHORITY_VERSIONS, "11.3.0"))):
+                (V1130_R1_AUTHORITY_VERSIONS, "11.3.0"),
+                (V1140_R2_AUTHORITY_VERSIONS, "11.4.0"))):
             new, writing_deltas = prior_writing_slimming_plan(new)
         projected, expected = runtime_consistency_predecessor(a["id"], new, b.get("authority_versions"))
         candidate_authority_versions = (V10263_RELEASE_AUTHORITY_VERSIONS

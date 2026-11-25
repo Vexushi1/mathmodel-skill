@@ -73,6 +73,28 @@ class TestP4CompactFramework(unittest.TestCase):
         expanded = self.mod.expand_to_full(self.mod.instantiate("compact"))
         self.assertEqual(self.mod.transition(expanded, "full"), expanded)
 
+    def test_requirement_plan_and_returned_answer_locations_survive_both_modes(self):
+        compact = self.mod.instantiate("compact")
+        full = self.mod.instantiate("full")
+        common = self.mod.split_top_level(compact).sections["各问模型与结果"]
+        self.assertEqual(common, self.mod.split_top_level(full).sections["各问模型与结果"])
+        model, results = common.split("\n#### 结果摘要\n", 1)
+        self.assertIn("需求编号", model)
+        self.assertIn("实现变量/函数与返回值", model)
+        self.assertIn("预期工作簿输出/验证位置", model)
+        self.assertIn("关键字段、记录键、指标与单位", results)
+        plan = "| Q1-REQ-01：各站峰值 | V_peak: max_t c_it | solve()->station_peaks | 站点峰值 | closed |"
+        evidence = "| 求解工作簿 / Q1-REQ-01 | 问题一求解结果.xlsx | 站点峰值 | 站点=A/B；峰值=9/7；m3/s |"
+        compact = compact.replace("| Q1-REQ-01： |  |  |  | closed / gap |", plan, 1)
+        compact = compact.replace("| 求解工作簿 / Q1-REQ-01 |  |  |  |", evidence, 1)
+        expanded = self.mod.expand_to_full(compact)
+        self.assertIn(plan, expanded)
+        self.assertIn(evidence, expanded)
+        self.assertEqual(
+            self.mod.split_top_level(compact).sections["各问模型与结果"],
+            self.mod.split_top_level(expanded).sections["各问模型与结果"],
+        )
+
     def test_full_to_compact_is_fail_closed(self):
         with self.assertRaisesRegex(self.mod.FrameworkInstantiationError, "full->compact"):
             self.mod.transition(self.mod.instantiate("full"), "compact")

@@ -1,4 +1,4 @@
-skill_version: 11.3.0
+skill_version: 11.4.0
 bootstrap_schema_version: 1.1.0
 purpose: >-
   Pin the source, load workflow_router.default_load, then apply startup_contract before the requested action.

@@ -17,13 +17,13 @@ def load(relative):
 class V1100ReleaseVersionMatrixTests(unittest.TestCase):
     def test_current_skill_carriers_and_single_backend_cli(self):
         bootstrap = load("core/bootstrap.yaml")
-        self.assertEqual(str(bootstrap["skill_version"]), "11.3.0")
+        self.assertEqual(str(bootstrap["skill_version"]), "11.4.0")
         plugin = load(".codex-plugin/plugin.json")
-        self.assertEqual(plugin["version"], "11.3.0")
+        self.assertEqual(plugin["version"], "11.4.0")
         self.assertIn("one project-wide Python/MATLAB numerical backend", plugin["description"])
         self.assertEqual(bootstrap["startup_contract"]["activation"]["candidate_selector"], "v11_full_read")
         instructions = (ROOT / "PROJECT_INSTRUCTIONS.md").read_text(encoding="utf-8")
-        self.assertIn("v11.3.0", instructions)
+        self.assertIn("v11.4.0", instructions)
         self.assertIn("v11_full_read", instructions)
         for relative in (
             "core/workflow_router.yaml", "core/module_manifest.yaml",
@@ -31,7 +31,7 @@ class V1100ReleaseVersionMatrixTests(unittest.TestCase):
             "config/prose_audit_patterns.yaml",
         ):
             with self.subTest(relative=relative):
-                self.assertEqual(str(load(relative)["version"]), "11.3.0")
+                self.assertEqual(str(load(relative)["version"]), "11.4.0")
         self.assertEqual(
             bootstrap["entrypoints"]["project_solver_backend"],
             "python scripts/project_solver_backend.py",
@@ -41,13 +41,13 @@ class V1100ReleaseVersionMatrixTests(unittest.TestCase):
         )
         root_skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
         self.assertEqual(root_skill, (ROOT / "skills/mathmodel-skill/SKILL.md").read_text(encoding="utf-8"))
-        self.assertIn("version: 11.3.0", root_skill)
+        self.assertIn("version: 11.4.0", root_skill)
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        self.assertTrue(readme.startswith("# mathmodel-skill v11.3.0"))
-        self.assertEqual(readme.splitlines()[0], "# mathmodel-skill v11.3.0")
-        self.assertTrue(changelog.startswith("# Changelog\n\n## 11.3.0\n"))
-        self.assertTrue((ROOT / "core/hsk_core_policy.md").read_text(encoding="utf-8").startswith("# HSK Core Policy v11.3.0"))
+        self.assertTrue(readme.startswith("# mathmodel-skill v11.4.0"))
+        self.assertEqual(readme.splitlines()[0], "# mathmodel-skill v11.4.0")
+        self.assertTrue(changelog.startswith("# Changelog\n\n## 11.4.0\n"))
+        self.assertTrue((ROOT / "core/hsk_core_policy.md").read_text(encoding="utf-8").startswith("# HSK Core Policy v11.4.0"))
 
     def test_independent_protocol_versions_are_not_skill_versions(self):
         bootstrap = load("core/bootstrap.yaml")
@@ -67,7 +67,7 @@ class V1100ReleaseVersionMatrixTests(unittest.TestCase):
         self.assertEqual(load("core/claim_consumption_contract.yaml")["version"], "1.8.0")
         self.assertEqual(load("core/writing_reasoning_contract.yaml")["schema_version"], "1.11.0")
         self.assertEqual(load("core/workbook_schema.yaml")["schema_version"], "2.4.0")
-        self.assertEqual(load("core/model_approval_contract.yaml")["version"], "1.3.0")
+        self.assertEqual(load("core/model_approval_contract.yaml")["version"], "1.4.0")
         self.assertEqual(execution["code_bundle"]["protocol_version"], "1.1.0")
         self.assertEqual(execution["code_delivery"]["run_receipt_protocol"]["current_version_by_stage"],
                          {"preprocessing": "1.0.0", "primary": "1.1.0", "analysis": "1.1.0"})

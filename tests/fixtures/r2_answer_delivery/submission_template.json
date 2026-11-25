@@ -1,0 +1,6 @@
+{
+  "sheet": "站点峰值",
+  "columns": ["记录键", "站点", "峰值", "时刻", "单位", "时间单位"],
+  "baseline_record_keys": ["baseline-A-2", "baseline-B-4"],
+  "number_formats": {"峰值": "0.00", "时刻": "0.0"}
+}

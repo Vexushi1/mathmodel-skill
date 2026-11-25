@@ -1,0 +1,5 @@
+{
+  "baseline": {"peaks": [["A", 9, 2], ["B", 7, 4]], "network_peak": 12},
+  "ties": {"peaks": [["A", 9, 2], ["A", 9, 6], ["B", 7, 2], ["B", 7, 4]], "network_peak": 16},
+  "precision": {"peaks": [["A", 9.123456789, 2], ["B", 7.987654321, 4]], "network_peak": 12.123456789}
+}

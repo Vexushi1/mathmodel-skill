@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 import re
+import tempfile
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -220,6 +221,36 @@ def _sheet_name(name: str) -> str:
     return safe[:31]
 
 
+def validate_answer_sheet_names(answer_sheets: Sequence[str]) -> tuple[str, ...]:
+    """Return declared answer names without changing their Excel names."""
+    if isinstance(answer_sheets, (str, bytes)):
+        raise TypeError("answer_sheets 应为工作表名称序列")
+    names = tuple(answer_sheets)
+    used: set[str] = set()
+    for name in names:
+        if not isinstance(name, str):
+            raise TypeError("答案工作表名称必须为字符串")
+        if _sheet_name(name) != name:
+            raise ValueError(f"答案工作表名称必须是合法的最终名称: {name!r}")
+        if name.lower() in used:
+            raise ValueError(f"答案工作表名称重复: {name}")
+        used.add(name.lower())
+    return names
+
+
+def validate_answer_tables(tables: Mapping[str, Any], answer_sheets: Sequence[str]) -> None:
+    """Check declared answers against the names that Excel will receive."""
+    answers = validate_answer_sheet_names(answer_sheets)
+    if not answers:
+        return
+    missing = [name for name in answers if name not in tables]
+    if missing:
+        raise ValueError(f"缺少必答结果表: {missing}")
+    final_names = [_sheet_name(name) for name in tables]
+    if len({name.lower() for name in final_names}) != len(final_names):
+        raise ValueError("工作表最终名称存在不区分大小写的冲突")
+
+
 def _schema_candidates(explicit: Path | None) -> list[Path]:
     candidates: list[Path] = []
     if explicit is not None:
@@ -335,7 +366,13 @@ def write_workbook(
             ordinary_experiments=ordinary_experiments,
         )
     path.parent.mkdir(parents=True, exist_ok=True)
-    with pd.ExcelWriter(path, engine="openpyxl", mode="w") as writer:
-        for name, frame in prepared:
-            frame.to_excel(writer, sheet_name=name, index=False)
+    with tempfile.NamedTemporaryFile(prefix=f".{path.stem}.", suffix=".xlsx", dir=path.parent, delete=False) as handle:
+        temporary = Path(handle.name)
+    try:
+        with pd.ExcelWriter(temporary, engine="openpyxl", mode="w") as writer:
+            for name, frame in prepared:
+                frame.to_excel(writer, sheet_name=name, index=False)
+        temporary.replace(path)
+    finally:
+        temporary.unlink(missing_ok=True)
     return path

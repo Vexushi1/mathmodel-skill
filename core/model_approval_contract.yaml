@@ -1,4 +1,4 @@
-version: 1.3.0
+version: 1.4.0
 status: active
 purpose: >-
   Define the pre-code Model Challenge and explicit Human Model Approval gate.
@@ -35,6 +35,7 @@ model_challenge:
     role: positive_fitness_review
     must_check:
     - problem_contract_fit
+    - required_answer_closure
     - route_selection_fit
     - variable_and_constraint_closure
     - objective_alignment
@@ -51,6 +52,7 @@ model_challenge:
     role: adversarial_model_challenge
     must_check:
     - alternative_problem_interpretation
+    - output_omission_or_substitution
     - forbidden_or_convenience_assumptions
     - unused_problem_conditions_or_attachment_fields
     - semantic_damage_from_preprocessing
@@ -62,6 +64,14 @@ model_challenge:
     - problem_may_have_been_implausibly_over_simplified
     - literature_recency_anchor_and_novelty_bias_when_used
   check_semantics:
+    required_answer_closure: >-
+      Trace every Qn-REQ-xx answer back to input data, mathematical relations and
+      algorithm return values. Check object, granularity, units and tie/event rules;
+      record the expected output location in the existing semantic-closure table.
+    output_omission_or_substitution: >-
+      Independently enumerate required answers from the original prompt. Challenge
+      omissions, aggregate answers substituted for per-object answers, missing peak
+      times and incompatible granularity, without adopting the first pass's checklist.
     route_selection_fit: >-
       Compatibility check id. Interpret it as whether the current selected model is the
       minimal-sufficient main model after Condition -> Consequence and justified reduction,
@@ -124,6 +134,7 @@ human_approval:
   - core_variables
   - objective
   - key_constraints
+  - required_answers
   - preprocessing_decision
   - structural_simplification
   - solver_or_algorithm
@@ -132,6 +143,9 @@ human_approval:
   - residual_warnings
   - next_stage_implementation_scope
   approval_brief_field_semantics:
+    required_answers: >-
+      State once which answers the model will deliver and the key conditions needed
+      to compute them, following the Qn-REQ-xx rows in the current framework.
     primary_quality_specification_when_bound: >-
       Display the complete ordered criteria from the current Structured Identity Block in the
       existing brief under core/numerical_verification_contract.yaml#primary_quality_specification.

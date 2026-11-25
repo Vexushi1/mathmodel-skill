@@ -43,6 +43,7 @@ class HistoricalProjectionTests(unittest.TestCase):
                          set(plan_evidence.EXPLICIT_QN_SUCCESSOR_SOURCE_SHA256))
         for path, approved_sha in plan_evidence.M2_CURRENT_SOURCE_SHA256.items():
             raw = (ROOT / path).read_bytes()
+            raw = plan_evidence.prior_r2_bytes(path, raw)
             current_sha = hashlib.sha256(plan_evidence.prior_r1_bytes(path, raw)).hexdigest()
             self.assertNotEqual(current_sha, approved_sha, path)
             self.assertEqual(current_sha,
@@ -141,7 +142,7 @@ class HistoricalProjectionTests(unittest.TestCase):
                 elif mutation == "scope":
                     plan["delivery_scope"] = "unregistered_scope"
                 elif mutation == "version":
-                    plan["version"] = "11.1.1"  # unregistered; 11.3.0 is current
+                    plan["version"] = "11.1.1"  # unregistered; 11.4.0 is current
                 else:
                     altered["authority_versions"]["skill"] = "10.27.0"
                 with self.subTest(case=after["id"], mutation=mutation):
@@ -321,9 +322,9 @@ class HistoricalProjectionTests(unittest.TestCase):
 
     def test_frozen_v10270_inverse_still_accepts_only_exact_carrier(self):
         after = plan_evidence.worker(ROOT, 0)
-        self.assertEqual(after["authority_versions"], plan_evidence.V1130_R1_AUTHORITY_VERSIONS)
-        self.assertEqual(after["authority_versions"]["skill"], "11.3.0")
-        self.assertEqual(after["plan"]["version"], "11.3.0")
+        self.assertEqual(after["authority_versions"], plan_evidence.V1140_R2_AUTHORITY_VERSIONS)
+        self.assertEqual(after["authority_versions"]["skill"], "11.4.0")
+        self.assertEqual(after["plan"]["version"], "11.4.0")
         old_carrier = deepcopy(after)
         old_carrier["authority_versions"]["skill"] = "10.27.0"
         old_carrier["plan"]["version"] = "10.27.0"

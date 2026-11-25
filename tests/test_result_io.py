@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pandas as pd
 import openpyxl
+from openpyxl.utils.exceptions import IllegalCharacterError
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -18,6 +19,81 @@ from templates.code.hsk_pipeline import result_io as MOD
 
 
 class TestResultIO(unittest.TestCase):
+    def test_explicit_answer_names_are_exact_and_unique(self):
+        invalid = ((" 峰值",), ("峰/值",), ("x" * 32,), ("Peak", "peak"), ("",))
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "answers.xlsx"
+            for names in invalid:
+                with self.subTest(names=names), self.assertRaises(ValueError):
+                    tables = {name: [{"值": 1}] for name in names}
+                    MOD.validate_answer_tables(tables, names)
+                    MOD.write_workbook(path, tables)
+                self.assertFalse(path.exists())
+            for names in ("峰值", (1,)):
+                with self.subTest(names=names), self.assertRaises(TypeError):
+                    tables = {"峰值": [{"值": 1}]}
+                    MOD.validate_answer_tables(tables, names)
+                    MOD.write_workbook(path, tables)
+            with self.assertRaisesRegex(ValueError, "缺少必答结果表.*峰值"):
+                tables = {" 峰值": [{"值": 1}]}
+                MOD.validate_answer_tables(tables, ("峰值",))
+                MOD.write_workbook(path, tables)
+            self.assertFalse(path.exists())
+
+    def test_declared_answer_rejects_final_case_collision_without_changing_old_workbook(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "answers.xlsx"
+            MOD.write_workbook(path, {"旧结果": [{"值": 1}]})
+            original = path.read_bytes()
+            for other in ("peak", " peak "):
+                with self.subTest(other=other), self.assertRaisesRegex(ValueError, "最终名称.*冲突"):
+                    tables = {"Peak": [{"值": 9}], other: [{"值": 7}]}
+                    MOD.validate_answer_tables(tables, ("Peak",))
+                    MOD.write_workbook(path, tables)
+                self.assertEqual(path.read_bytes(), original)
+            self.assertEqual(set(Path(directory).iterdir()), {path})
+
+    def test_undeclared_calls_keep_legacy_sheet_name_normalization(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "legacy.xlsx"
+            MOD.write_workbook(path, {" 台/站 ": [{"值": 1}], "x" * 32: [{"值": 2}],
+                                      "Peak": [{"值": 3}], "peak": [{"值": 4}]})
+            tables = MOD.read_workbook_tables(path)
+            self.assertEqual(list(tables), ["台_站", "x" * 31, "Peak", "peak1"])
+
+    def test_excel_serialization_failure_preserves_destination_and_removes_temporary(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "answers.xlsx"
+            for existing in (False, True):
+                with self.subTest(existing=existing):
+                    if existing:
+                        MOD.write_workbook(path, {"旧结果": [{"值": 1}]})
+                    original = path.read_bytes() if existing else None
+                    with self.assertRaises(IllegalCharacterError):
+                        MOD.write_workbook(path, {"已序列化": [{"值": 9}], "失败表": [{"值": "bad\x01cell"}]})
+                    if existing:
+                        self.assertEqual(path.read_bytes(), original)
+                        self.assertEqual(set(Path(directory).iterdir()), {path})
+                    else:
+                        self.assertFalse(path.exists())
+                        self.assertEqual(list(Path(directory).iterdir()), [])
+            tables = {"新结果": [{"值": 7}]}
+            MOD.validate_answer_tables(tables, ("新结果",))
+            MOD.write_workbook(path, tables)
+            self.assertEqual(list(MOD.read_workbook_tables(path)), ["新结果"])
+            self.assertEqual(MOD.read_workbook_tables(path)["新结果"].loc[0, "值"], 7)
+            self.assertEqual(set(Path(directory).iterdir()), {path})
+
+    def test_answer_declaration_keeps_result_analysis_schema(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "analysis.xlsx"
+            tables = self.analysis_tables()
+            tables["站点峰值"] = pd.DataFrame({"站点": ["A"], "峰值": [9], "时刻": [2]})
+            MOD.validate_answer_tables(tables, ("站点峰值",))
+            with self.assertRaisesRegex(ValueError, "未登记工作表.*站点峰值"):
+                MOD.write_workbook(path, tables, workbook_kind="result_analysis")
+            self.assertFalse(path.exists())
+
     def test_captured_workbook_bytes_share_the_file_schema(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "result.xlsx"
