@@ -1189,8 +1189,9 @@ def check_templates(errors: list[str]) -> None:
     for token in ("not_needed", "question_local", "project_level", "共享", "五问", "预测填补"):
         if token not in preprocessing:
             errors.append(f"preprocessing module lacks generic decision/necessity token: {token}")
-    if "validate_semantic_governance.py" not in solve:
-        errors.append("solve module must require semantic governance")
+    for authority in ("core/model_approval_contract.yaml#human_approval", "core/user_execution_contract.yaml#result_handoff"):
+        if authority not in solve:
+            errors.append(f"solve module must consume its workflow authority: {authority}")
     if "冻结所选主求解入口" not in solve or "独立深化入口" not in analysis:
         errors.append("solve/result-analysis modules must enforce frozen primary and separate analysis script")
     if "不得把参数敏感性" not in solve or "不得被主求解质量门提前吸收" not in analysis:
