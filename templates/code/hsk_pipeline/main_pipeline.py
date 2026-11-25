@@ -58,15 +58,6 @@ class PipelineConfig:
             raise ValueError(f"未知验证能力标志: {unknown}")
         if not all(isinstance(value, bool) for value in self.capabilities.values()):
             raise TypeError("capabilities 的所有值必须为 bool")
-        if not self.framework_path.is_file():
-            raise FileNotFoundError(f"模型锁定后必须先创建项目根目录模型论文框架: {self.framework_path}")
-        if not self.framework_section.strip():
-            raise ValueError("必须填写该问在模型论文框架.md中的当前章节标题")
-        framework_text = self.framework_path.read_text(encoding="utf-8")
-        if self.framework_section not in framework_text:
-            raise ValueError(f"模型论文框架中缺少该问当前章节: {self.framework_section}")
-        if "只保留当前有效" not in framework_text and "当前有效版本" not in framework_text:
-            raise ValueError("模型论文框架必须声明只保留当前有效版本")
 
 
 @dataclass

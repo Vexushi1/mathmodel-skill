@@ -108,9 +108,30 @@ def previous_w3_proposition_schema(schema):
     return previous
 
 
+def previous_r1_continuity_schema(schema):
+    """Restore the two R1 legacy-hash descriptions without changing field shapes."""
+    previous = deepcopy(schema)
+    fields = previous["properties"]["subproblems"]["additionalProperties"]["properties"]
+    for name, label in (
+        ("semantic_hash", "v8 legacy Markdown semantic-scope hash"),
+        ("validated_semantic_hash", "v8 legacy validated Markdown semantic-scope hash"),
+    ):
+        expected = {
+            "description": label + "；历史只读。显式机器验收使用 current SIB。",
+            "type": "string",
+            "pattern": "^[0-9a-fA-F]{64}$",
+        }
+        if fields.get(name) != expected:
+            raise AssertionError(f"R1 schema inverse rejected unapproved {name}")
+        fields[name]["description"] = (
+            label + "；仅历史只读兼容。无SIB项目重新进入active workflow时必须先建立current SIB，活动代码不得写入。"
+        )
+    return previous
+
+
 def previous_comparison_schema(schema):
     """Remove only reviewed schema leaves; retain every pinned predecessor check."""
-    schema = previous_w3_proposition_schema(schema)
+    schema = previous_w3_proposition_schema(previous_r1_continuity_schema(schema))
     schema = previous_plotting_schema(schema) if "plotting" in schema["properties"] else deepcopy(schema)
     assert schema['version'] == '8.16.0'
     fields = schema['properties']['subproblems']['additionalProperties']['properties']

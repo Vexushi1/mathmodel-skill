@@ -603,7 +603,8 @@ class V714NumericalVerificationTests(unittest.TestCase):
         analysis = (ROOT / "modules/03_result_analysis.md").read_text(encoding="utf-8")
         self.assertIn("主求解质量检查", solve)
         self.assertIn("不得把参数敏感性", solve)
-        self.assertIn("主工作簿 accepted 后", analysis)
+        self.assertIn("主工作簿核对后", analysis)
+        self.assertIn("core/user_execution_contract.yaml#result_handoff", analysis)
         self.assertIn("不得被主求解质量门提前吸收", analysis)
 
 

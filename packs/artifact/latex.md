@@ -10,7 +10,7 @@
 
 - `模型论文框架.md` 为 current；
 - 当前模型、结果、主要图表和命题状态已锁定；
-- 具体数值可追溯到已验收工作簿；
+- 具体数值按 `core/user_execution_contract.yaml#result_handoff` 追溯到实际工作簿；
 - Citation Evidence 已至少达到可审查状态；
 - stale 内容没有进入当前正文。
 

@@ -44,9 +44,8 @@ class RepositoryHygieneTests(unittest.TestCase):
         self.assertIn("问题X结果深化分析.xlsx", text)
         self.assertIn("同一项目后端对应的独立深化入口", text)
         self.assertNotIn("混合后端分别按各阶段映射选取入口", text)
-        self.assertIn("Gate=`not_required`", text)
-        self.assertIn("非空理由", text)
-        self.assertIn("不得据此声称稳健性或稳定性已通过", text)
+        self.assertIn("`not_required` 记录理由", text)
+        self.assertIn("core/user_execution_contract.yaml#result_handoff", text)
         self.assertIn("旧表述“最终默认恰好包含五个文件”只适用于 Gate=`required`", text)
         self.assertNotIn("最终默认恰好保留五个文件", text)
         self.assertNotIn("不得另建结果深化分析 Python 脚本", text)
@@ -152,7 +151,7 @@ class RepositoryHygieneTests(unittest.TestCase):
         analysis_stage = execution["three_stage_policy"]["analysis"]
         self.assertIn("仅Gate=required时激活", analysis_stage["activation"])
         self.assertIn("Gate=not_required时记录非空理由且不生成03B代码/工作簿", analysis_stage["role"])
-        self.assertIn("主工作簿accepted后该脚本冻结", execution["three_stage_policy"]["primary"]["role"])
+        self.assertIn("主工作簿按result_handoff核对后该脚本冻结", execution["three_stage_policy"]["primary"]["role"])
 
         checks = {
             "templates/code/starter/README.md": ("问题一求解/问题一求解.py", "问题一结果深化分析.py"),

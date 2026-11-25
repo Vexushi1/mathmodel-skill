@@ -12,6 +12,7 @@ from module06_sources import (
     assert_preserved_review, baseline_text, historical_review_text, review_text,
     split_sections,
 )
+from r1_continuity_reference import prior_r1_text
 from writing_slimming_reference import prior_writing_slimming_text
 
 
@@ -46,7 +47,12 @@ class Module06PreservationTests(unittest.TestCase):
                 matches = [body for key, body in owned if key == heading]
                 self.assertEqual(len(matches), 1)
                 self.assertEqual(live.count(matches[0]), 1)
-        combined = prior_writing_slimming_text(CONTENT, live)
+        combined = "\n".join(
+            prior_writing_slimming_text(
+                path, prior_r1_text(path, (ROOT / path).read_text(encoding="utf-8"))
+            )
+            for path in CANONICAL_PATHS
+        ) + "\n"
         _, sections = split_sections(baseline_text())
         for heading, body in sections:
             with self.subTest(heading=heading):
@@ -92,7 +98,7 @@ class Module06PreservationTests(unittest.TestCase):
         for relative, original in (
             (CONTENT, "数学错误回上游修复，不能由风格润色掩盖。"),
             (FINAL, "不得抽样几个章节就宣称全文通过"),
-            (ENTRY, "或 required delivery gate 尚未成功执行。"),
+            (ENTRY, "或尚未完成本次交付所需的实际审阅。"),
         ):
             with self.subTest(path=relative), tempfile.TemporaryDirectory() as tmp:
                 root = Path(tmp)

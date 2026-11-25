@@ -10,7 +10,7 @@ Template-First 不等于一开始就读取本 Adapter 并生成全文。普通 C
 - `modules/05_writing/paper_writing_protocol.md`：普通正文的数学叙事、段落承接、solver 说明、结果解释和验证组织；
 - `core/writing_reasoning_contract.yaml`：跨题型复杂语义、Model / Solver / Validator、命题、Algorithm Trace、Claim Strength 等完整 Authority；
 - `core/writing_runtime_contract.yaml`：普通 CUMCM LaTeX 写作的最小加载和完整 Authority 回退条件；
-- 当前 `模型论文框架.md`、已验收工作簿和图表映射：项目事实与证据。
+- 当前 `模型论文框架.md`、按 `core/user_execution_contract.yaml#result_handoff` 核对的工作簿和图表映射：项目事实与证据。
 
 若上述来源冲突，先修复上游事实或 Authority；Adapter 不通过调整排版掩盖数学、结果或证据冲突。
 

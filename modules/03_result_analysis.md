@@ -1,27 +1,27 @@
 # Module 03B：条件式独立结果深化分析代码
 
-本模块只接受已验收的主工作簿，但**不是每个已验收主结果都必须进入本模块**。在生成任何 独立深化入口 之前，先执行 Analysis Necessity Gate：根据题目/用户显式要求、建模阶段遗留的 material risk、真实主结果边界性以及准备写入论文的 claim，判断当前小问是否确实需要改变参数、场景、seed、初值、算法、模型结构或验证窗口，建立一个新的计算世界来检验结论稳定性。
+按 `core/user_execution_contract.yaml#result_handoff` 核对主结果后，判断本问是否需要独立深化分析。在生成任何 独立深化入口 之前，先执行 Analysis Necessity Gate：根据题目/用户显式要求、建模阶段遗留的 material risk、真实主结果边界性以及准备写入论文的 claim，判断当前小问是否确实需要改变参数、场景、seed、初值、算法、模型结构或验证窗口，建立一个新的计算世界来检验结论稳定性。
 
-若 Gate 判定 `required`，再根据真实主结果选择参数敏感性、场景压力、多算法/多初值、结构稳健性、阈值、异质性、误差分解或外样本稳定性。若 current `模型论文框架.md` 已存在，制定分析计划前先读取本问当前模型、验证方案、主结果摘要、适用/失效边界和跨问依赖，再用已验收主工作簿复核具体数值；不得脱离框架按聊天印象选择分析对象。
+若 Gate 判定 `required`，再根据真实主结果选择参数敏感性、场景压力、多算法/多初值、结构稳健性、阈值、异质性、误差分解或外样本稳定性。若 current `模型论文框架.md` 已存在，制定分析计划前先读取本问当前模型、验证方案、主结果摘要、适用/失效边界和跨问依赖，再用已核对主工作簿复核具体数值；不得脱离框架按聊天印象选择分析对象。
 
 若 Gate 判定 `not_required`，不得为了“流程完整”生成空洞的敏感性/鲁棒性代码、工作簿、图表或正文小节。必须在当前项目状态与 `模型论文框架.md` 中记录具体理由；`not_required` 只表示当前题目答案和计划中的正文主张不需要 alternative-world 证据，**绝不等价于“模型已通过稳健性检验”**。后续一旦新增“稳定、鲁棒、对参数不敏感、跨场景有效、替代算法一致”等超出主计算世界的 claim，必须重新打开本 Gate，并在需要时转为 `required`。
 
-v7.14 起，`core/numerical_verification_contract.yaml` 只负责主工作簿 accepted 之前的**当前主计算内在数值有效性**。本模块继续独占主工作簿 accepted 后的参数敏感性、压力场景、替代算法/结构、多随机种子或多初值稳健性、阈值与失效边界、异质性、误差分解及广义外样本稳定性；这些内容**不得被主求解质量门提前吸收**，也不得为了让主工作簿“看起来验证充分”而预先塞回 主求解入口。
+v7.14 起，`core/numerical_verification_contract.yaml` 只负责主工作簿核对之前的**当前主计算内在数值有效性**。本模块继续独占主工作簿核对后的参数敏感性、压力场景、替代算法/结构、多随机种子或多初值稳健性、阈值与失效边界、异质性、误差分解及广义外样本稳定性；这些内容**不得被主求解质量门提前吸收**，也不得为了让主工作簿“看起来验证充分”而预先塞回 主求解入口。
 
-如果某个主算法按其数学定义本身需要多起点、多随机种子或内部重复才能完成一次主求解，这些运行可以留在 03A 的主算法内部；但一旦问题变成“不同 seed / 初值 / 替代算法下结论是否保持”，就属于本模块，并必须在 accepted 主工作簿之后先经过 Analysis Necessity Gate，再在 `required` 时形成 `result_analysis_plan`。
+如果某个主算法按其数学定义本身需要多起点、多随机种子或内部重复才能完成一次主求解，这些运行可以留在 03A 的主算法内部；但一旦问题变成“不同 seed / 初值 / 替代算法下结论是否保持”，就属于本模块，核对主工作簿后经过 Analysis Necessity Gate，再在 `required` 时形成 `result_analysis_plan`。
 
 数据事实源必须继承当前 `preprocessing_decision`，不得在深化分析阶段重新决定数据清洗口径：
 
-- `not_needed`：可读取必要原始数据 + 已验收主工作簿；
+- `not_needed`：可读取必要原始数据 + 已核对主工作簿；
 - `question_local`：可读取必要原始数据，并仅复现本问数学层已经定义的局部变换；
-- `project_level`：读取 `数据预处理/数据预处理结果.xlsx` + 已验收主工作簿，禁止再次直接读取对应共享原始数据。
+- `project_level`：读取 `数据预处理/数据预处理结果.xlsx` + 已核对主工作簿，禁止再次直接读取对应共享原始数据。
 
 ## 一、Analysis Necessity Gate
 
-在 accepted 主工作簿之后、生成 03B 代码之前，对当前小问给出 `required / not_required` 二选一结论。以下任一 material 条件成立时，原则上应判定 `required`：
+核对主工作簿后、生成 03B 代码前，对当前小问给出 `required / not_required` 二选一结论。以下任一 material 条件成立时，原则上应判定 `required`：
 
 - 题目、竞赛要求或用户明确要求敏感性、鲁棒性、压力场景、替代算法/结构、阈值、异质性、外样本或稳定性检验；
-- `validation_plan` 中存在 accepted 后才能检验、且会影响核心答案或论文主张的 residual risk；
+- `validation_plan` 中存在主结果得到后才能检验、且会影响核心答案或论文主张的 residual risk；
 - 正文准备声称结果“稳定、鲁棒、不敏感、跨场景有效、算法一致、结构选择不影响结论”等，而主工作簿只证明当前计算世界；
 - 核心决策/排名/阈值紧贴约束、事件或切换边界，轻微合理扰动可能改变题目答案；
 - 随机、非凸、多起点或启发式方法的**结论稳定性**本身是需要证明的对象，而不是主算法一次运行的内部组成；
@@ -29,40 +29,40 @@ v7.14 起，`core/numerical_verification_contract.yaml` 只负责主工作簿 ac
 
 只有在以下条件同时满足时，才可判定 `not_required`：主工作簿的内在数值有效性已通过；题目直接答案不依赖 alternative-world 证据；当前 `validation_plan` 没有未关闭的 material 03B 风险；计划中的正文 claim 不超出当前计算世界。判定时必须记录非空 `result_analysis_requirement_reason`，并同步当前 `模型论文框架.md` 的候选深化风险/待办；不能把“时间不够”“不想多算”或“主结果看起来正常”作为理由。
 
-兼容语义：旧项目 `result_analysis_status=passed` 保持原义；`pending/failed/redo_required` 不变；新增 `not_required` 只表示 Gate 明确裁定无需 03B。它不生成伪 `result_analysis_workbook`，也不冒充 `accepted_result_analysis_workbook`。下游只在“accepted 主结果 + 有理由的 `not_required`”或“accepted 03B 工作簿 + `passed`”两种情况下获得 `validated_results`。
+下游按 `result_handoff` 消费核对后的主结果和实际需要的分析证据。`not_required` 保存具体理由；机器验收状态按执行合同的 `analysis_necessity_state_mapping` 记录。
 
 ## 二、执行规则
 
-Gate=`required` 后按 `core/user_execution_contract.yaml#solver_backends` 继承项目根唯一求解后端，不在 03B 另选语言。独立入口名称来自输出 Authority；03B 配置/回执及可选项目级辅助输入版本遵循 `core/user_execution_contract.yaml#code_delivery`：无辅助输入为 1.1，合法辅助输入路径为 1.2，并使用独立源码 bundle。读取 accepted 主工作簿前由共享前提检查核对主代码与数据身份，不能通过调用主入口重新计算主结果。主阶段的执行状态不被深化阶段覆盖；`RUN_CONFIG` 与回执中的 backend 记录实际运行事实，须与项目策略一致。
+Gate=`required` 后按 `core/user_execution_contract.yaml#solver_backends` 继承项目根唯一求解后端，不在 03B 另选语言。独立入口名称来自输出 Authority；03B 配置/回执及可选项目级辅助输入版本遵循 `core/user_execution_contract.yaml#code_delivery`：无辅助输入为 1.1，合法辅助输入路径为 1.2，并使用独立源码 bundle。按 `result_handoff` 读取已返回的主工作簿及其输入依据。主阶段的执行状态不被深化阶段覆盖；`RUN_CONFIG` 与回执中的 backend 记录实际运行事实，须与项目策略一致。
 
 `required` 分支：
 
 ```text
-主工作簿accepted
+主工作簿核对完成
 → 冻结主求解入口及其源码依赖
 → Analysis Necessity Gate = required
 → 继承preprocessing_decision与当前数据事实源
 → 基于真实主结果建立result_analysis_plan
 → 为每项计划声明target claim与判定准则
 → 按项目根后端新建本问独立深化入口
-→ 读取当前数据事实源 + 已验收问题X求解结果.xlsx + 必要前问标准工作簿
+→ 读取当前数据事实源 + 已核对问题X求解结果.xlsx + 必要前问标准工作簿
 → 助手静态验收analysis阶段代码
 → 用户本地full_fidelity运行
 → 用户返回同目录问题X结果深化分析.xlsx
-→ 助手按执行Authority验收返回工作簿
+→ 按result_handoff核对返回工作簿
 → 对每项证据给出support / modify / reject
-→ analyzed或redo_required
+→ 回填结果摘要，或回退受影响阶段
 ```
 
 `not_required` 分支：
 
 ```text
-主工作簿accepted
+主工作簿核对完成
 → 冻结主求解入口及其源码依赖
 → Analysis Necessity Gate = not_required
 → 记录result_analysis_requirement_reason并同步模型论文框架
 → 不生成03B代码/工作簿/分析图
-→ 下游只使用accepted主工作簿支持当前计算世界内的claim
+→ 下游从主工作簿读取支持当前计算世界内claim的证据
 ```
 
 独立深化入口 是独立可复现程序，不复制主求解主链，不通过改写 主求解入口 实现深化分析。新生成脚本必须只定义一个按执行 Authority 可静态读取的 `RUN_CONFIG`，其中 `stage="analysis"` 并锁定当前数据事实源的 `data_sha256`；user/full-fidelity/no-degradation 政策由 `core/user_execution_contract.yaml` 继承，不在脚本中重复自报。工作簿中的 `code_sha256` 必须对应该深化分析脚本，并继续完整记录 solver/version、stop、platform、fallback 与 no-degradation 等实际运行事实。旧 `FULL_FIDELITY_CONFIG/FULL_RUN_CONFIG` 仅作只读兼容。
@@ -84,11 +84,11 @@ Gate=`required` 后按 `core/user_execution_contract.yaml#solver_backends` 继�
 
 同算法换 seed、初值、容差或函数名不单独计为多算法；不同模型名字不证明模型不同。同一方程改变离散或积分算法通常属于求解方法变化，增加物理机制才可能属于模型变化。等价 reformulation 必须保留原模型映射与回算。两模型一致只提供指定范围内的交叉佐证；不同模型产生差异也不自动否决主模型。
 
-Module 02 的 Comparator 按具体比较问题关联稳定检验 ID。数学／算法比较规范置于框架 `#### 结果摘要` 之后的独立 `HSK_ANALYSIS_COMPARISON_BEGIN/END Qn` marker，不能混入主 SIB 或主语义哈希区。规范、范围审查和批准服从 `core/model_approval_contract.yaml`；当前主身份仍须 current = validated = approved。比较范围变化只失效该范围及 analysis 链，主模型真正变化才按原语义治理使主批准和结果失效。
+Module 02 的 Comparator 按具体比较问题关联稳定检验 ID。在框架结果摘要后的现有比较节保存数学／算法范围、共同评价、双审结论和用户批准，服从 `core/model_approval_contract.yaml#analysis_comparison_approval`。比较范围变化只失效该范围及 analysis 链，主模型真正变化才处理主批准与结果。
 
-主工作簿 accepted 后，在现有 `analysis_comparison.checks` 中冻结本次具体检验、对象引用、共同评价、判据和预期证据选择器。`required` 项必须逐项执行并形成真实非空证据及 disposition；敏感性或另一张实质表不能替代它。`exploratory` 未完成不阻塞当前必要答案，但不得写成已验证。仍有 current required 项时不得整体 `not_required`；明确题目／用户要求和未关闭核心风险不能因计算失败撤销。
+主工作簿核对后，在该节冻结本次具体检验、对象引用、共同评价、判据和预期证据位置。`required` 项逐项执行并记录真实证据及 disposition；`exploratory` 项记录实际完成情况。明确题目／用户要求和未关闭核心风险继续列为必需项，技术失败时记录缺项及后续动作。
 
-配置与回执扩展仅按 `core/user_execution_contract.yaml` 激活；计划摘要排除实际结果和运行后处置，主簿和源码身份继续使用现有绑定。机器能核对规范一致性、有限指标算术、覆盖和来源，不能从名称自动证明数学等价、算法独立性或模型正确性。
+显式运行比较验收工具时，按 `core/user_execution_contract.yaml#analysis_comparison` 填写 `analysis_comparison.checks`、独立 `HSK_ANALYSIS_COMPARISON_BEGIN/END Qn` marker 和配置／回执绑定；计划摘要排除实际结果和运行后处置。普通比较沿用上面的框架记录与真实工作簿交接。
 
 每次真实子运行保留模型／算法、实例或重复、指标、单位、实际设置、停止原因及必要可行性／残差／时间；表列与 MATLAB 交接只由 `core/workbook_schema.yaml` 定义。共同评价须声明输出映射、因果合法划分、单位、方向和判据；不同目标函数不能直接相减。性能主张还需要适用预算、硬件和重复记录。只写固定比较数字或“通过”不构成执行证据。
 
@@ -139,7 +139,7 @@ Evidence ID
 
 如果分析过程内部已经形成更细粒度记录，优先保留能够支撑正文、Figure、QA 或复现的那一层；不保存纯 debug 噪声，也不为“图更丰富”额外制造未执行的实验。
 
-这条规则的目的，是让 Figure Evidence 阶段可以直接从 accepted 工作簿构造稳定区、阈值边界、ECDF、箱线/小提琴+散点、Small Multiples、Pareto/性能剖面等科研图，而不在 绘图阶段重新运行分析。
+这条规则的目的，是让 Figure Evidence 阶段可以直接从核对后的工作簿构造稳定区、阈值边界、ECDF、箱线/小提琴+散点、Small Multiples、Pareto/性能剖面等科研图，而不在 绘图阶段重新运行分析。
 
 ## 六、数据与模型边界
 

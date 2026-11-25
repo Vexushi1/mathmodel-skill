@@ -18,6 +18,8 @@ import project_transaction as TX
 from runtime_assurance import ProjectStateReadError
 import sync_project as SYNC
 import validate_project_state as STATE
+import initialize_project as INITIALIZE
+from tests.test_project_initialization import put_spec, specification
 
 
 class SelectProjectBackendTests(unittest.TestCase):
@@ -112,6 +114,44 @@ class SelectProjectBackendTests(unittest.TestCase):
         self.state_path.write_text(yaml.safe_dump(self.state, allow_unicode=True), encoding="utf-8")
         with self.assertRaisesRegex(BACKEND.ProjectBackendSelectionError, "Q2"):
             self.select()
+
+    def test_initialized_project_selects_backend_after_first_question_design(self):
+        for count in (3, 5):
+            with self.subTest(count=count), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                INITIALIZE.initialize_project(root, put_spec(root, specification(count)), write=True)
+                state_path = root / TX.STATE_RELATIVE_PATH
+                before = yaml.safe_load(state_path.read_text(encoding="utf-8"))
+                report = BACKEND.select_project_backend(
+                    root, backend="python", reason="全题已审，首问使用整数规划，后问需要预测与机理计算",
+                    expected_generation=1,
+                )
+                current = yaml.safe_load(state_path.read_text(encoding="utf-8"))
+                self.assertEqual(report["status"], "committed")
+                self.assertEqual(current["execution"]["solver_backend"], "python")
+                self.assertEqual(current["subproblems"], before["subproblems"])
+                for question in list(current["subproblems"])[1:]:
+                    self.assertEqual(current["subproblems"][question]["status"], "audited")
+                    self.assertEqual(current["subproblems"][question]["selected_model"], "")
+
+    def test_selection_requires_a_designed_question_and_all_questions_audited(self):
+        for pending_question in (None, "Q2"):
+            with self.subTest(pending_question=pending_question), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                INITIALIZE.initialize_project(root, put_spec(root, specification()), write=True)
+                state_path = root / TX.STATE_RELATIVE_PATH
+                state = yaml.safe_load(state_path.read_text(encoding="utf-8"))
+                if pending_question is None:
+                    state["subproblems"]["Q1"].update(status="audited", selected_model="")
+                else:
+                    state["subproblems"][pending_question]["status"] = "pending"
+                state_path.write_text(yaml.safe_dump(state, allow_unicode=True), encoding="utf-8")
+                before = state_path.read_bytes()
+                with self.assertRaisesRegex(BACKEND.ProjectBackendSelectionError, "capability review"):
+                    BACKEND.select_project_backend(
+                        root, backend="python", reason="全题需求", expected_generation=1,
+                    )
+                self.assertEqual(state_path.read_bytes(), before)
 
     def test_preexisting_framework_hash_drift_cannot_be_overwritten_by_selection(self):
         self.state["paper_framework"]["sha256"] = "0" * 64

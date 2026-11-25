@@ -1,12 +1,12 @@
-# mathmodel-skill v11.2.0
+# mathmodel-skill v11.3.0
 
 网页或 App 可以从这里直接复制[数学建模项目指令](PROJECT_INSTRUCTIONS.md#web-app-start)。
 
-本次发布整合 W1 写作规则精简、W2 默认两位小数展示与 W3 正文正式命题数量上限。变更及旧项目升级边界见 [Changelog](CHANGELOG.md#1120)。
+R1 将比赛开场与接续改为直接读取规则、保存人工批准、核对实际结果。具体变更见 [Changelog](CHANGELOG.md#1130)。
 
-v11.2.0 保留正式任务的启动方式升级为固定来源、完整规范读取与阶段化执行：新赛题或正式单问通过 v11_full_read 取得当前版本全部生效规范原文；局部字段咨询、定型图的纯视觉修改和仓库维护仍按请求范围读取。跨会话正式恢复、只剩摘要或规则范围不明时重新取齐规范与当前项目框架；换阶段、换问、换章和新图时重取对应完整规则与项目证据。
+v11.3.0 保留正式任务的启动方式升级为固定来源、完整规范读取与阶段化执行：新赛题或正式单问通过 v11_full_read 取得当前版本全部生效规范原文；局部字段咨询、定型图的纯视觉修改和仓库维护仍按请求范围读取。跨会话正式恢复、只剩摘要或规则范围不明时重新取齐规范与当前项目框架；换阶段、换问、换章和新图时重取对应完整规则与项目证据。
 
-v11.0.0 已完成网页、App 与插件统一入口，固定版本规则分卷与接收校验，P4 阶段/图文/数值证据接线，以及 10.x 历史项目只读兼容、旧 CLI 兼容和迁移恢复说明。既有模型双审、用户明确批准、用户本地 full-fidelity 数值执行、工作簿复核、LaTeX/PDF 终审与 resolver 有序交付门禁均保留。已有项目不会因发布自动改写固定提交、批准或数值事实。完整网页与原生 App A/B/C 人工对照未作为本次发行门完成，保留为后续按真实使用问题选择的诊断资产；不得把仓库 CI 解释为客户端实测。
+模型双审、用户明确批准、用户本地 full-fidelity 数值执行、工作簿复核与 LaTeX/PDF 终审继续按对应阶段完成。已有项目沿用固定版本；主动升级后从当前模型、批准和实际结果接续。
 
 HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构化简、最小充分的 `proposed_model_spec`、独立 Model Reviewer / Devil's Advocate、`awaiting_model_approval` 到用户明确批准后的 `locked_model_spec`，以及数值求解、证据绘图、论文和终稿交付。每问保留自己的数学模型、算法、源码与结果；数值求解语言与科研绘图语言分别在项目根统一选择；一个竞赛的所有结果图只使用一次选定的 Python 或 MATLAB 后端，保留原 Figure 设计 Authority 和历史 MATLAB 项目。仓库改造不代表任何具体项目已完成后端选择、迁移或数值验收。 竞赛专属 Pack、模板与 profile 是可选适配器；缺失时回退通用规则。建模方案和框架草稿不触发仅适用于论文终稿或提交包的正式交付门禁。
 
@@ -32,7 +32,7 @@ HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构�
 
 1. 网页、App 和插件共用启动合同。插件从 `SKILL.md` 或 `skills/mathmodel-skill/SKILL.md` 进入，两条路径均以同一固定提交的 `core/bootstrap.yaml` 和全局规则决定开场。
 2. 选用 v11_full_read 全文入口后，正式赛题先取齐规范原文。单独查询字段或修改定型图配色只处理当前请求。阶段间重取与恢复由同一启动合同和 `core/runtime_assurance_contract.yaml#reading_plan.consumer_protocol` 衔接。
-3. `scripts/resolve_runtime.py` 根据项目事实给出当前业务动作与 `pre_delivery_gates`。助手按实际能力获取正文、执行返回的有序门并核对成果。机器条件不齐时按固定提交直接取原文，说明仍缺的证据。[助手工具与阶段导航](scripts/README.md#阶段正文读取)
+3. 读齐 Skill 后直接审题。已有项目按 `core/model_approval_contract.yaml` 恢复批准，按 `core/user_execution_contract.yaml#result_handoff` 读取真实结果。需要机器诊断时使用 `scripts/resolve_runtime.py`。[助手工具与阶段导航](scripts/README.md#阶段正文读取)
 
 用户按 `full_fidelity` 运行实际 Python/MATLAB 数值入口并返回工作簿；绘图时运行脚本、查看图窗、调整并按需导出。交付检查、返回验收、同步、论文审计／编译和包验证由助手完成，分工统一见 [执行 Authority](core/user_execution_contract.yaml)。日常无需另装 Skill 校验环境或提交 checker 报告；求解入口出现缺包或路径错误时，再针对实际问题排查。
 
@@ -44,9 +44,9 @@ HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构�
 
 项目根 `execution.solver_backend` 和非空理由记录一次 Python 或 MATLAB 选择。首次选择先审视全题可预见数值需求并衔接 Model Approval：`scripts/project_solver_backend.py inspect` 只读，完全未选且无数值历史用 `select`；有历史数值阶段或更换已锁后端时，先预览全题影响，再经针对该项目原状态与影响摘要的明确确认执行 `migrate`。`auto`、旧阶段声明及 `RUN_CONFIG` / `RUN_RECEIPT` 中的运行事实都不会自动选值。操作边界只服从 `core/user_execution_contract.yaml`。
 
-每问在已选项目后端下交付独立主求解入口，按 Primary Quality Specification (PQS) 保存本次运行的 Primary Evidence Capture；返回主工作簿通过独立数值复核后才可成为 accepted。Analysis Necessity Gate 判定 `required` 时，独立结果深化入口继承同一后端，产生 Analysis Evidence Capture；`not_required` 记录理由，不生成深化结果，也不声称已验证稳健性。精确入口名、工作簿和条件式产物只看 `core/output_contract.yaml#per_question.solver_scripts`；不按固定 Python 文件清单或统一五文件数推断当前资格。赛题数值代码由用户本地 `full_fidelity` 执行，助手生成、静态检查并验收返回证据。
+每问在已选项目后端下交付独立主求解入口，按 Primary Quality Specification (PQS) 保存本次计算证据；返回主工作簿按 `result_handoff` 核对。Analysis Necessity Gate 判定 `required` 时，用同一后端的独立入口完成深化分析；`not_required` 记录理由并继续。入口名、工作簿和条件式产物见 `core/output_contract.yaml#per_question.solver_scripts`。用户本地执行数值代码，助手生成、静态检查并核对返回结果。
 
-项目级预处理仍是独立的 Python 职责。正式 MATLAB 结果绘图只消费当前 accepted 工作簿与已验收证据，不重求解、不制造序列；非数据驱动的题目专属机理图可按 Figure Authority 选择可编辑 draw.io。图内正式标题由论文 caption 承担，实际渲染和语义检查不能由静态检查替代。
+项目级预处理仍使用 Python。结果绘图读取实际核对后的工作簿；题目专属机理图可按 Figure Authority 选择可编辑 draw.io。正式标题由论文 caption 承担，交付前检查实际渲染和图表含义。
 
 03B 支持按需进行多模型检验，以及同一数学模型的不同求解算法检验。比较范围先审查，实验判据在交付前冻结；每项必要比较都要有真实、可比的底层证据。两类区别和完成条件见 [结果深化分析 Authority](modules/03_result_analysis.md)，实施范围见 [10.18.0 修改计划](docs/v10180_analysis_comparison_plan.md)。使用新比较协议的项目须由支持该协议的工具验收，旧工具的通过状态不能证明新检验完成。
 

@@ -1,4 +1,4 @@
-skill_version: 11.2.0
+skill_version: 11.3.0
 bootstrap_schema_version: 1.1.0
 purpose: >-
   Pin the source, load workflow_router.default_load, then apply startup_contract before the requested action.
@@ -56,15 +56,15 @@ startup_contract:
   rules:
     - Match new requests by effect. Starting design, solving, writing or formal review for one question is formal. Keep fixed-detail edits scoped; promote changes to model, evidence or conclusions.
     - Read selected originals before action. See core/hsk_core_policy.md section 3 for continuity, scope changes and missing sources.
-    - Use core/runtime_assurance_contract.yaml for stage reads, assurance and dependency closure. Use the router for business actions.
+    - Read the same-version rule text directly under core/runtime_assurance_contract.yaml#reading_plan.formal_rule_delivery, then use the router for business actions.
     - Instantiate new frameworks via scripts/instantiate_model_paper_framework.py under core/output_contract.yaml (compact/full modes and canonical full template).
     - Writing follows the active template manifest, paper_writing_protocol and writing_runtime; writing_reasoning_contract supplies the declared fallback.
-    - Under core/user_execution_contract.yaml inspect before writing solver backend choices. Select a first choice; migrate a historical or locked choice only after preview and explicit project confirmation.
+    - Select the project solver backend from the known needs of all questions and the current model under core/user_execution_contract.yaml. Review an existing project's affected stages before changing its backend.
 hard_invariants:
   - Follow the owning contracts. Stop at the requested deliverable.
-  - Execute every `pre_delivery_gates` entry returned by the resolver in order for formal delivery.
-  - Restore project semantics from current 模型论文框架.md, machine state from project state, and numerical facts from accepted workbooks.
-  - Project preprocessing and primary solve code require Model Challenge and explicit user approval of the current semantic_revision and validated semantic_identity_hash under core/model_approval_contract.yaml. Legacy semantic_hash is read-only.
+  - For explicit machine validation, execute every `pre_delivery_gates` entry returned by the resolver in order.
+  - Restore the current model and its human approval from 模型论文框架.md; consume actual results under core/user_execution_contract.yaml#result_handoff.
+  - Project preprocessing and primary solve code follow Model Challenge and explicit user approval under core/model_approval_contract.yaml.
   - The user executes task-specific preprocessing, solve and result-analysis code. The assistant generates and statically checks code and validates returned artifacts.
   - Keep legacy/ outside default execution; read-only compatibility pointers cannot become active dependencies.
 entrypoints:

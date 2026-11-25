@@ -1,6 +1,6 @@
 #### 模型挑战与人工锁模
 
-> 本节只保存当前有效的 Model Challenge 与 Human Model Approval 状态。历史由 Git 保存；机器状态与 revision/hash 绑定以 `state/project_state.yaml` 为准。
+> 保存当前模型的双审结论与用户批准，规则见 `core/model_approval_contract.yaml#human_approval`。
 
 - Model Challenge：`pending / passed / revision_required / stale`
 - Human Model Approval：`pending / approved / revision_required / stale`
@@ -9,10 +9,12 @@
 - 当前 semantic identity hash：
 - Validated semantic identity hash：
 - Approved semantic revision：
+- 批准小问：
+- 用户批准原话与来源：
 - Approved semantic identity hash：
 - Legacy semantic/text hash（只读兼容，不授权新代码）：
 
-当前身份字段服从 `core/model_approval_contract.yaml` 与 current SIB。空字段不是验证或批准；legacy hash 不用于建立 current 锁模资格。
+机器身份字段由实际验证和绑定结果填写。
 
 **Model Reviewer**
 

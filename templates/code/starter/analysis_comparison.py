@@ -1,8 +1,4 @@
-"""Instantiate in a question folder; no model approval or acceptance is invented.
-
-The maintenance fixture also instantiates the primary branch to produce its QR
-baseline. An analysis instance reads that accepted workbook without calling it.
-"""
+"""Run the declared QR/SVD comparison using the returned primary workbook."""
 from __future__ import annotations
 
 import hashlib
@@ -90,9 +86,16 @@ def make_receipt(config, identity, elapsed):
         result[field] = False
     if config["stage"] == "primary":
         result["primary_quality_protocol_version"] = config["primary_quality_protocol_version"]
-    else:
-        for field in ("analysis_comparison_protocol_version", "analysis_comparison_plan_sha256"):
-            result[field] = config[field]
+    fields = ("analysis_comparison_protocol_version", "analysis_comparison_plan_sha256")
+    declared = [field in config for field in fields]
+    if any(declared):
+        plan = config.get("analysis_comparison_plan_sha256")
+        if (not all(declared) or config["stage"] != "analysis"
+                or config.get("analysis_comparison_protocol_version") != "1.0.0"
+                or not isinstance(plan, str) or len(plan) != 64
+                or any(character not in "0123456789abcdefABCDEF" for character in plan)):
+            raise ValueError("Comparison receipt requires analysis stage, version 1.0.0 and a SHA-256 plan.")
+        result.update({field: config[field] for field in fields})
     return result
 
 

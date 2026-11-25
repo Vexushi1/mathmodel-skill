@@ -1,4 +1,4 @@
-version: 11.2.0
+version: 11.3.0
 routing_authority: core/workflow_router.yaml
 workflow_profile_compatibility:
   authority: core/workflow_router.yaml
@@ -70,10 +70,10 @@ artifact_catalog:
   selected_models: 每问当前选定的最小充分主模型；不表示固定多路线二选一
   proposed_model_spec: 已完成语义闭环、Complexity Sanity并等待Model Challenge/Human Approval锁定的当前候选模型
   model_challenge: 当前Model Reviewer与Devil's Advocate两次独立审查结论、required actions和residual warnings；不单独落盘
-  model_approval_brief: 提交给用户确认的当前模型摘要；包含结构化简与最小充分性理由、按需Comparator Envelope及结构匹配solver语义，绑定当前semantic revision与validated structured identity，不单独落盘
-  awaiting_model_approval: Model Challenge已可进入人工确认但用户尚未明确批准当前semantic_revision与validated semantic_identity_hash的暂停状态
-  human_model_approval: 用户对当前semantic_revision与validated semantic_identity_hash的明确批准状态；机器绑定记录在project_state中
-  locked_model_spec: 仅在Model Challenge passed且Human Model Approval绑定当前semantic_revision与validated semantic_identity_hash后成立的已锁定变量、假设、公式、目标和约束
+  model_approval_brief: 提交给用户确认的当前模型摘要；包含结构化简与最小充分性理由、按需Comparator Envelope及结构匹配solver语义，对应当前模型与semantic revision，随框架保存
+  awaiting_model_approval: Model Challenge已完成但用户尚未明确批准当前模型与semantic_revision的暂停状态
+  human_model_approval: 用户对当前模型与semantic_revision的明确批准；原话、来源和范围随框架保存，按core/model_approval_contract.yaml#human_approval恢复
+  locked_model_spec: 完成双审且获用户明确批准的当前变量、假设、公式、目标和约束；按core/model_approval_contract.yaml#human_approval保存与恢复
   model_approval_validation_report: scripts/validate_model_approval.py输出的challenge/approval与current revision/structured identity一致性检查结论
   formula_closure: 公式—代码—输出映射
   formula_reasoning_chain: 核心公式Source—Derivation—Destination闭环；记录题意/定义/机制来源、关键推导与后续模型/求解/验证用途，不单独落盘

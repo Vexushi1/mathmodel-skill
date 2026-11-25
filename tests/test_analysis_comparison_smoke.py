@@ -16,6 +16,15 @@ class AnalysisComparisonSmokeTests(unittest.TestCase):
             self.assertTrue(report["algorithm_comparison_verified"])
             self.assertTrue(report["helper_drift_rejected"])
             self.assertEqual(len(report["stages"]), 2)
+            ordinary = report["ordinary_comparison"]
+            self.assertTrue(ordinary["primary_unchanged"])
+            self.assertFalse(ordinary["machine_state_created"])
+            self.assertFalse(ordinary["comparison_extension_emitted"])
+            self.assertAlmostEqual(ordinary["quadratic_holdout_prediction"], 16)
+            self.assertAlmostEqual(ordinary["linear_holdout_prediction"], 11)
+            self.assertEqual(set(ordinary["invalid_extension_rejections"]),
+                             {"missing_plan", "missing_version", "unsupported_version", "invalid_plan"})
+            self.assertTrue(all(code != 0 for code in ordinary["invalid_extension_rejections"].values()))
             for case, index in (("holdout_observations", 4), ("reordered_holdout", 0)):
                 with self.subTest(case=case):
                     self.assertEqual(report[case]["evaluation_index"], index)
