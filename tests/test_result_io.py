@@ -562,6 +562,27 @@ else:
         with self.assertRaisesRegex(ValueError, "重复值"):
             MOD.validate_workbook_tables(tables, "result_analysis")
 
+    def test_comparison_workbook_runs_without_repository_identity_protocol(self):
+        tables = self.analysis_tables()
+        columns = MOD.load_workbook_schema()["result_analysis_workbook"]["sheet_schemas"]["多模型检验"]["required_columns"]
+        record = dict.fromkeys(columns, "declared")
+        record.update({
+            "记录键": "R1", "主模型数值": 16.0, "对照模型数值": 11.0,
+            "差异": -5.0, "判定": True,
+        })
+        tables["多模型检验"] = pd.DataFrame([record])
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "问题一结果深化分析.xlsx"
+            MOD.write_workbook(path, tables, analysis_methods=["多模型检验"])
+            actual = pd.read_excel(path, sheet_name="多模型检验")
+            self.assertEqual(actual["记录键"].tolist(), ["R1"])
+            self.assertEqual(actual["主模型数值"].tolist(), [16])
+            self.assertEqual(actual["对照模型数值"].tolist(), [11])
+            self.assertEqual(actual["差异"].tolist(), [-5])
+            configuration = pd.read_excel(path, sheet_name="运行配置")
+            self.assertNotIn("analysis_comparison_protocol_version", configuration["项目"].tolist())
+            self.assertNotIn("analysis_comparison_plan_sha256", configuration["项目"].tolist())
+
     def test_standalone_fallback_has_current_comparison_schema(self):
         current = MOD.load_workbook_schema()["result_analysis_workbook"]
         fallback = MOD._FALLBACK_SCHEMA["result_analysis_workbook"]

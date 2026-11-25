@@ -45,6 +45,8 @@ on:
       - tests/fixtures/v1110_w2_numeric_source_spans.json
       - tests/fixtures/v1110_w3_proposition_source_spans.json
       - tests/fixtures/v1120_release_source_spans.json
+      - tests/fixtures/v1130_r1_source_spans.json
+      - tests/r1_continuity_reference.py
       - tests/g3a_plan_view_evidence.py
       - tests/test_g3a_plan_view_evidence.py
       - tests/g3b_reader_batch_probe.py
@@ -219,7 +221,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python $driver capture --root $env:OPT_CANDIDATE --cases $cases --output (Join-Path $env:OPT_REPORTS 'v10270-after.json')
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python $driver compare --baseline-report (Join-Path $env:OPT_REPORTS 'v10270-before.json') --candidate-report (Join-Path $env:OPT_REPORTS 'v10270-after.json') --approvals tests/fixtures/v10270_g2_approved_deltas.json --source-span-migrations tests/fixtures/v1120_release_source_spans.json --source-root $env:OPT_CANDIDATE --output (Join-Path $env:OPT_REPORTS 'v10270-comparison.json')
+          python $driver compare --baseline-report (Join-Path $env:OPT_REPORTS 'v10270-before.json') --candidate-report (Join-Path $env:OPT_REPORTS 'v10270-after.json') --approvals tests/fixtures/v10270_g2_approved_deltas.json --source-span-migrations tests/fixtures/v1130_r1_source_spans.json --source-root $env:OPT_CANDIDATE --output (Join-Path $env:OPT_REPORTS 'v10270-comparison.json')
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: G1B independently labeled action and bounded read-cost observations
         shell: pwsh

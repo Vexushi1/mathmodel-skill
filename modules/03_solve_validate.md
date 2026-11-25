@@ -2,11 +2,9 @@
 
 本模块按项目根 `execution.solver_backend` 和 `core/output_contract.yaml#per_question.solver_scripts`，在 `问题X求解/` 中生成对应语言的本问主求解入口。助手只生成和静态检查，不运行赛题代码。
 
-若项目根目录已有 current `模型论文框架.md`，正式生成本问代码前必须先读取“当前有效口径”、本问“当前模型口径/求解与验证方案/模型挑战与人工锁模”以及必要前问依赖，用它恢复当前模型语义；不得仅凭聊天记忆重建变量、参数、目标或约束。具体输入数值和已验收结果仍回到当前数据事实源/标准工作簿核验。
+若项目根目录已有 current `模型论文框架.md`，正式生成本问代码前必须先读取“当前有效口径”、本问“当前模型口径/求解与验证方案/模型挑战与人工锁模”以及必要前问依赖，用它恢复当前模型语义；不得仅凭聊天记忆重建变量、参数、目标或约束。具体输入与结果按 `core/user_execution_contract.yaml#result_handoff` 从当前数据和工作簿核对。
 
-进入本模块前，助手为当前小问依次执行 `scripts/validate_semantic_governance.py` 与 `scripts/validate_model_approval.py`。前者负责当前题意/语义/复杂度与 stale 一致性，后者是 Challenge/Human Approval 的唯一字段级运行门；具体批准状态、revision/structured identity 绑定与失效条件只服从 `core/model_approval_contract.yaml`，本模块不复制第二套检查清单。
-
-任一 gate 未通过都不得生成正式主求解代码；Model Approval 未通过时返回 Module 02，并停在 `awaiting_model_approval`。
+按 `core/model_approval_contract.yaml#human_approval` 读取本问双审结论、用户批准和对应模型版本，接续代码交付。当前模型尚未获得批准时回到 Module 02，停在 `awaiting_model_approval`。
 
 正式交付前必须从项目根恢复并核验唯一求解后端；缺失、冲突或 `auto` 均不得交付，也不得为本问另选语言。按 resolver 的后端资源映射读取该语言模板，不同时生成两份求解器。配置、1.1 回执、主入口 SHA 与源码 bundle 的绑定只服从 `core/user_execution_contract.yaml`；助手按 `core/code_quality_contract.yaml` 完成必需工程检查，并如实报告 MATLAB 原生分析的实际覆盖。
 
@@ -96,11 +94,11 @@
 
 ## 主求解质量检查：只判断当前主计算是否可接受
 
-主求解质量检查的唯一数值规则 Authority 为 `core/numerical_verification_contract.yaml`。它只回答：**在当前 locked model 与声明的 numerical method 下，本次主计算是否具有足够的内在数值有效性，可以成为 accepted solution workbook。**
+主求解质量检查的唯一数值规则 Authority 为 `core/numerical_verification_contract.yaml`。它只回答：**在当前 locked model 与声明的 numerical method 下，本次主计算是否具有足够的内在数值有效性，可以支持本问答案与后续分析。**
 
 因此 主求解入口 只实现 Module 02 已登记的 Primary Quality Specification（PQS）中真正适用的最低检查，例如当前解的约束违反、等式/均衡/守恒残差、必要的离散精度、必要的迭代/仿真收敛、当前求解器的 bound/gap/termination 证据，以及 capability 明确要求的主预测外样本、泄漏、校准、可识别性或最低不确定性精度。
 
-**不得把参数敏感性、现实参数扰动、阈值/失效边界扩展搜索、场景压力测试、替代算法比较、替代结构/模型比较、多随机种子或多初值稳健性、异质性、误差分解、广义外样本稳定性等结果深化分析内容写入主求解质量门。** 这些内容只能在主工作簿 accepted 后进入 Module 03B。若某一主算法按数学定义本身需要多起点/多随机种子才能构成一次完整求解，这些运行可以作为主算法内部步骤，但不得据此在 03A 中生成“跨算法稳健性”或“结论稳定性”分析。
+**不得把参数敏感性、现实参数扰动、阈值/失效边界扩展搜索、场景压力测试、替代算法比较、替代结构/模型比较、多随机种子或多初值稳健性、异质性、误差分解、广义外样本稳定性等结果深化分析内容写入主求解质量门。** 这些内容在主工作簿核对后进入 Module 03B。若某一主算法按数学定义本身需要多起点/多随机种子才能构成一次完整求解，这些运行可以作为主算法内部步骤，但不得据此在 03A 中生成“跨算法稳健性”或“结论稳定性”分析。
 
 容易混淆的边界统一如下：
 
@@ -111,7 +109,7 @@
 
 v7.14 新生成的严格主质量轨迹应在 `运行配置` 中写入 `primary_quality_protocol_version=1.0.0`，并在 `主结果质量门` 中使用 `Verification ID / 判定关系 / 阈值或容差 / 实际值 / 证据工作表 / 阈值来源` 追溯到底层证据。`离散精度` 与 `收敛诊断` 若由机器重算主判据，应使用 `用于主判定` 标记真正决定当前主结果是否可接受的证据行，避免把探索性粗网格或过程记录误当最终门槛。
 
-用户返回工作簿后，助手通过 `scripts/validate_user_execution.py` 核验执行所有权、full-fidelity 配置和代码/数据哈希，并由其调用 `scripts/validate_numerical_evidence.py` 独立复核适用主数值证据；工作簿自行写出的“是否通过”不能替代机器可重算的证据一致性。v7.13 历史工作簿保持只读兼容；旧项目重新进入当前主求解时应按 v7.14 轨迹生成本问新工作簿。
+用户返回工作簿后，按 `core/user_execution_contract.yaml#result_handoff` 读取运行配置、答案和底层数值证据，独立核对适用的质量判据。v7.13 历史工作簿保持只读兼容；旧项目重新进入当前主求解时应按 v7.14 轨迹生成本问新工作簿。
 
 ```text
 题意口径冻结
@@ -121,19 +119,17 @@ v7.14 新生成的严格主质量轨迹应在 `运行配置` 中写入 `primary_
 → Primary Quality Specification（只含当前主计算最低数值有效性）
 → 复杂度合理性复审
 → Independent Model Challenge
-→ Human Model Approval（绑定 current semantic_revision + validated semantic_identity_hash；legacy hash 只读兼容）
-→ semantic governance gate
-→ model approval gate
+→ Human Model Approval（保存对应模型、revision与用户批准）
 → 按 preprocessing_decision 分流
    ├─ not_needed     → 原始数据
    ├─ question_local → 原始数据 + 本问局部变换
    └─ project_level  → Module 03P → 统一工作簿质量门
 → 生成所选主求解入口前锁定 Primary Evidence Capture 项
-→ 助手执行代码交付检查：执行配置 + 代码工程质量门
+→ 助手静态检查执行配置与代码工程质量
 → 用户本地full_fidelity运行，同时保存最终答案 + 真实状态/过程/结构证据
 → 用户返回问题X求解结果.xlsx
-→ 助手验收：运行配置/哈希 + 主结果质量门 + numerical evidence独立复核
-→ accepted后冻结所选主求解入口及其声明源码依赖
+→ 按result_handoff核对答案、运行配置与数值证据
+→ 核对后冻结所选主求解入口及其声明源码依赖
 → 才允许建立result_analysis_plan并进入Module 03B
 ```
 
@@ -145,9 +141,9 @@ v7.14 新生成的严格主质量轨迹应在 `运行配置` 中写入 `primary_
 - `question_local`：只允许当前小问有数学来源的局部变换；
 - `not_needed`：默认保持原始数据，不为“规范化流程”虚构处理步骤。
 
-若实现过程中发现必须新增核心变量、修改目标函数/约束、改变 `preprocessing_decision`、公共数据处理或算法语义，应停止代码交付，递增 `semantic_revision`，更新 `semantic_change_categories`，把旧 `model_challenge_status`、`human_model_approval_status` 和 `locked_model_spec` 标记 stale，必要时回退 Module 03P 或 Module 02，重新闭环、重新 Challenge、重新取得用户 Approval，并再次运行两个治理门。
+若实现过程中发现必须新增核心变量、修改目标函数/约束、改变 `preprocessing_decision`、公共数据处理或算法语义，应停止代码交付，递增 `semantic_revision`，更新 `semantic_change_categories`，把旧 `model_challenge_status`、`human_model_approval_status` 和 `locked_model_spec` 标记 stale，必要时回退 Module 03P 或 Module 02，重新闭环、重新 Challenge、按批准合同保存新的用户 Approval。
 
-新生成主脚本必须只定义一个静态可读 `RUN_CONFIG`（Python 顶层字典或 MATLAB 主函数初始区域的受限 JSON 字面量，语法服从执行 Authority），其中锁定 stage/problem/data path+hash/solver/seed/tolerance/limit/expected workbook 等任务可变输入，并在 primary 阶段写入 `primary_quality_protocol_version`。`execution_owner=user`、`execution_profile=full_fidelity` 与六个 no-degradation 标志由 `core/user_execution_contract.yaml` 全局继承，不在脚本中重复自报；`solver_version` 等实际运行事实仍由返回主工作簿 `运行配置` 记录和验收。旧 `FULL_FIDELITY_CONFIG/FULL_RUN_CONFIG` 仅作只读兼容且继续按旧完整字段要求校验。默认不生成独立 YAML、运行说明或校验报告。主工作簿 accepted 后不得为了结果深化分析覆盖更新主求解入口；深化分析进入 Module 03B，并按同一项目后端生成独立入口。若后续发现主模型必须修改，应显式回退 Module 02/本模块，先传播 stale，再重新审查、批准并验收主结果。
+新生成主脚本必须只定义一个静态可读 `RUN_CONFIG`（Python 顶层字典或 MATLAB 主函数初始区域的受限 JSON 字面量，语法服从执行 Authority），其中锁定 stage/problem/data path+hash/solver/seed/tolerance/limit/expected workbook 等任务可变输入，并在 primary 阶段写入 `primary_quality_protocol_version`。`execution_owner=user`、`execution_profile=full_fidelity` 与六个 no-degradation 标志由 `core/user_execution_contract.yaml` 全局继承，不在脚本中重复自报；`solver_version` 等实际运行事实仍由返回主工作簿 `运行配置` 记录和验收。旧 `FULL_FIDELITY_CONFIG/FULL_RUN_CONFIG` 仅作只读兼容且继续按旧完整字段要求校验。默认不生成独立 YAML、运行说明或校验报告。主工作簿核对后不得为了结果深化分析覆盖更新主求解入口；深化分析进入 Module 03B，并按同一项目后端生成独立入口。若后续发现主模型必须修改，应显式回退 Module 02/本模块，先传播 stale，再重新审查、批准并验收主结果。
 
 
 ### 可选 A2 一致性绑定

@@ -1,4 +1,4 @@
-version: 11.2.0
+version: 11.3.0
 bootstrap: core/bootstrap.yaml
 
 # default_load / load_policy 描述本次业务动作的路由资源。开场读取方式由
@@ -45,15 +45,15 @@ project_memory_contract:
       intents: [review, full_workflow, full_submission]
       request_pattern: '(?:全文|全篇|整篇|全稿|整稿|完整论文).{0,8}(?:终审|评审|审阅|审查|复核)|(?:终审|评审|审阅|审查|复核).{0,8}(?:全文|全篇|整篇|全稿|整稿|完整论文)|(?:^|[，。；\s])(?:请|开始|进行|做)?(?:论文)?终审(?:$|[。！；\s])|final review (?:of )?(?:the )?(?:entire |whole |full )?(?:paper|manuscript)'
   scoped_writing_headings: [当前写作选择, 逐问写作能力预检, 正文章节与交付映射, Paper Fragment Dependency Map, Chapter Handoff Map, Algorithm Trace]
-  numeric_fact_source: accepted_standard_workbooks
+  numeric_fact_source: current_standard_workbooks
   machine_state_source: state/project_state.yaml
   rules:
   - Prefer the current framework over reconstructing current model semantics from chat memory.
   - Use targeted section reads for ordinary single-question continuation; do not preload the whole framework without need.
   - Use the full current framework for full-paper writing, cross-question synthesis, handoff and final review.
-  - Verify concrete numerical claims against accepted workbooks; framework result summaries and Numeric Profile are navigation/display-policy layers, not replacements for the numerical source of truth.
+  - Read concrete numerical claims from the current workbooks under core/user_execution_contract.yaml#result_handoff; use framework result summaries and Numeric Profile to locate and display them.
   - If the framework is stale or conflicts with project state/workbooks, repair the upstream semantic/result state before downstream use.
-  - Synchronize affected framework sections after semantic changes and after accepted primary results, result analysis or figure evidence.
+  - Update affected framework sections after semantic changes and after checking primary results, result analysis or figure evidence.
   - Treat paper_framework.sync_status as framework synchronization state; explicit paper-fragment stale is tracked locally and must be repaired before affected formal claims are delivered.
 
 classification_contract:
@@ -72,9 +72,9 @@ execution_contract:
   task_code_execution_allowed: false
   rules:
   - Stop after the last module required by the user deliverable.
-  - Apply formal_delivery_gates only to actual paper/review/submission scopes, not intermediate design or framework outputs; all returned gates still execute in their declared order.
+  - Use core/model_approval_contract.yaml for contest approval and core/user_execution_contract.yaml#result_handoff for returned results. Run pre_delivery_gates in their declared order when machine validation is explicitly requested; formal_delivery_gates apply to paper/review/submission scopes.
   - Never manufacture downstream artifacts when gate inputs are missing.
-  - Problem Contract, semantic closure and complexity sanity must pass before Model Challenge; project-level preprocessing or primary solve code additionally requires challenge passed plus explicit Human Model Approval bound to the current semantic_revision and validated semantic_identity_hash under core/model_approval_contract.yaml; legacy hash provenance cannot authorize new task code.
+  - Review Problem Contract, semantic closure and complexity before Model Challenge; deliver project-level preprocessing or primary solve code after the current model has passed both reviews and received explicit Human Model Approval.
   - Every data project audits the current attachments and freezes preprocessing_decision in model_design before code generation.
   - Preprocessing judgment must use the current data's completeness, consistency, validity, sampling/coverage, measurement quality, model-readiness and leakage risks; no competition type or previous dataset supplies a default cleaning recipe.
   - Shared raw data alone never makes data_preprocessing mandatory.
@@ -83,9 +83,9 @@ execution_contract:
   - If preprocessing_decision=project_level, pause before solve_validate, complete data_preprocessing, accept the unified workbook, then forbid dependent downstream code from rereading the corresponding shared raw sources.
   - Project-level preprocessing must persist paper method/validation/before-after plotting evidence in the unified workbook; figure_evidence then creates 数据预处理/data_process.m, which may only read that workbook and may not redo preprocessing.
   - Generate full-fidelity task code and stop at the applicable user-execution boundary; never execute task-specific preprocessing, solve or analysis code.
-  - Primary user-produced workbook must be accepted before the Analysis Necessity Gate can decide whether post-primary result analysis is required.
-  - Accepted primary workbooks freeze the primary solve script; when the Gate is required, result-analysis code is a separate stage-specific file that inherits the one project-root numerical backend.
-  - Formal numerical-figure delivery and writing require validated_results under Module 04 and the output contract. Selecting a figure-planning route from accepted primary evidence is not formal delivery approval; every scoped numerical claim still needs accepted primary evidence plus either accepted passed analysis or a reasoned not_required disposition.
+  - Check the returned primary workbook under result_handoff, then decide whether post-primary result analysis is required.
+  - Keep the primary solve script aligned with its checked workbook; when analysis is required, use a separate stage-specific file with the project-root numerical backend.
+  - Use checked primary results and, when required, completed analysis evidence for numerical figures and writing under Module 04 and the output contract.
   - Figure consumers require a 03B workbook only when their declared evidence uses it; independent mechanism diagrams keep their own non-numerical prerequisite route. Do not infer that every figure requires alternative-world computation.
   - result_analysis_status=not_required only waives alternative-world computation for the current claims; it never proves robustness, stability, parameter insensitivity, cross-scenario validity or algorithm agreement. Adding such a claim reopens the Analysis Necessity Gate.
   - Result analysis may send the workflow back to model_design, conditionally to data_preprocessing, or to solve_validate when the locked result is not stable enough; paper-facing analysis evidence records support/modify/reject against a target claim.

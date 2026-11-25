@@ -4,9 +4,9 @@
 
 ## 二、题意、框架与局部 stale 审查
 
-核验题目要求、附件、输出格式、单位和精度；检查 current `模型论文框架.md`、`state/project_state.yaml` 与 accepted 标准工作簿的职责边界。模型/结果/图/命题/正文 fragment 的 stale 只沿真实依赖传播，不能“整篇保险起见”全部判旧。
+核验题目要求、附件、输出格式、单位和精度；从 current `模型论文框架.md` 恢复模型，按 `core/user_execution_contract.yaml#result_handoff` 读取实际工作簿。模型/结果/图/命题/正文 fragment 的 stale 只沿真实依赖传播，不能“整篇保险起见”全部判旧。
 
-框架应能恢复当前模型身份、Model/Solver/Validator、Formula/Algorithm Trace、Model Construction Rationale、Reduction Provenance、solver precondition、关键参数依据、Terminology/Numeric/Title/Claim 状态、结果和图表证据位置；具体数值回到 accepted workbook。每问文件与目录只核对 `core/output_contract.yaml#per_question`。
+框架应能恢复当前模型身份、Model/Solver/Validator、Formula/Algorithm Trace、Model Construction Rationale、Reduction Provenance、solver precondition、关键参数依据、Terminology/Numeric/Title/Claim 状态、结果和图表证据位置；具体数值回到实际工作簿。每问文件与目录只核对 `core/output_contract.yaml#per_question`。
 
 ### Cross-File Assembled Seam Sweep
 

@@ -1,6 +1,6 @@
 function workbook = analysis_comparison_example()
-RUN_CONFIG = jsondecode('{"stage":"analysis","problem_name":"问题一","solver_backend":"matlab","data_paths":["input.json"],"data_sha256":"__DATA_SHA256__","solver":"explicit_qr_svd_comparison","random_seed":2026,"tolerance":1e-10,"iteration_or_time_limit":"direct","expected_workbook":"问题一求解/问题一结果深化分析.xlsx","run_receipt_protocol_version":"1.1.0","code_dependencies":[],"primary_workbook":"问题一求解/问题一求解结果.xlsx","primary_workbook_sha256":"__ACCEPTED_PRIMARY_SHA256__","analysis_comparison_protocol_version":"1.0.0","analysis_comparison_plan_sha256":"__FROZEN_PLAN_SHA256__"}');
-% Instantiate the approved scope and plan; this source does not grant approval.
+RUN_CONFIG = jsondecode('{"stage":"analysis","problem_name":"问题一","solver_backend":"matlab","data_paths":["input.json"],"data_sha256":"__DATA_SHA256__","solver":"explicit_qr_svd_comparison","random_seed":2026,"tolerance":1e-10,"iteration_or_time_limit":"direct","expected_workbook":"问题一求解/问题一结果深化分析.xlsx","run_receipt_protocol_version":"1.1.0","code_dependencies":[],"primary_workbook":"问题一求解/问题一求解结果.xlsx","primary_workbook_sha256":"__PRIMARY_SHA256__"}');
+% Instantiate the approved comparison scope.
 % Repository fixtures also instantiate its primary QR branch in q1_solver.m.
 entrypoint = string(mfilename('fullpath')) + ".m";
 root = string(fileparts(fileparts(entrypoint)));
@@ -30,8 +30,18 @@ else
     passed = true; % Analysis conclusion is reviewed separately; source failure still throws.
     receipt = make_receipt(RUN_CONFIG,identity,toc(started),'all_declared_decompositions_completed',2);
     receipt.primary_workbook_sha256 = identity.primary_workbook_sha256;
-    receipt.analysis_comparison_protocol_version = RUN_CONFIG.analysis_comparison_protocol_version;
-    receipt.analysis_comparison_plan_sha256 = RUN_CONFIG.analysis_comparison_plan_sha256;
+end
+comparisonFields = {'analysis_comparison_protocol_version','analysis_comparison_plan_sha256'};
+declared = isfield(RUN_CONFIG,comparisonFields);
+if any(declared)
+    message = 'Comparison receipt requires analysis stage, version 1.0.0 and a SHA-256 plan.';
+    assert(all(declared) && strcmp(RUN_CONFIG.stage,'analysis'), 'HSK:ComparisonProtocol', message);
+    protocol = RUN_CONFIG.analysis_comparison_protocol_version;
+    plan = RUN_CONFIG.analysis_comparison_plan_sha256;
+    assert(ischar(protocol) && strcmp(protocol,'1.0.0') && ischar(plan) && isrow(plan) && ...
+        ~isempty(regexp(plan,'^[0-9a-fA-F]{64}$','once')), 'HSK:ComparisonProtocol', message);
+    receipt.analysis_comparison_protocol_version = protocol;
+    receipt.analysis_comparison_plan_sha256 = plan;
 end
 sheets(end+1,:) = {'运行配置',receipt_cells(receipt)};
 current = verify_inputs(root,entrypoint,RUN_CONFIG);

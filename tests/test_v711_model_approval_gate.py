@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import yaml
+from jsonschema import Draft202012Validator
 
 from tests.test_v900_semantic_governance import framework, identity_payload
 
@@ -59,11 +60,9 @@ class ModelApprovalContractTests(unittest.TestCase):
         self.assertIn("may be not_applicable", field_semantics["rejected_route_reason"])
         self.assertIn("fixed two-route comparison", field_semantics["rejected_route_reason"])
 
-    def test_solve_module_requires_model_approval_validator(self):
+    def test_solve_module_uses_model_approval_authority(self):
         text = (ROOT / "modules" / "03_solve_validate.md").read_text(encoding="utf-8")
-        self.assertIn("scripts/validate_model_approval.py", text)
         self.assertIn("core/model_approval_contract.yaml", text)
-        self.assertIn("不复制第二套检查清单", text)
         self.assertIn("awaiting_model_approval", text)
         self.assertNotIn("model_challenge_status=passed", text)
         self.assertNotIn("human_model_approval_status=approved", text)
@@ -74,7 +73,14 @@ class ModelApprovalContractTests(unittest.TestCase):
         self.assertIn("Devil's Advocate", text)
         self.assertIn("proposed_model_spec", text)
         self.assertIn("Human Model Approval", text)
-        self.assertIn("approved_semantic_hash", text)
+        self.assertIn("core/model_approval_contract.yaml#human_approval", text)
+        for relative in (
+            "templates/model/model_approval_section.md",
+            "templates/model/model_paper_framework.md",
+        ):
+            template = (ROOT / relative).read_text(encoding="utf-8")
+            self.assertIn("用户批准原话与来源", template)
+            self.assertIn("批准小问", template)
 
 
 class ModelApprovalValidatorTests(unittest.TestCase):
@@ -108,6 +114,33 @@ class ModelApprovalValidatorTests(unittest.TestCase):
             "validated_semantic_identity_hash": self.hash_value,
             "approved_semantic_identity_hash": self.hash_value,
         }
+
+    def test_saved_human_approval_does_not_claim_machine_identity(self):
+        schema = yaml.safe_load((ROOT / "core/project_state.schema.yaml").read_text(encoding="utf-8"))
+        state = yaml.safe_load((ROOT / "state/project_state.example.yaml").read_text(encoding="utf-8"))
+        q1 = state["subproblems"]["Q1"]
+        for key in (
+            "semantic_identity_schema_version", "semantic_identity_hash",
+            "validated_semantic_identity_hash", "approved_semantic_identity_hash",
+            "semantic_text_hash", "semantic_hash", "validated_semantic_hash",
+            "approved_semantic_hash", "validated_semantic_revision",
+        ):
+            q1.pop(key, None)
+        q1.update({
+            "model_challenge_status": "passed",
+            "human_model_approval_status": "approved",
+            "semantic_revision": 3,
+            "approved_semantic_revision": 3,
+        })
+        restored = yaml.safe_load(yaml.safe_dump(state, allow_unicode=True))
+        self.assertEqual(list(Draft202012Validator(schema).iter_errors(restored)), [])
+        restored_q1 = restored["subproblems"]["Q1"]
+        self.assertEqual(restored_q1["human_model_approval_status"], "approved")
+        self.assertEqual(restored_q1["approved_semantic_revision"], 3)
+        errors = self.validator.validate_question("Q1", restored_q1)
+        self.assertTrue(errors)
+        self.assertFalse(any("human_model_approval_status" in issue for issue in errors), errors)
+        self.assertNotIn("approved_semantic_identity_hash", restored_q1)
 
     @staticmethod
     def active_model_receipt_policy() -> dict:

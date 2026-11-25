@@ -27,10 +27,12 @@ from w3_proposition_reference import (
     prior_w3_proposition_text,
 )
 from v1120_release_reference import prior_v1120_release_bytes
+from r1_continuity_reference import prior_r1_text
 
 
 def accepted_w3_source_text(relative: str) -> str:
-    raw = (ROOT / relative).read_bytes()
+    text = prior_r1_text(relative, (ROOT / relative).read_text(encoding="utf-8"))
+    raw = text.encode("utf-8")
     if relative == "core/output_contract.yaml":
         raw = prior_v1120_release_bytes(relative, raw)
     return raw.decode("utf-8")
@@ -1632,7 +1634,7 @@ class ContractAndDriftTests(unittest.TestCase):
                     from claim_schema_reference import previous_d2_schema
 
                     source_text = path.read_text(encoding="utf-8")
-                    text = prior_w3_proposition_text(relative, source_text)
+                    text = prior_w3_proposition_text(relative, prior_r1_text(relative, source_text))
                     # Revert only the optional Figure schema extension, byte-for-byte.
                     # Keep every original pinned predecessor hash and assertion.
                     edition_addition = (
@@ -1669,7 +1671,7 @@ class ContractAndDriftTests(unittest.TestCase):
                     schema = yaml.safe_load(text)
                     if schema["version"] == "8.16.0":
                         from claim_schema_reference import previous_comparison_schema
-                        # The text route already reversed W3 and plotting. The strict
+                        # The text route already reversed R1, W3 and plotting. The strict
                         # object route must independently start from the current source.
                         schema = previous_comparison_schema(yaml.safe_load(source_text))
                         begin = "# analysis comparison definitions BEGIN\n"
@@ -1709,6 +1711,28 @@ class ContractAndDriftTests(unittest.TestCase):
                 else:
                     actual = git_blob_sha(path)
                 self.assertEqual(actual, expected)
+
+    def test_r1_schema_text_and_object_inverses_agree_independently(self):
+        from claim_schema_reference import previous_comparison_schema, previous_r1_continuity_schema
+
+        relative = "core/project_state.schema.yaml"
+        source = (ROOT / relative).read_text(encoding="utf-8")
+        schema = yaml.safe_load(source)
+        predecessor = previous_r1_continuity_schema(schema)
+        self.assertEqual(predecessor, yaml.safe_load(prior_r1_text(relative, source)))
+        self.assertEqual(schema, yaml.safe_load(source))
+        for name in ("semantic_hash", "validated_semantic_hash"):
+            for patch in ({"description": "changed"}, {"pattern": ".*"}, {"default": ""}):
+                with self.subTest(field=name, patch=patch):
+                    changed = copy.deepcopy(schema)
+                    changed["properties"]["subproblems"]["additionalProperties"]["properties"][name].update(patch)
+                    with self.assertRaisesRegex(AssertionError, "R1 schema inverse rejected"):
+                        previous_r1_continuity_schema(changed)
+        changed = copy.deepcopy(schema)
+        changed["unreviewed_change"] = True
+        self.assertTrue(previous_r1_continuity_schema(changed)["unreviewed_change"])
+        with self.assertRaises(AssertionError):
+            previous_comparison_schema(changed)
 
     def test_writing_slimming_projection_preserves_existing_authority_guards(self):
         for relative, replacements in WRITING_SLIMMING_REWRITES.items():

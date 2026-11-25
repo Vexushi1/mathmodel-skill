@@ -21,8 +21,11 @@ python scripts/resolve_runtime.py problem_analysis --objective explanation
 
 ## 运行时入口与治理
 
-- `resolve_runtime.py`：默认 assured runtime 入口。在兼容旧 plan 字段及 `objective / structures / capabilities` 分类轴的基础上，可选读取 `--project-root` / `--question` 恢复 current project state，先检查全题项目后端策略，再按本次问题及实际恢复阶段验证 artifact hash，输出 intent provenance、ambiguity、declarative contract closure、authority fingerprint 与 `runtime_plan/assurance`；`auto` 或无状态兼容默认不写入项目选择。
+普通比赛按 `core/model_approval_contract.yaml` 和 `core/user_execution_contract.yaml#result_handoff` 接续。以下命令用于显式机器检查。
+
+- `resolve_runtime.py`：assured runtime 工具入口。在兼容旧 plan 字段及 `objective / structures / capabilities` 分类轴的基础上，可选读取 `--project-root` / `--question` 恢复 current project state，先检查全题项目后端策略，再按本次问题及实际恢复阶段验证 artifact hash，输出 intent provenance、ambiguity、declarative contract closure、authority fingerprint 与 `runtime_plan/assurance`；`auto` 或无状态兼容默认不写入项目选择。
   已有项目传入 `--project-root`，定位小问时另传 `--question`。例如，从完整资源根只读解析当前问题的审题动作可用 `python scripts/resolve_runtime.py problem_analysis --project-root <项目根> --question Q1`。
+  Q2 所需的 Q1 结果尚未就绪时，解析器仍可返回计划，并在 `assurance.context.dependency_diagnostics` 列出缺项；`assurance.status=pass` 表示解析完成。普通接续核对 Q2 实际需要的参数或工作簿记录：批准模型中的参数按定义、值和来源读取，求解结果按表、键、字段和单位读取。显式机器交付由 `code_delivery` 检查对应依赖。
 - `reading_plan.py`：由默认 resolver 调用，使用同一次 hydration 的原始状态快照生成带文件哈希与行范围的初始读取、条件资料和工具接口清单；读取选择服从 `core/workflow_router.yaml#reading_policy`，不改旧计划、不执行校验门、不写项目。
 - `read_stage.py`：只读消费现有 resolver 读取计划或写作阶段来源，返回指定文件的实际正文块、源身份和缺口；不裁决条件、不执行 gate、不写项目，使用边界见下节。
 - `resolve_workflow.py`：保留的无状态兼容 resolver；仍可直接解析显式 intent/classification/artifact-name 输入，但不负责 project-state hydration 或 artifact hash assurance。
@@ -97,11 +100,11 @@ python scripts/read_stage.py --root <同版本Skill根> --plan <当前resolver.y
 - `validate_code_delivery.py`：按 `preprocessing / primary / analysis` 阶段静态校验题目专属 Python/MATLAB 的完整运行配置、代码质量和阶段边界；不执行赛题代码。RUN_CONFIG/FULL_* 的静态语法抽取委托 `run_config_parser.py`，字段要求仍在本 validator 与 User Execution Authority 中判定。
 - `validate_user_execution.py`：按当前 `preprocessing_decision` 与已激活阶段验收适用的预处理工作簿、主求解工作簿和条件存在的结果深化分析工作簿，并核对运行配置、代码/数据哈希和对应质量门；读取已交付阶段代码时复用同一语法级 config parser，但保留本调用面的 receipt/echo/错误边界。
 
-赛题专属预处理、主求解和被 Analysis Necessity Gate=`required` 激活的结果深化分析由用户本地以 full-fidelity 执行；脚本工具不得通过降采样、粗网格、缩短时域、减少重复、放宽容差或静默 solver fallback 改变正式求解口径。Gate=`not_required` 时不生成 03B 代码/工作簿，也不得把该状态写成稳健性或稳定性已通过。项目级预处理和主求解属于 current 人工锁模后的代码阶段，不能只凭 Problem Contract 冻结或 Model Challenge 通过绕过 `validate_model_approval.py`。
+赛题专属预处理、主求解和被 Analysis Necessity Gate=`required` 激活的结果深化分析由用户本地以 full-fidelity 执行。按批准模型保留数据、网格、时域、重复次数、容差和求解器；Gate=`not_required` 时不生成 03B 代码和工作簿。项目级预处理和主求解代码在本模型完成双审与用户批准后交付。
 
 ## 可选实现结构核验
 
-`model_code_conformance.py <project_root> --question Q1 --stage primary|analysis [--inventory]` 是A1只读入口，协议由 `core/model_code_conformance_contract.yaml` 管理，记录形状由Project State Schema管理。复用当前模型锁、源码bundle及快照，不导入/执行用户代码，不读取工作簿，不写PASS或修改状态。`conformance_source.py`仅提供有界符号与词法观察。退出码0只表示structure_verified，1表示blocked，2表示needs_review/not_assessed；这些均不是数学等价、数值验收或独立审查证明。A2尚未把该报告接入正式交付资格。
+`model_code_conformance.py <project_root> --question Q1 --stage primary|analysis [--inventory]` 是 A1 只读结构核验入口，协议见 `core/model_code_conformance_contract.yaml`。它读取当前模型和源码，不执行用户代码；退出码 0、1、2 分别表示 structure_verified、blocked、needs_review/not_assessed。为当前小问和阶段显式启用 A2 后，机器交付和验收按合同 `activation.integration` 检查结构绑定；操作见下文「A2：显式启用的一致性交付与验收绑定」。
 
 ## 项目记忆与论文检查
 

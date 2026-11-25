@@ -99,13 +99,13 @@ class RuntimeHealthCoherenceTests(unittest.TestCase):
             "preprocessing_decision",
             "Independent Model Challenge",
             "Human Model Approval",
-            "semantic governance gate",
-            "model approval gate",
+            "保存对应模型、revision与用户批准",
+            "按 preprocessing_decision 分流",
             "生成所选主求解入口",
-            "助手执行代码交付检查",
+            "助手静态检查执行配置与代码工程质量",
             "用户本地full_fidelity运行",
             "用户返回问题X求解结果.xlsx",
-            "助手验收",
+            "按result_handoff核对答案、运行配置与数值证据",
         ])
 
 

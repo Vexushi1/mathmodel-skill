@@ -7,7 +7,7 @@
 | Evidence level | L1 / L2 / L3 / L4 |
 | Primary question | 该 Figure 唯一一级阅读任务 |
 | Figure role | 趋势 / 分布 / 诊断 / 敏感性 / 鲁棒性 / Pareto / 空间 / 网络 / 构成 / 多维画像 |
-| Available evidence dimensions | 当前 accepted 工作簿实际具备的时间、空间、样本、状态、约束、不确定性、多目标等维度 |
+| Available evidence dimensions | 按 `core/user_execution_contract.yaml#result_handoff` 核对的工作簿实际具备的时间、空间、样本、状态、约束、不确定性、多目标等维度 |
 | Evidence structure | 简单比较 / 分布 / 时间演化 / 空间 / 机制 / 边界 / 参数响应 / 不确定性 / 多目标 / 稳定区 / 网络 / 调度 / 诊断 / 全局—局部 |
 | Figure level | F1 / F2 / F3；保留既有标签描述表达结构，不作质量排序，任一级均可承担核心论证 |
 | Candidate visual structures | 记录真实可行候选；一种结构已充分回答问题时记录理由，不凑第二候选 |

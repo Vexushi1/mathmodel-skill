@@ -2,7 +2,7 @@
 
 ## 进入条件
 
-两类新增比较图按 `modules/03_result_analysis.md` 消费 current accepted 的 `多模型检验`／`同模型多算法检验`，准入仍由 Figure Evidence Authority 定义。检验 ID 与真实记录键应保留到数据读取，不从摘要数字重造比较序列。
+两类新增比较图按 `modules/03_result_analysis.md` 消费按 `core/user_execution_contract.yaml#result_handoff` 核对的 current `多模型检验`／`同模型多算法检验`，准入仍由 Figure Evidence Authority 定义。检验 ID 与真实记录键应保留到数据读取，不从摘要数字重造比较序列。
 
 用户要求结果图、敏感性图、鲁棒性图、多算法图、机理图或 Python/MATLAB 绘图代码时加载。图表必须服务明确结论，不以复杂图型、固定版式或面板数量替代证据。
 

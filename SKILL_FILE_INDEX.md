@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：11.2.0
+当前 Skill 版本：11.3.0
 
 本索引按使用语义分区。只有 **Active Runtime & Reference** 表示默认活动导航；
 Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenance，不因此成为 Runtime Authority。
@@ -182,8 +182,6 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `core/full_reading/volumes/124.md`
 - `core/full_reading/volumes/125.md`
 - `core/full_reading/volumes/126.md`
-- `core/full_reading/volumes/127.md`
-- `core/full_reading/volumes/128.md`
 - `core/global_preprocessing_contract.yaml`
 - `core/hsk_core_policy.md`
 - `core/literature_research_contract.yaml`
@@ -479,6 +477,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/fixtures/v1110_w3_proposition_source_spans.json`
 - `tests/fixtures/v1110_writing_draft_source_spans.json`
 - `tests/fixtures/v1120_release_source_spans.json`
+- `tests/fixtures/v1130_r1_source_spans.json`
 - `tests/fixtures/v11_business_baseline.yaml`
 - `tests/fixtures/v11_candidate_source_spans.json`
 - `tests/fixtures/v11_web_app_cases.yaml`
@@ -504,6 +503,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/plot_patterns_smoke.py`
 - `tests/plot_render_smoke.py`
 - `tests/plot_v11_baseline_smoke.py`
+- `tests/r1_continuity_reference.py`
 - `tests/reading_plan_cases.py`
 - `tests/reading_plan_evidence.py`
 - `tests/solver_backend_hash_smoke.py`

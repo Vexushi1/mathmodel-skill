@@ -158,7 +158,7 @@ def activate_comparison(root, state, backend, payload=PAYLOAD):
     return report["plan_sha256"]
 
 
-def instantiate(root, backend, stage, state, plan_hash=None):
+def instantiate(root, backend, stage, state, plan_hash=None, *, config_overrides=None):
     python = backend == "python"
     name = ("问题一求解.py" if stage == "primary" else "问题一结果深化分析.py") if python else ("q1_solver.m" if stage == "primary" else "q1_analysis.m")
     helper = "comparison_numerics.py" if python else "hsk_comparison_fit.m"
@@ -173,8 +173,12 @@ def instantiate(root, backend, stage, state, plan_hash=None):
     if stage == "primary":
         config["primary_quality_protocol_version"] = "1.0.0"
     else:
-        config.update(primary_workbook=f"{QUESTION}/问题一求解结果.xlsx", primary_workbook_sha256=file_hash(root / QUESTION / "问题一求解结果.xlsx"),
-                      analysis_comparison_protocol_version="1.0.0", analysis_comparison_plan_sha256=plan_hash)
+        config.update(primary_workbook=f"{QUESTION}/问题一求解结果.xlsx",
+                      primary_workbook_sha256=file_hash(root / QUESTION / "问题一求解结果.xlsx"))
+        if plan_hash is not None:
+            config.update(analysis_comparison_protocol_version="1.0.0", analysis_comparison_plan_sha256=plan_hash)
+    if config_overrides:
+        config.update(config_overrides)
     source_name = "analysis_comparison.py" if python else "analysis_comparison_example.m"
     source = (ROOT / "templates/code" / folder / source_name).read_text(encoding="utf-8")
     if python:
@@ -293,6 +297,7 @@ def run_valid_case(root, backend, matlab_command, payload):
 
 def run_smoke(root, backend, matlab_command=None):
     report = run_valid_case(root, backend, matlab_command, PAYLOAD)
+    report["ordinary_comparison"] = run_ordinary_case(root / "ordinary", backend, matlab_command)
     reordered = deepcopy(PAYLOAD)
     for key in ("scenarios", "evaluation_t"):
         reordered[key] = reordered[key][-1:] + reordered[key][:-1]
@@ -310,6 +315,63 @@ def run_smoke(root, backend, matlab_command=None):
         report["invalid_holdout_rejections"][case] = exit_code
     (root / "comparison_smoke_report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     return report
+
+
+def run_ordinary_case(root, backend, matlab_command=None):
+    root.mkdir(parents=True)
+    (root / QUESTION).mkdir()
+    (root / "input.json").write_text(json.dumps(PAYLOAD), encoding="utf-8")
+    state = {"subproblems": {"Q1": {"data_hash": reference_digest(root, ["input.json"])}}}
+    primary_bytes = None
+    for stage in ("primary", "analysis"):
+        code, config = instantiate(root, backend, stage, state)
+        execute_stage(root, backend, code, stage, matlab_command)
+        workbook = root / config["expected_workbook"]
+        metadata, errors = receipts.configuration_map(workbook)
+        assert not errors, errors
+        assert metadata["stage"] == stage and metadata["solver_backend"] == backend
+        assert metadata["run_receipt_version"] == "1.1.0"
+        assert metadata["code_sha256"] == file_hash(code)
+        assert metadata["code_bundle_sha256"] == reference_digest(
+            root, [code.relative_to(root).as_posix(), *[row["path"] for row in config["code_dependencies"]]])
+        assert "analysis_comparison_protocol_version" not in metadata
+        assert "analysis_comparison_plan_sha256" not in metadata
+        if stage == "primary":
+            primary_bytes = workbook.read_bytes()
+        else:
+            assert (root / QUESTION / "问题一求解结果.xlsx").read_bytes() == primary_bytes
+    assert not (root / "state/project_state.yaml").exists()
+    book = openpyxl.load_workbook(workbook, read_only=True, data_only=True)
+    try:
+        model_rows = list(book["多模型检验"].iter_rows(values_only=True))
+        algorithm_rows = list(book["同模型多算法检验"].iter_rows(values_only=True))
+        assert len(model_rows) == 2 and len(algorithm_rows) == len(PAYLOAD["evaluation_t"]) + 1
+        model = dict(zip(model_rows[0], model_rows[1]))
+        assert abs(model["主模型数值"] - 16) < 1e-10
+        assert abs(model["对照模型数值"] - 11) < 1e-10
+        assert abs(model["差异"] + 5) < 1e-10
+        for row in algorithm_rows[1:]:
+            algorithm = dict(zip(algorithm_rows[0], row))
+            assert abs(algorithm["差异"]) <= 1e-10
+    finally:
+        book.close()
+    original_workbook = workbook.read_bytes()
+    rejected = {}
+    invalid = {
+        "missing_plan": {"analysis_comparison_protocol_version": "1.0.0"},
+        "missing_version": {"analysis_comparison_plan_sha256": "a" * 64},
+        "unsupported_version": {"analysis_comparison_protocol_version": "2.0.0", "analysis_comparison_plan_sha256": "a" * 64},
+        "invalid_plan": {"analysis_comparison_protocol_version": "1.0.0", "analysis_comparison_plan_sha256": "z" * 64},
+    }
+    for case, overrides in invalid.items():
+        code, _ = instantiate(root, backend, "analysis", state, config_overrides=overrides)
+        rejected[case] = execute_stage(root, backend, code, f"analysis_{case}", matlab_command,
+            expected_error="Comparison receipt requires analysis stage, version 1.0.0 and a SHA-256 plan.")
+        assert workbook.read_bytes() == original_workbook
+        assert (root / QUESTION / "问题一求解结果.xlsx").read_bytes() == primary_bytes
+    return {"primary_unchanged": True, "machine_state_created": False, "comparison_extension_emitted": False,
+            "quadratic_holdout_prediction": model["主模型数值"], "linear_holdout_prediction": model["对照模型数值"],
+            "invalid_extension_rejections": rejected}
 
 
 if __name__ == "__main__":

@@ -83,7 +83,7 @@ A declared condition or pause does not prove it was satisfied or that approval o
 Source: `core/workflow_router.yaml#project_memory_contract`; its rules own recovery.
 
 - project_file: `模型论文框架.md`
-- numeric_fact_source: `accepted_standard_workbooks`
+- numeric_fact_source: `current_standard_workbooks`
 - machine_state_source: `state/project_state.yaml`
 - read_before_modules: `data_preprocessing`, `solve_validate`, `result_analysis`, `figure_evidence`, `writing_docx`, `writing_latex`, `review_delivery`
 - targeted_read_sections: `当前有效口径`, `relevant_subproblem`, `required_dependencies`, `Model Challenge`, `Human Model Approval`, `relevant_result_summary`, `Algorithm Trace`, `Terminology Registry`, `Numeric Profile`, `待办与缺口`

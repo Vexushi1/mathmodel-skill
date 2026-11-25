@@ -18,8 +18,8 @@ class PhaseCSemanticIdentitySurfaceClosureTests(unittest.TestCase):
         self.assertIn("historical read-only provenance", rules)
         self.assertNotIn("Requires approved_semantic_revision and approved_semantic_hash", rules)
         catalog = manifest["artifact_catalog"]
-        self.assertIn("validated semantic_identity_hash", catalog["human_model_approval"])
-        self.assertIn("validated semantic_identity_hash", catalog["locked_model_spec"])
+        self.assertIn("core/model_approval_contract.yaml", catalog["human_model_approval"])
+        self.assertIn("core/model_approval_contract.yaml", catalog["locked_model_spec"])
 
     def test_critical_active_surfaces_do_not_restate_legacy_current_approval(self):
         paths = [
@@ -53,20 +53,21 @@ class PhaseCSemanticIdentitySurfaceClosureTests(unittest.TestCase):
             for phrase in forbidden:
                 self.assertNotIn(phrase, text, f"{relative} retains legacy current-approval wording: {phrase}")
 
-    def test_current_surfaces_point_to_structured_identity_and_legacy_read_only_boundary(self):
-        manifest = (ROOT / "core/module_manifest.yaml").read_text(encoding="utf-8")
+    def test_ordinary_surfaces_share_approval_authority_and_explicit_machine_binding(self):
+        contract = yaml.safe_load((ROOT / "core/model_approval_contract.yaml").read_text(encoding="utf-8"))
         bootstrap = (ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8")
         policy = (ROOT / "core/hsk_core_policy.md").read_text(encoding="utf-8")
         module03 = (ROOT / "modules/03_solve_validate.md").read_text(encoding="utf-8")
         agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
-        for text in (manifest, bootstrap, policy, module03):
-            self.assertIn("semantic_identity_hash", text)
-        self.assertIn("approved_semantic_identity_hash", manifest)
-        self.assertIn("legacy semantic_hash", manifest.lower())
-        self.assertIn("legacy", policy)
-        self.assertIn("legacy", module03)
-        self.assertIn("legacy text-hash provenance", agents)
-        self.assertIn("never authorize new project-level preprocessing or primary solve code", agents)
+        for text in (bootstrap, policy, module03, agents):
+            self.assertIn("core/model_approval_contract.yaml", text)
+        approval = contract["human_approval"]
+        self.assertEqual(approval["approved_state_fields"]["common"],
+                         ["human_model_approval_status", "approved_semantic_revision"])
+        self.assertEqual(approval["binding"]["scope"], "explicit_machine_validation")
+        binding = approval["binding"]["structured_identity"]
+        self.assertTrue(binding["validated_semantic_identity_hash_must_equal_current"])
+        self.assertTrue(binding["approved_semantic_identity_hash_must_equal_current"])
 
     def test_root_and_packaged_skill_remain_byte_identical(self):
         self.assertEqual(

@@ -10,6 +10,7 @@ import hashlib
 import re
 from pathlib import Path
 
+from r1_continuity_reference import prior_r1_text
 from writing_slimming_reference import prior_writing_slimming_text
 
 
@@ -83,8 +84,14 @@ PHASE_C_CONTENT_REVIEW_REWRITES = (
 
 def historical_review_text(root: Path = ROOT) -> str:
     """Reconstruct the old business document from the current canonical owners."""
-    documents = {path: split_sections(prior_writing_slimming_text(path, (root / path).read_text(encoding="utf-8")))
-                 for path in CANONICAL_PATHS}
+    documents = {}
+    for path in CANONICAL_PATHS:
+        text = (root / path).read_text(encoding="utf-8")
+        try:
+            text = prior_r1_text(path, text)
+        except ValueError as exc:
+            raise ValueError("canonical review business text differs from the R1 predecessor") from exc
+        documents[path] = split_sections(prior_writing_slimming_text(path, text))
     parts = [documents[ENTRY][0]]
     for heading, path in SECTION_SOURCES:
         matches = [body for key, body in documents[path][1] if key == heading]

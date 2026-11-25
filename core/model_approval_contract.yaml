@@ -157,6 +157,7 @@ human_approval:
     legacy_when: no semantic_identity_* field is present for the current question
     no_partial_fallback: true
   binding:
+    scope: explicit_machine_validation
     semantic_revision: required
     structured_identity:
       semantic_identity_schema_version: required
@@ -177,23 +178,31 @@ human_approval:
     legacy_read_only:
     - approved_semantic_hash
   approval_write_rule: >-
-    Explicit approval copies the current structured semantic_identity_hash into
-    approved_semantic_identity_hash when structured identity is present. After the
-    Phase C migration boundary, pre-code approval must not newly write or refresh
-    legacy approved_semantic_hash. Migration or validation code must never synthesize
-    human approval.
+    Save the user's statement, its source and approved questions with the current model
+    and review conclusions in the framework. Set human_model_approval_status to approved
+    and approved_semantic_revision to the approved revision. Deliver the updated framework
+    when the host cannot write project files directly.
+  resume_rule: >-
+    Read the current model and saved approval; check the question, revision and actual
+    model content, then continue with the required inputs. Result-location updates,
+    wording changes and absent machine hashes do not require another approval.
+  machine_binding_rule: >-
+    For explicit machine validation, establish the current validated SIB first, then
+    check the saved two-pass review and user approval against that model. Restore the
+    corresponding challenge/approval statuses and bind approved_semantic_identity_hash
+    to the validated identity. Validation does not create user approval; legacy
+    approved_semantic_hash remains historical read-only provenance.
 
 analysis_comparison_approval:
-  activation: current_analysis_comparison_1.0.0_only
+  activation: selected_model_or_algorithm_comparison
   same_gate: model_approval
   scope_authority: modules/03_result_analysis.md
-  scope_shape: core/project_state.schema.yaml#/$defs/analysis_comparison
-  implementation: scripts/analysis_comparison.py
-  framework_marker: HSK_ANALYSIS_COMPARISON_BEGIN_END_Qn_after_result_summary
-  primary_identity: unchanged_full_current_validated_approved_SIB
-  scope_digest:
-    includes: [protocol_version, question, baseline_semantic_identity_hash, complete_model_specs, algorithm_definitions, comparison_questions, common_evaluation_protocols]
-    excludes: [future_primary_workbook_hash, actual_results, final_evidence_row_positions, approval_records]
+  ordinary_workflow: >-
+    Check the actual primary workbook under core/user_execution_contract.yaml#result_handoff.
+    Save the comparison models/algorithms, common evaluation scope, independent reviews
+    and explicit user approval in the existing framework comparison section. Freeze the
+    concrete checks before code delivery and continue within that approved scope.
+  primary_identity: unchanged_user_approved_model
   mathematical_projection:
     purpose: declared_model_comparison_only_not_a_new_global_identity
     retain: all_model_fields_unknown_extensions_and_unknown_algorithm_content
@@ -207,18 +216,30 @@ analysis_comparison_approval:
   independent_review:
     roles: [positive_fitness_review, adversarial_model_challenge]
     same_independence_rule_as_primary: true
-    each_record_requires: [distinct_review_reference, matching_scope_sha256, passed_verdict, actual_method, concrete_boundary_and_independence_conclusion, no_blocking_items, no_unresolved_items]
+    each_record_requires: [distinct_review_reference, passed_verdict, actual_method, concrete_boundary_and_independence_conclusion, no_blocking_items, no_unresolved_items]
     checks: [mathematical_closure, material_difference_or_same_original_model, common_evaluation_fit, full_fidelity_feasibility, shared_defects_and_independent_information, legitimate_parameter_and_algorithm_scope]
   human_approval:
     explicit_only: true
-    binding: current_scope_sha256
+    binding: current_comparison_scope_saved_in_framework
     recorded_provenance: user_statement_and_source_reference
     may_share_primary_brief: true
     no_synthesized_approval: true
   concrete_plan:
-    create_only_after_primary_accepted: true
+    create_after: primary_workbook_checked_under_result_handoff
     criteria_and_selectors_frozen_before_analysis_delivery: true
     must_stay_within_approved_scope: true
+  machine_validation:
+    activation: explicit_current_analysis_comparison_1.0.0_validation
+    scope_shape: core/project_state.schema.yaml#/$defs/analysis_comparison
+    implementation: scripts/analysis_comparison.py
+    framework_marker: HSK_ANALYSIS_COMPARISON_BEGIN_END_Qn_after_result_summary
+    primary_identity: unchanged_full_current_validated_approved_SIB
+    scope_digest:
+      includes: [protocol_version, question, baseline_semantic_identity_hash, complete_model_specs, algorithm_definitions, comparison_questions, common_evaluation_protocols]
+      excludes: [future_primary_workbook_hash, actual_results, final_evidence_row_positions, approval_records]
+    review_binding: matching_scope_sha256
+    human_approval_binding: current_scope_sha256
+    concrete_plan_requires: accepted_primary_execution
   out_of_scope_change: supplemental_two_pass_review_and_explicit_scope_approval_in_existing_gate
   scope_only_change: invalidate_scope_approval_and_analysis_chain_preserve_unchanged_primary_lock_and_acceptance
   actual_primary_change: original_semantic_revision_and_identity_stale_policy
@@ -229,11 +250,10 @@ lock_semantics:
   before_approval: proposed_model_spec
   after_approval: locked_model_spec
   rule: >-
-    selected_models and semantic closure do not by themselves create a locked_model_spec.
-    locked_model_spec is current only after Model Challenge passes and the user explicitly
-    approves the current semantic revision and current structured semantic identity.
-    Legacy semantic_hash approval remains readable historical provenance but cannot
-    authorize new preprocessing or primary-solve code after Phase C migration applies.
+    locked_model_spec is current after Model Challenge passes and the user explicitly
+    approves the current model and semantic revision. Restore that approval from the
+    framework under human_approval.resume_rule. Explicit machine validation additionally
+    applies human_approval.binding.
 
 stale_policy:
   semantic_change_categories:
@@ -257,6 +277,7 @@ stale_policy:
   - caption_only_change
   - formula_numbering_only_change
   - latex_file_split_without_semantic_change
+  - result_location_update_without_semantic_change
 
 persistence:
   framework:
@@ -268,6 +289,8 @@ persistence:
     - residual_warnings
     - approval_brief_summary
     - approval_status
+    - approved_questions_and_semantic_revision
+    - user_approval_statement_and_source
     history_policy: current_only_git_keeps_history
   project_state:
     stores:
@@ -282,15 +305,14 @@ persistence:
   - AGENT_RUNS.md
 
 compatibility:
-  old_projects_without_fields: read_only_compatible
+  old_projects_without_fields: restore_current_framework_review_and_approval
   dual_read_rule: >-
     Questions with no semantic_identity_* fields may still be read and audited through
     their v8 semantic_hash provenance. Presence of any structured identity field disables
     legacy fallback for that question so partial or stale structured state fails closed.
   migration_trigger: >-
-    When an old project re-enters model_design, data_preprocessing, solve_validate,
-    or regenerates primary code after a semantic change, establish a complete current
-    SIB, pass semantic governance to create the validated identity baseline, rerun the
-    required Model Challenge, and obtain explicit Human Approval of the current identity
-    before code generation. Do not infer a verified SIB automatically from old prose.
+    For explicit machine validation of an old project, establish a complete current
+    SIB and its validated baseline, then apply human_approval.machine_binding_rule.
+    Ordinary continuation uses the saved current model, review and approval. A real
+    model change requires the corresponding review and user approval again.
   historical_results_do_not_require_retroactive_approval_for_read_only_review: true

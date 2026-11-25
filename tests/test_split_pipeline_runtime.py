@@ -69,6 +69,35 @@ def constraints(solution, cfg):
 
 
 class TestSplitPipelineRuntime(unittest.TestCase):
+    def test_primary_run_uses_numerical_inputs_without_reading_framework(self):
+        for framework_bytes in (None, b"unrelated project notes", b"\xff\xfe"):
+            with self.subTest(framework_bytes=framework_bytes), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                cfg = config(root)
+                if framework_bytes is None:
+                    cfg.framework_path.unlink()
+                else:
+                    cfg.framework_path.write_bytes(framework_bytes)
+
+                result = run_primary_pipeline(
+                    cfg,
+                    load_data_hook=load_data,
+                    preprocess_hook=preprocess,
+                    build_features_hook=build_features,
+                    solve_hook=solve,
+                    constraint_hook=constraints,
+                    quality_hook=lambda context, checked: pd.DataFrame(
+                        {"检查项": ["目标值"], "是否通过": [True], "证据": ["1.0"]}
+                    ),
+                )
+                tables = read_workbook_tables(result.solution_path)
+                self.assertEqual(float(tables["核心指标"].loc[0, "数值"]), 1.0)
+                self.assertEqual(result.solution_path, root / "问题一求解/问题一求解结果.xlsx")
+                if framework_bytes is not None:
+                    self.assertEqual(cfg.framework_path.read_bytes(), framework_bytes)
+                else:
+                    self.assertFalse(cfg.framework_path.exists())
+
     def test_failed_primary_quality_is_written_before_blocking(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

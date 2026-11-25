@@ -2,11 +2,11 @@ version: 2.5.0
 introduced_in_skill_version: 10.0.0
 skill_compatibility: '>=10.0.0,<12.0.0'
 purpose: >-
-  Define the machine-readable runtime assurance layer that sits above the legacy
-  resolver plan: context hydration, intent provenance, artifact assurance,
-  declarative contract dependency closure, and authority fingerprinting. This
-  contract does not redefine modeling, workbook, approval, execution, writing,
-  numerical-verification, or submission semantics owned by their existing authorities.
+  Define the machine-readable runtime assurance layer for explicit resolver
+  invocation: context hydration, intent provenance, artifact assurance,
+  declarative contract dependency closure, and authority fingerprinting.
+  Ordinary competition reading follows reading_plan.formal_rule_delivery;
+  approval and result handoff follow their owning contracts.
 
 authority_boundary:
   owns:
@@ -321,13 +321,10 @@ reading_plan:
     manifest: core/full_reading/manifest.json
     reader: scripts/read_stage.py
     selector: core/bootstrap.yaml#startup_contract
-    version_binding: Resolve the chosen ref once to its full Git commit. Obtain the inventory, expected hashes and all content at that same commit.
-    byte_identity: Verify the actual UTF-8 response bytes against the independently retrieved manifest. Git blob IDs and newline-normalized distribution hashes have distinct meanings.
-    offsets: Zero-based half-open byte ranges in the original file and volume. Preserve complete code points, source order and the original line endings.
-    github_only: Retrieve the manifest and bounded volumes as complete files at the pin when available. Authenticate the returned bytes independently. For explicit GitHub line slices, retain the requested inclusive ranges, response text and blob identity.
-    github_line_ranges: A ranged GitHub file response may omit its terminal LF. Reassemble only observed line bodies with the documented separators and check against the original blob. Report reconstructed lines separately from raw whole-file transport. Retry precise gaps or fetch the affected whole blob when framing is ambiguous. Without hashing report visible ranges and verification limits.
-    continuity: Retry only identified missing or damaged volumes while the complete scope and intact bodies remain available. An identical retransmission counts once. After a lost scope, summary-only context or cross-chat formal recovery, retrieve all bodies afresh.
-    evidence_boundary: Receipt verification describes the supplied texts at the selected commit. Record current visible text separately. Internal context retention is unobservable. Project evidence, model approval and delivery gates keep their own authorities.
+    version_binding: Resolve the chosen ref once to its full Git commit and read the inventory and rule text from that commit.
+    github_only: Read every volume listed in the manifest, then start problem analysis.
+    github_line_ranges: Read complete sections in source order, including their parent context. Retrieve any missing or truncated ranges.
+    continuity: Supplement known missing volumes or ranges. After cross-chat recovery or loss of the reading scope, read the complete rule text and current project framework again.
   modular_review_sources: core/module_manifest.yaml#modules.review_delivery.reading_sources
   modular_review_consumption: >-
     Resolve legacy review entry and heading requests to the declared canonical
@@ -369,20 +366,16 @@ reading_plan:
     ranged_or_chunked_reads:
       line_ranges: one_based_inclusive
       source_identity: same_reading_plan.source_identity_for_every_chunk
-      sha256: calculate_full_source_sha256_when_available_otherwise_mark_unavailable
-      blob_id: distinct_from_sha256
       completeness_checks:
         - every_required_range_is_covered
         - no_missing_lines
-        - overlap_is_detected_and_rejected_not_silently_counted
+        - repeated_ranges_are_read_once
         - source_identity_is_consistent
-        - compare_text_with_independently_obtained_source_bytes_when_available
-      structural_coverage_only: Without trusted original bytes a matching number of lines cannot establish byte integrity.
       incomplete_or_truncated: retrieve_missing_ranges_before_action
-      complete_only_when: all_required_ranges_returned_and_checked
+      complete_only_when: all_required_text_is_read
     after_action:
       compare_actual_artifact_with_applicable_authority_text: true
-      pre_delivery_gates: use_resolver_returned_order_without_parallel_gate_list
+      pre_delivery_gates: explicit_machine_validation_uses_resolver_returned_order
     status_boundary:
       reading_plan: source_selection_only
       returned_source_text: proves_only_the_returned_ranges_are_available
@@ -401,7 +394,7 @@ reading_plan:
     - Every Skill-origin source returned by the body reader, on read_now, conditional or writing_stage, must match the selected Git commit's source blob as well as its captured plan hash; hashing already-dirty working-tree bytes cannot establish the pinned source identity.
     - project_backend_navigation is non-executable guidance for the sole inspect/select/migrate CLI when a current project selection needs review; it is not a pre_delivery_gate and never supplies migration confirmation.
     - Need for human semantic/visual review remains; byte/path/hash checks cannot decide mathematical correctness or visual quality.
-    - The legacy resource plan and complete machine closure remain available to old clients; new clients must not run fewer gates.
+    - Explicit machine-validation clients use the complete returned gate sequence.
     - Approved figure binding only narrows reading when existing registry/files/hash evidence agrees; it never creates or refreshes approval.
     - Only verified source rows may support narrow modes; declared_unverified artifact names never substitute for verified project evidence.
     - Planned file/fragment bytes are distinct from observed reads/tokens; actual_read_tokens remains null without a real trace.

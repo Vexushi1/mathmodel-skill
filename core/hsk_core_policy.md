@@ -1,4 +1,4 @@
-# HSK Core Policy v11.2.0
+# HSK Core Policy v11.3.0
 
 本文件只定义**跨阶段硬不变量**。任何阶段的目录、字段、工作表、图型、论文小节、算法展示、兼容迁移或工具参数，均以 `core/bootstrap.yaml` 指向的 current Authority 为准；本文件不复制这些阶段合同的完整实现。
 
@@ -18,7 +18,7 @@ $$
 
 1. 按启动合同取回规则后，新赛题从题意理解与建模开始。不得把竞赛 profile、专属 Pack、模板、项目状态文件或论文骨架是否存在当作开始分析的硬前置条件。
 2. 已有且适用的模板优先复用；没有专属模板时使用通用写作规则。没有竞赛 Pack 时使用通用竞赛规则；没有显式分类时先依据题面与 `packs/task/classifier.md` 完成分类。可选资源缺失只能记录为适配待办，不得阻断数学建模与求解。
-3. `pre_delivery_gates` 只约束 resolver 为当前任务、当前阶段实际返回的门禁。建模方案、框架草稿等中间产物不执行只为论文终稿或提交包设置的正式交付门禁；重复检查在相关输入、语义身份或产物确实变化前不重跑。
+3. 建模方案、框架草稿等中间产物按当前阶段交付；终稿与提交包的检查在对应阶段进行。交付方式见 §6。
 4. 保留能实质防止错误的检查：题意与约束闭合、必要的数据口径审计、当前项目模型变更审批、用户执行边界、主结果数值有效性和正式提交合规。检查应在其对应阶段执行，不得前置成一整套无差别赛前清单。
 
 ## 2. 题意、模型与批准
@@ -30,58 +30,58 @@ $$
 5. **题面—数学—代码—输出必须闭环。** 核心对象、公式、约束和结论必须有可追溯来源；“题目要求有而代码没有”“代码对象无数学来源”“单位/粒度/索引断裂”等 hard gap 未关闭时不得正式交付代码。
 6. **复杂度异常退化必须复审。** 复杂题被无依据降成低维直接计算、弱耦合、静态或单主体问题，或者题目专门条件长期闲置时，必须触发 Complexity Sanity Check；无法证明简化合理时不得进入主求解。该检查是安全网，不替代前述条件驱动的生成式结构发现。
 7. **Problem Contract、Semantic Closure 与 Complexity Sanity 都不能替代 Model Approval。** 进入项目级预处理或当前主求解代码前，必须完成独立 Model Reviewer、Devil's Advocate 和显式 Human Model Approval。
-8. **批准只绑定 current structured identity。** 只有用户明确批准当前 `semantic_revision` 与已验证 `semantic_identity_hash`，且 current = validated = approved identity 后，`locked_model_spec` 才成为 current。legacy semantic hash 只保留只读 provenance，不能授权新的项目级预处理或主求解。
+8. **批准对应当前模型。** 按 `core/model_approval_contract.yaml` 保存两次审查结论、用户明确批准及其对应模型；恢复同一模型时沿用已有批准。
 9. **语义变化必须失效真实依赖。** 题意、数据口径、参数、假设、目标、约束、预处理、算法语义或跨问依赖改变时，按 current state/transition Authority 更新 revision 并传播 typed stale；不因“保险起见”无差别失效独立问题，也不以纯排版/SIB 外措辞变化冒充模型变化。
 
-上述字段、状态和验证细节只服从对应 Authority；`scripts/validate_semantic_governance.py` 与 `scripts/validate_model_approval.py` 是 current 机器门，不由本文件维护第二套检查清单。
+批准与机器身份字段的具体写入由 `core/model_approval_contract.yaml` 定义。
 
 ## 3. 项目事实源与上下文
 
 项目中必须区分四类事实：
 
-- `模型论文框架.md`：current 项目语义与助手可读工作记忆；
-- accepted 标准工作簿：具体数值事实；
+- `模型论文框架.md`：当前模型、双审结论、人工批准及证据位置；
+- 实际返回的标准工作簿：具体数值事实，按 `core/user_execution_contract.yaml#result_handoff` 逐项核对；
 - `state/project_state.yaml`：revision、structured identity、artifact hash、依赖、stale 与机器状态；
 - 活动 Authority：跨项目方法、写作、绘图、执行和交付规则。
 
-四者不得互相替代。继续现有项目时必须 **read-before-use / write-after-change**：使用 current 框架恢复目标小问和必要依赖，具体数值回到 accepted workbook，状态判断回到 project state；语义、结果或图表验收发生真实变化后，只同步受影响 current 内容。聊天记忆不能覆盖 current 项目事实。
+继续现有项目时执行 **read-before-use / write-after-change**：读取框架中的当前模型、批准与必要依赖，从实际工作簿取数；发生变化后更新受影响的内容。机器字段保留实际工具运行结果。
 
 ### 3.1 取得启动原文
 
-先核对固定仓库提交、入口版本和当前请求，按该提交 `core/bootstrap.yaml#startup_contract` 选择读取范围。在已有项目中沿用其固定来源。仅拿到分支或标签时，先解析到具体提交，后续读同一提交的原文。若已有项目的固定提交无法确认，先查项目已有记录，并说明仍待定位的规则范围。按启动合同选中全文或恢复时，取齐下述整套规范。默认的阶段读取或一次局部请求，取当前动作完整适用的正文。请求与入口示例不完全相同时，按实际交付判断。解释数据字段可保持局部，若要求据此改变模型的数据口径或形成正式结论，先完成正式开场。遇到边界不清，先核实请求与项目证据，保留仍未确定的条件。各模式都按此问当前批准和证据限定可执行的动作。
+将项目选定的版本解析到固定提交，并按 `core/bootstrap.yaml#startup_contract` 选择正式、局部或恢复范围。已有项目沿用其固定来源。
 
-**正式开场。** 从固定提交读取 `core/full_reading/manifest.json`，按其中的卷路径取回全部正文。清单由 `core/module_manifest.yaml#rule_corpus` 的来源登记生成，可从每卷反查原文件、字节范围及物理别名。优先逐卷取完整原文。按行取得的响应可能省略段末换行，须保留请求范围和返回正文，按读取协议重组后与固定源核对。下文各条的适用条件仍取原文件的前言、父级和例外。镜像只读一份，示例保留其用途。只有 GitHub 读权限时也可按固定路径逐卷读取；工具详情及可核验范围见 `core/runtime_assurance_contract.yaml#reading_plan.formal_rule_delivery`。清单不可用时按固定树、bootstrap 指针、模块和模板登记追到现行合同明确委托的原文，包括规范性配置、案例和绘图资源的使用条件。不能界定全部来源时明确缺口，只推进有独立依据的动作。
+**正式开场。** 从固定提交读取 `core/full_reading/manifest.json`，按卷路径读齐全部规范正文，然后直接审题。开场不运行 Skill 校验、哈希比对或本地 checker。按行读取时保留父段与上下文，补齐截断或遗漏内容。镜像只读一份。清单不可用时，按同一提交的 bootstrap 指针和模块、模板登记取得现行规范原文。读取方法见 `core/runtime_assurance_contract.yaml#reading_plan.formal_rule_delivery`。
 
-**续做与缺口。** 采用候选入口的正式任务跨聊天、只剩摘要或已无法界定失去哪些规则时，从固定源重新取得整套规范正文并通读已有的完整当前框架。阶段读取模式的跨聊天恢复仍依现行 consumer_protocol 和 project_memory_contract。同一连续正式任务已完成全文开场且整套范围仍清楚时，交回一份工作簿、转下一问或续写下一章，直接按相应阶段合同取回该动作原文和证据。整套范围明确、仅有已知缺段时，回到同一源补取对应段，核查首尾正文和上下文，防止行数相同但末行不全。换阶段、小问、章节、新图或证据范围时，按 `core/runtime_assurance_contract.yaml#reading_plan.consumer_protocol` 重新取得该动作的完整适用原文，核实条件补读。只有原文仍完整可见、来源、范围与证据均未变的同阶段小修改可复用。全文写作、跨问综合和终审按 router 的 project_memory_contract 通读完整当前框架。
+**续做与缺口。** 跨聊天、只剩摘要或已无法界定规则范围时，重新阅读整套规范与完整当前框架。同一连续任务已读齐全文且范围清楚时，返回工作簿、转下一问或续写下一章，直接读取该阶段原文与证据。已知缺段只补所缺。换阶段、小问、章节、新图或证据范围时，按 `core/runtime_assurance_contract.yaml#reading_plan.consumer_protocol` 取得相应完整原文。同阶段且原文、范围和证据未变时复用已有内容。
 
-**工具与证据。** 有匹配的资源根、依赖和项目材料时，用现有 resolver 决定动作、依赖与门序。只有仓库读取能力时，由助手取同一固定提交的原文。说明具体缺口及它影响的动作，并继续与该缺口无关的已授权工作。可选赛事材料依 §1.1 回退。路径、目录清单、哈希、聊天摘要或已下载文件的大小均不能证明当前正文可见；规则取齐也不能证明批准、数值验收或交付通过。按实际运行报告工具结果，不另请用户运行本地 checker 或逐章确认已读。
+**阶段工具。** 需要机器诊断时显式调用 resolver，保留其当前问题的依赖诊断和有序检查。日常建模、代码交付与结果接续使用模型批准合同和结果交接合同。
 
 ## 4. 数据、执行与数值证据
 
 1. **所有数据题先审计，但不是所有数据题都清洗。** `preprocessing_decision` 只允许 `not_needed / question_local / project_level`，具体判定、操作证据与公共数据源边界由 `core/global_preprocessing_contract.yaml` 唯一定义。共享数据、缺失值或历史经验本身都不能自动推出项目级预处理。
 2. **任何改变模型输入的数据处理都必须有必要性与验证证据。** 不得为了曲线更平滑、结果更好看或流程更完整而补值、删异常、滤波、平滑、标准化、重采样或改变时间因果。
 3. **题目专属计算代码由用户本地 full-fidelity 执行。** 助手可以生成、静态检查和验收返回 artifact，但不得导入、运行或间接执行赛题预处理、主求解或结果深化脚本；不得自动缩减数据、网格、时域、场景、重复次数、迭代次数、放宽容差或静默切换 solver/近似。
-4. **主求解只回答当前计算能否 accepted。** Primary Quality Specification、Verification ID、残差、可行性、离散/收敛和其它主数值证据只用于判断当前 locked model 与声明数值方法下的本次计算是否有效；参数敏感性、压力场景、替代算法/结构、多 seed/初值结论稳定性、异质性和广义 claim stability 属于 accepted 之后的独立结果深化分析。
+4. **主求解核对本次数值是否有效。** 按 Primary Quality Specification、残差、可行性和离散/收敛证据检查当前模型与数值方法的实际结果；参数敏感性、压力场景、替代算法/结构、多 seed/初值稳定性和异质性在独立结果深化分析中处理。
 5. **Primary Evidence Capture 只保存当前运行真实产生的高价值状态。** 不能为了图或分析改变参数、场景、seed、初值、算法、结构或验证窗口去制造另一个计算世界。
-6. **预期身份与实际执行证据都要保留。** 代码/数据指纹、实际停止原因、真实运行范围与质量证据按 user-execution / numerical-verification Authority 核验；工作簿自行写出的 `passed` 不能替代机器可复算证据。
+6. **按真实运行核对结果。** 依据 `core/user_execution_contract.yaml#result_handoff` 核对数据、参数、停止原因、运行范围及质量证据；数值检查服从 `core/numerical_verification_contract.yaml`。
 7. **绘图入口只做证据可视化。** 按 `plotting.backend` 选择的 `data_process.py` / `data_process.m` 与 `qX_plot.py` / `qX_plot.m` 不重新预处理、求解或生成未执行的敏感性/稳健性结论；具体 Figure Evidence 规则只读 `modules/04_figure_evidence.md`。
 
 具体目录、工作簿字段、每问文件集合与 stage requirements 只由 `core/output_contract.yaml`、`core/workbook_schema.yaml` 和相应 Module 定义，不在全局政策重复维护。
 
 ## 5. 论文、图表与结论边界
 
-1. 正式论文只能使用 current 模型、accepted 数值和已确认图表。stale 结果不得写成 current，不能用润色或版式掩盖语义/证据 gap。
+1. 正式论文使用当前模型、已逐项核对的实际数值和已确认图表。过期结果回到相应阶段更新。
 2. 已核验题面、官方规则、官方评讲或评分口径要求的结果精度不得降低；没有更具体要求时的默认数字样式只服从 writing Authority。
 3. 核心公式、命题、算法、图表和结论必须可回到当前模型或证据链。有限数值实验、交叉验证、算法一致性或 solver 状态不能替代数学证明，也不能无依据把局部/启发式结果升级为全局结论。
-4. 外部经验参数、外部数据、领域事实、非显然标准定理和既有研究比较等需要外部来源的核心 claim，必须形成 Citation Evidence；本文自己的推导和 accepted workbook 结果不得用外部引用代替。
+4. 外部经验参数、外部数据、领域事实、非显然标准定理和既有研究比较等核心 claim，形成 Citation Evidence；本文推导和实际工作簿结果分别标明自身依据。
 5. 图表只组织已有证据，不制造新数据、新统计量或新结论；正式批准仍需要真实渲染/语义审查，静态代码检查不能替代视觉验收。
 6. CUMCM 固定结构、普通段落组织、Formula/Algorithm Trace、命题、solver justification、Claim Strength、逐问 Preflight、AI cleanup 和 LaTeX Adapter 分别服从 current 写作 Authority；consumer 不得复制出第二套正文规则。DOCX 仅在用户明确要求相应载体时加载。
 
 ## 6. 交付、同步与兼容
 
-1. `scripts/resolve_runtime.py` 返回的 `pre_delivery_gates` 是本次正式交付的完整有序机器门；必须按顺序真实执行并检查报告。读取更少、文件存在或 ZIP 生成都不等于 gate 已通过。
+1. 普通比赛依据当前模型批准、真实结果与本次交付要求推进。显式启用机器验收时，按 `scripts/resolve_runtime.py` 返回的 `pre_delivery_gates` 顺序执行并读取实际报告。
 2. `scripts/sync_project.py` 只做发现、Schema/哈希核验与 stale 传播，不自动生成模型语义、数据处理决策、数值结果或 `passed` 状态。
-3. 最终审查、LaTeX audit/compile attestation 与 submission package 只服从 `modules/06_review_delivery.md`、`core/output_contract.yaml` 及 resolver 当前返回的 gate；未核验赛事规则不得伪装成官方 Hard 要求。
+3. 最终审查与提交内容由 `modules/06_review_delivery.md`、`core/output_contract.yaml` 定义；显式工具验收按 resolver 返回的 LaTeX audit/compile attestation 与 submission package 检查执行。
    State 显式启用 `review_receipt_policy` 时，模型挑战、初稿审查和最终交付须在各自声明的 gate/Qn 范围内读取 `core/review_receipt_consumption_contract.yaml` 并消费回执；初稿消费必须早于 AI Cleanup，回执不替代人工审查或 Model Approval。
 4. 旧项目、旧字段和 legacy artifact 的兼容只按各 Authority 的显式 compatibility 条款读取；历史 accepted 记录不要求批量迁移，但重新进入 current 模型设计、预处理、主求解、写作或终审时，按该阶段 current contract 补足需要的信息。`legacy/` 不能成为活动执行依赖。
 
@@ -99,7 +99,7 @@ $$
 | 用户本地执行 | `core/user_execution_contract.yaml` |
 | 主数值有效性 | `core/numerical_verification_contract.yaml` |
 | 主求解 / 当前运行证据 | `modules/03_solve_validate.md` |
-| accepted 后结果深化 | `modules/03_result_analysis.md` |
+| 主结果后的深化分析 | `modules/03_result_analysis.md` |
 | 科研图与机理图 | `modules/04_figure_evidence.md` |
 | 跨竞赛复杂写作语义 | `core/writing_reasoning_contract.yaml` |
 | 普通正文组织 | `modules/05_writing/paper_writing_protocol.md` |

@@ -23,13 +23,13 @@ class ModelDesignCapabilityPreservationV931Tests(unittest.TestCase):
             "框架支持：",
             "读取规则：",
             "写入规则：",
-            "事实源边界：",
+            "模型、双审、批准与论文组织从当前框架恢复",
         ]
         positions = [section.index(token) for token in ordered]
         self.assertEqual(positions, sorted(positions))
-        self.assertIn("accepted standard workbook", section)
-        self.assertIn("project state", section)
-        self.assertIn("current framework", section)
+        self.assertIn("数值从真实工作簿读取", section)
+        self.assertIn("项目状态登记修订、依赖及实际机器验证结果", section)
+        self.assertIn("完整 current 框架", section)
         self.assertIn("Condition → Consequence / Reduction", section)
         self.assertIn("继续简化首先损失什么", section)
         self.assertIn("comparison purpose", section)
@@ -60,8 +60,8 @@ class ModelDesignCapabilityPreservationV931Tests(unittest.TestCase):
             "当前主模型已说明为什么达到最小充分",
             "Comparator Envelope",
             "solver 选择发生在结构化简和主模型闭合之后",
-            "scripts/validate_model_approval.py",
-            "awaiting_model_approval",
+            "core/model_approval_contract.yaml#human_approval",
+            "等待明确批准",
             "locked_model_spec",
         ]
         positions = [section.index(token) for token in ordered]
@@ -84,7 +84,7 @@ class ModelDesignCapabilityPreservationV931Tests(unittest.TestCase):
         start = text.index("## 10. `模型论文框架.md`")
         end = text.index("## 11. 机理图合同", start)
         section = text[start:end]
-        for token in ("读取规则：", "写入规则：", "事实源边界："):
+        for token in ("读取规则：", "写入规则：", "模型、双审、批准与论文组织从当前框架恢复"):
             self.assertIn(token, section)
 
     def test_v930_structure_first_generation_order_remains_intact(self):

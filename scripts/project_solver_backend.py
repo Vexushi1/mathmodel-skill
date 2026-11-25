@@ -87,8 +87,7 @@ def select_project_backend(
     elif declaration["kind"] != "unselected":
         raise ProjectBackendSelectionError("historical numerical declarations require explicit project migration")
 
-    # Existing design records are the review linkage. Neither a placeholder
-    # environment fact nor an automatic Model Approval is manufactured here.
+    # Review every question's needs; design proceeds one question at a time.
     questions = state.get("subproblems")
     if not isinstance(questions, Mapping) or not questions:
         raise ProjectBackendSelectionError("selection requires recorded whole-project question requirements")
@@ -105,12 +104,20 @@ def select_project_backend(
             raise ProjectBackendSelectionError(
                 f"whole-project capability review lacks question records: {absent_questions}"
             )
+    designed_questions = []
     for question, entry in questions.items():
-        if (not isinstance(entry, Mapping) or not _reason(entry.get("selected_model"))
+        if (not isinstance(entry, Mapping)
                 or not isinstance(entry.get("capabilities"), Mapping)
                 or not isinstance(entry.get("classification", entry.get("problem_types")), Mapping)
-                or not _reason(entry.get("framework_section"))):
+                or not _reason(entry.get("framework_section"))
+                or entry.get("status") == "pending"):
             raise ProjectBackendSelectionError(f"{question}: model structure and numerical capability review are incomplete")
+        if _reason(entry.get("selected_model")):
+            designed_questions.append(question)
+        elif entry.get("status") != "audited":
+            raise ProjectBackendSelectionError(f"{question}: model structure and numerical capability review are incomplete")
+    if not designed_questions:
+        raise ProjectBackendSelectionError("current question model and numerical capability review are incomplete")
 
     framework = state.get("paper_framework")
     if not isinstance(framework, Mapping) or not isinstance(framework.get("path"), str):

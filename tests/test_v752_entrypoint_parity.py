@@ -54,7 +54,8 @@ class EntrypointParityTests(unittest.TestCase):
             "HSK_TEMPLATE_INDEX_V622.md", "PROJECT_INSTRUCTIONS_HSK_V622.md",
         ):
             self.assertNotIn(stale, block)
-        self.assertIn("不作为模型、预处理、求解、绘图或写作规则的独立权威", block)
+        self.assertIn("core/model_approval_contract.yaml", block)
+        self.assertIn("core/user_execution_contract.yaml#result_handoff", block)
 
     def test_host_prompts_delegate_to_the_same_startup_contract(self):
         pointer = "core/bootstrap.yaml#startup_contract"
@@ -86,6 +87,26 @@ class EntrypointParityTests(unittest.TestCase):
                 self.assertIn("PROJECT_INSTRUCTIONS.md#web-app-start", instructions)
                 self.assertIn("--candidate-startup-event", instructions)
                 self.assertIn("--source-commit", instructions)
+
+    def test_competition_entries_use_saved_approval_and_actual_result_handoff(self):
+        sources = {
+            "root": ROOT_SKILL.read_text(encoding="utf-8"),
+            "plugin": PACKAGED_SKILL.read_text(encoding="utf-8"),
+            "web_app": (ROOT / "PROJECT_INSTRUCTIONS.md").read_text(encoding="utf-8"),
+            "host": yaml.safe_load((ROOT / "agents/openai.yaml").read_bytes())["interface"]["default_prompt"],
+            "agent": (ROOT / "AGENTS.md").read_text(encoding="utf-8").split("## Repository modification tasks", 1)[0],
+        }
+        for name, instructions in sources.items():
+            with self.subTest(entry=name):
+                self.assertIn("core/model_approval_contract.yaml", instructions)
+                self.assertIn("core/user_execution_contract.yaml#result_handoff", instructions)
+                self.assertNotIn("validated semantic_identity_hash", instructions)
+                self.assertNotIn("current = validated = approved identity", instructions)
+
+        bootstrap = yaml.safe_load((ROOT / "core/bootstrap.yaml").read_bytes())
+        profiles = bootstrap["startup_contract"]["profiles"]
+        self.assertEqual(profiles["formal"]["reading"], "full_normative_text")
+        self.assertEqual(profiles["recovery"]["reading"], "full_normative_text_and_current_framework")
 
     def test_all_release_carriers_follow_bootstrap(self):
         current = str(yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8"))["skill_version"])

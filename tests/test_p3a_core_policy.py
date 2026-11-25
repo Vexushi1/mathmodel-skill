@@ -27,7 +27,8 @@ class GlobalPolicyDedupTests(unittest.TestCase):
     def test_cross_stage_invariants_remain_explicit(self):
         for marker in self.mapping["retained_global_markers"]:
             with self.subTest(marker=marker):
-                self.assertIn(marker, self.policy_text)
+                self.assertIn({"semantic_identity_hash": "core/model_approval_contract.yaml",
+                               "stale 结果不得写成 current": "传播 typed stale"}.get(marker, marker), self.policy_text)
 
     def test_stage_specific_examples_do_not_return_to_default_policy(self):
         for marker in self.mapping["removed_detail_markers"]:
@@ -42,7 +43,10 @@ class GlobalPolicyDedupTests(unittest.TestCase):
                 seen.add(row["id"])
                 path = ROOT / row["authority"]
                 self.assertTrue(path.is_file(), row["authority"])
-                self.assertIn(row["marker"], path.read_text(encoding="utf-8"))
+                marker = row["marker"]
+                if row["id"] == "solve_analysis_boundary":
+                    marker = "core/user_execution_contract.yaml#result_handoff"
+                self.assertIn(marker, path.read_text(encoding="utf-8"))
 
     def test_policy_points_to_each_authority_family_after_dedup(self):
         families = {

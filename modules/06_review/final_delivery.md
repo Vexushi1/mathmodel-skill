@@ -4,13 +4,13 @@
 
 ## 八、编译、复现与提交包
 
-交付须用最新 LaTeX audit、compile report、PDF、project sync、submission package validation。每问条件 3+2 文件及目录/包边界依 `core/output_contract.yaml#per_question` 与 Artifact Packs，不复列；stale source bundle、未解析引用、编译错误、manifest/hash 不一致依既有 gate。PDF 逐页检查由助手按 Module 05D 执行。
+交付前核对当前 LaTeX 源码、真实编译日志与 PDF，处理未解析引用、编译错误及源码与成品不一致。每问文件、目录和提交内容按 `core/output_contract.yaml#per_question`、Artifact Packs 与已核验赛事规则逐项检查。PDF 逐页检查由助手按 Module 05D 执行。
 
 ## 九、Final Submission Compliance & Evidence Sweep
 
 ### 1. 恢复终审上下文
 
-final review 读取 current framework、state、active assembly、题目要求、verified competition rules、accepted numeric/figure evidence、audit/compile/package reports。旧聊天记忆不作为事实源。
+final review 读取 current framework、active assembly、题目要求、verified competition rules、真实图表与编译证据；数值按 `core/user_execution_contract.yaml#result_handoff` 从工作簿核对，已有工具报告一并读取。
 
 ### 2. 动态检查族
 

@@ -1,8 +1,16 @@
 version: 3.3.0
 introduced_in_skill_version: 10.0.0
 skill_compatibility: '>=10.0.0,<12.0.0'
-purpose: 定义用户本地完整版数值执行链；所有数据项目先根据当前题目、当前附件和模型输入要求锁定preprocessing_decision，只有project_level才增加项目级预处理执行边界。每问主求解使用项目唯一已选Python或MATLAB后端的独立入口；结果深化分析仅在主工作簿accepted后经过Analysis Necessity Gate且判定required时使用独立入口，并必须继承同一项目数值后端。P5a起新生成阶段脚本使用RUN_CONFIG承载任务可变输入，全局user/full-fidelity/no-degradation政策由本Authority继承；P5b起新生成阶段脚本通过run_receipt_protocol_version绑定版本化RUN_RECEIPT，实际运行事实仍写入既有工作簿运行配置工作表。v7.14起新生成主求解还绑定Primary Quality Specification与主数值证据独立复核，但不得把结果深化分析提前塞进主求解。
+purpose: 定义用户本地完整数值执行、真实结果交接及显式机器验收。主求解与按需深化分析使用项目已选后端，运行事实写入各自工作簿。
 numerical_verification_authority: core/numerical_verification_contract.yaml
+result_handoff:
+  approval_authority: core/model_approval_contract.yaml#human_approval
+  read: 打开本问实际返回的工作簿，按工作表、精确字段、记录键和单位读取答案及底层证据。
+  check: 对照当前模型、输入和Primary Quality Specification核对结果、约束、残差及适用数值证据；有缺项或错误时定位到受影响的计算。
+  record: 在模型论文框架的本问结果摘要记录文件、表、字段、记录键、单位和可支持的结论；保留尚待处理的具体问题。
+  continue: 核对后的主结果进入Analysis Necessity Gate；required时完成相应分析，not_required时记录理由；图文从各自真实来源取数。
+  replacement: 工作簿内容或上游模型、数据变化时，重新核对受影响的结果、图文和后问依赖。
+  machine_validation: 显式工具按code_delivery、returned_workbook和execution_states执行机器资格检查并记录accepted、verified与验证哈希；比赛接续使用上述实物记录。
 solver_backends:
   scope: one_project_choice_for_all_questions_and_numerical_stages
   request_values: [auto, python, matlab]
@@ -31,7 +39,7 @@ solver_backends:
   - Record one concrete backend and non-empty selection reason at the project root before any current numerical code delivery. auto is a request only and cannot authorize code delivery. The choice covers all questions and both numerical stages.
   - Include the concrete solver, dependencies and unresolved environment conditions in the existing Model Approval Brief implementation scope; do not add a separate approval gate.
   - Do not map a task type directly to a language or prefer MATLAB merely because a Figure rendering backend is MATLAB.
-  - Current question stages carry source-bundle and acceptance identities, never a second backend or selection reason. Primary and analysis must both match the project backend; analysis consumes the current accepted primary workbook.
+  - Current question stages carry source-bundle and acceptance identities, never a second backend or selection reason. Primary and analysis must both match the project backend; analysis consumes the current primary workbook under result_handoff.
   - Project-level preprocessing remains Python with receipt 1.0 and existing state; question-local mathematical transformations follow the one project backend.
   - Historical per-stage selections are read-only migration evidence. A consistent historical selection is only a candidate, not a current project choice; mixed or conflicting history requires explicit review and migration.
   - RUN_CONFIG and RUN_RECEIPT retain solver_backend as facts of actual execution. Delivery and acceptance require project policy, delivered source, configuration, receipt and accepted evidence to agree; neither configuration nor receipt may select or overwrite project policy.
@@ -79,9 +87,9 @@ assistant_policy:
   allowed:
   - 审题、通用数据审计、preprocessing_decision、模型设计、公式闭环、Primary Quality Specification和完整版代码生成
   - 由助手完成不导入赛题脚本的静态代码、依赖、语法和工程质量检查，以及交付登记、项目同步和内部审计；execution_owner=user只约束题目专属数值运行
-  - 由助手读取用户返回的工作簿并执行Schema、哈希、质量门和主数值证据一致性校验；用户正常交接是实际产物与必要失败信息，不额外执行checker或提交独立校验报告
-  - 工具或必要材料不可用时报告具体未完成项，不把内部校验转交用户代跑、不授予新accepted或verified；仅有上下文不足不写结果失败，已观察到的真实错误和漂移仍按原规则处理
-  - 在预处理工作簿accepted、主求解以及Gate=required时必要的结果深化分析完成后，于Figure Evidence阶段按绘图后端生成data_process.py或data_process.m；该绘图脚本只读工作簿绘图，不执行数值预处理
+  - 按result_handoff读取用户返回的工作簿，核对真实结果与数值证据，并更新框架中的结果位置
+  - 依据已取得的材料继续处理；缺少必要输入时指出具体缺项
+  - 核对预处理、主求解及Gate=required时的深化分析结果后，按绘图后端生成data_process.py或data_process.m；绘图脚本只读工作簿
   - 运行本Skill仓库自身的lint、单元测试、索引生成和LaTeX模板CI
 full_fidelity_flags:
   execution_profile: full_fidelity
@@ -292,16 +300,16 @@ three_stage_policy:
   preprocessing:
     activation: 仅preprocessing_decision=project_level
     role: 读取需要统一处理的共享原始数据，冻结covered_raw_sources，执行通用审计和已批准公共处理，输出数据预处理结果.xlsx；同时保存论文公式/方法证据、处理前后对比、验证和data_process绘图底层数据
-    freeze_after: preprocessing_workbook_accepted
+    freeze_after: result_handoff_completed
   primary:
-    role: 按已选后端交付唯一主求解入口，只负责主求解与PQS要求的当前主计算内在数值有效性检查并输出问题X求解结果.xlsx；主工作簿accepted后该脚本冻结，不为结果深化分析改写。
+    role: 按已选后端交付唯一主求解入口，只负责主求解与PQS要求的当前主计算内在数值有效性检查并输出问题X求解结果.xlsx；主工作簿按result_handoff核对后该脚本冻结，不为结果深化分析改写。
     input_by_decision:
       not_needed: 原始数据
       question_local: 原始数据 + 本问语义中已定义的局部变换
       project_level: 已验收数据预处理结果.xlsx
     primary_quality_boundary: 参数敏感性、压力场景、替代算法/结构、多seed/多初值结论稳定性、异质性、误差分解和广义外样本稳定性不属于本阶段
   analysis:
-    activation: 主工作簿accepted后先执行Analysis Necessity Gate；仅Gate=required时激活
+    activation: 主工作簿按result_handoff核对后执行Analysis Necessity Gate；仅Gate=required时激活
     role: Gate=required时按已选后端新建独立深化分析入口，继承同一preprocessing_decision与数据事实源，依据真实主结果执行敏感性、稳健性、阈值、替代方法/结构、异质性等深化分析，输出问题X结果深化分析.xlsx；Gate=not_required时记录非空理由且不生成03B代码/工作簿。
   isolation: 修改深化分析脚本不得改变主求解代码哈希、主工作簿或主结果质量状态；修改主求解脚本则主结果及其全部下游重新进入待验收状态；修改project_level预处理则依赖该数据口径的小问进入stale；修改所选data_process.py或data_process.m只影响预处理图表/论文层。
 execution_states:
@@ -343,7 +351,7 @@ analysis_necessity_state_mapping:
   not_required: result_analysis_status=not_required且result_analysis_requirement_reason非空；代码交付或回执不能自动覆盖该决定。
   required_plan: result_analysis_status不是not_required，且有当前非空result_analysis_requirement_reason和非空analysis_methods；pending本身不表示已激活。
   receipt_activation: required计划还须有code_delivered/awaiting_user_execution/workbook_received/accepted/rejected/redo_required之一的明确analysis_execution_status及当前绑定的analysis代码；仅有文件不授权验收。
-  primary_prerequisites: 读写和CLI都验证accepted且quality passed的主工作簿、项目内路径、实际与验收哈希、相关数值stale及适用的project_level预处理；图或论文独有stale不使主数值结果失效。
+  primary_prerequisites: 比赛流程按result_handoff核对主结果；显式CLI验收检查accepted、quality passed、项目内路径、实际与验收哈希、相关数值stale及适用的project_level预处理。
   data_identity: analysis RUN_CONFIG.data_sha256必须继承当前主结果data_hash；analysis代码交付不得覆盖主结果的数据身份。
   invalidation: 按state_transition_contract清除primary/data/semantic失效及其相关依赖后的旧requirement reason；保留的方法列表只是候选计划。分析代码重交或图形改动不单独清除此决定。
   historical_read: 已accepted且passed的同一已验收分析工作簿可只读且不补写新reason；新交付或新验收不能借legacy配置绕过当前前置。
@@ -366,12 +374,12 @@ ordinary_analysis_experiments:
   workbook: core/workbook_schema.yaml#result_analysis_workbook
   compatibility: >-
     已验收的同一路径、同一摘要保留原有只读资格。再次交付或验收以当前已绑定的代码和证据为准。
-    专用比较使用 analysis_comparison；同一问同时采用两类检验时，各自核验对应记录。
+    专用比较按 core/model_approval_contract.yaml#analysis_comparison_approval 接续；显式机器验收使用 analysis_comparison，同一问各类检验分别核验。
 analysis_comparison:
   introduced_in_skill_version: 10.18.0
   minimum_reader_skill_version: 10.18.0
   protocol_version: 1.0.0
-  activation: any_current_analysis_comparison_registry_method_source_marker_receipt_marker_or_new_comparison_sheet
+  activation: 显式机器验收中，当前比较登记、方法、源码标记、回执标记或专用比较表触发本协议。
   config_fields: [analysis_comparison_protocol_version, analysis_comparison_plan_sha256]
   receipt_transport: existing_运行配置_sheet_only
   receipt_versions: [1.1.0, 1.2.0]

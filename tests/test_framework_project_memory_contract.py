@@ -17,16 +17,17 @@ class FrameworkProjectMemoryContractTests(unittest.TestCase):
         router = yaml.safe_load(read("core/workflow_router.yaml"))
         contract = router["project_memory_contract"]
         self.assertEqual(contract["project_file"], "模型论文框架.md")
-        self.assertEqual(contract["numeric_fact_source"], "accepted_standard_workbooks")
+        self.assertEqual(contract["numeric_fact_source"], "current_standard_workbooks")
         self.assertEqual(contract["machine_state_source"], "state/project_state.yaml")
         rules = "\n".join(str(item) for item in contract.get("rules", []))
         self.assertIn("paper_framework.sync_status", rules)
-        self.assertIn("accepted primary results, result analysis or figure evidence", rules)
+        self.assertIn("primary results, result analysis or figure evidence", rules)
+        self.assertIn("core/user_execution_contract.yaml#result_handoff", rules)
 
     def test_framework_is_memory_not_numeric_database(self):
         policy = read("core/hsk_core_policy.md")
-        self.assertIn("助手可读工作记忆", policy)
-        self.assertIn("accepted 标准工作簿", policy)
+        self.assertIn("当前模型、双审结论、人工批准及证据位置", policy)
+        self.assertIn("core/user_execution_contract.yaml#result_handoff", policy)
         self.assertIn("state/project_state.yaml", policy)
 
     def test_v08_framework_keeps_project_specific_semantic_registries(self):
@@ -49,7 +50,8 @@ class FrameworkProjectMemoryContractTests(unittest.TestCase):
             "图表证据链",
         ):
             self.assertIn(token, template)
-        self.assertIn("具体数值必须回到已验收标准工作簿复核", template)
+        self.assertIn("具体数值从实际标准工作簿", template)
+        self.assertIn("core/user_execution_contract.yaml#result_handoff", template)
         self.assertNotIn("问题背景通常 1 个自然段", template)
 
     def test_framework_uses_current_question_directory_mapping(self):

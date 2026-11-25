@@ -62,7 +62,7 @@ class CurrentSkillHealthTests(unittest.TestCase):
             "project-root execution.solver_backend",
             "core/user_execution_contract.yaml",
             "selected Python or MATLAB backend",
-            "Formal MATLAB plotting reads exact evidence from current accepted workbooks",
+            "Formal MATLAB plotting reads exact evidence from current checked workbooks",
         ):
             self.assertIn(token, prompt)
         self.assertNotIn("exact / proven_sufficient / heuristic", prompt)

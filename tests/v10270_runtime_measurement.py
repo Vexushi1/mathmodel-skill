@@ -211,6 +211,7 @@ def approved_source_span_migrations(path: Path | None, *, source_root: Path | No
         ("v11_1_0_w2_numeric_display_source_spans", "11.1.0"),
         ("v11_1_0_w3_proposition_cap_source_spans", "11.1.0"),
         ("v11_2_0_release_writing_source_spans", "11.2.0"),
+        ("v11_3_0_r1_contest_continuity_source_spans", "11.3.0"),
     }
     model_intake_carrier = candidate_profile or (data.get("scope"), data.get("version")) in {
         ("v10.29.0_p2_exact_literature_intake_migration", "10.29.0"),
@@ -234,9 +235,9 @@ def approved_source_span_migrations(path: Path | None, *, source_root: Path | No
         fields.add("legacy_profile_read_shifts")
     if model_intake_carrier:
         fields.add("model_intake")
-    if data.get("version") in {"10.34.0", "10.35.0", "10.35.1", "10.35.2", "10.35.3", "11.0.0", "11.1.0", "11.2.0"}:
+    if data.get("version") in {"10.34.0", "10.35.0", "10.35.1", "10.35.2", "10.35.3", "11.0.0", "11.1.0", "11.2.0", "11.3.0"}:
         fields.add("pqs_full_source_spans")
-    if data.get("version") in {"10.31.0", "10.32.0", "10.32.1", "10.32.2", "10.33.0", "10.34.0", "10.35.0", "10.35.1", "10.35.2", "10.35.3", "11.0.0", "11.1.0", "11.2.0"}:
+    if data.get("version") in {"10.31.0", "10.32.0", "10.32.1", "10.32.2", "10.33.0", "10.34.0", "10.35.0", "10.35.1", "10.35.2", "10.35.3", "11.0.0", "11.1.0", "11.2.0", "11.3.0"}:
         fields.update(("output_read_shift", "output_conditional_shift"))
     if (set(data) != fields or data.get("schema_version") != SCHEMA
             or not (first_span_carrier or model_intake_carrier)
@@ -290,7 +291,7 @@ def approved_source_span_migrations(path: Path | None, *, source_root: Path | No
             actual = digest((root / source["path"]).read_bytes())
             if actual != source["candidate_sha256"]:
                 raise ValueError("literature intake source bytes changed")
-    if data.get("version") in {"10.31.0", "10.32.0", "10.32.1", "10.32.2", "10.33.0", "10.34.0", "10.35.0", "10.35.1", "10.35.2", "10.35.3", "11.0.0", "11.1.0", "11.2.0"}:
+    if data.get("version") in {"10.31.0", "10.32.0", "10.32.1", "10.32.2", "10.33.0", "10.34.0", "10.35.0", "10.35.1", "10.35.2", "10.35.3", "11.0.0", "11.1.0", "11.2.0", "11.3.0"}:
         shift = data["output_read_shift"]
         expected_ids = ["review_word_readonly", "natural_language_two_actions_probe"]
         if (not isinstance(shift, dict)
@@ -311,7 +312,7 @@ def approved_source_span_migrations(path: Path | None, *, source_root: Path | No
                     or not isinstance(item["historical_ranges"], list)
                     or item["current_ranges"] == item["historical_ranges"]):
                 raise ValueError("output read shift scope or range invalid")
-    if data.get("version") in {"10.31.0", "10.32.0", "10.32.1", "10.32.2", "10.33.0", "10.34.0", "10.35.0", "10.35.1", "10.35.2", "10.35.3", "11.0.0", "11.1.0", "11.2.0"}:
+    if data.get("version") in {"10.31.0", "10.32.0", "10.32.1", "10.32.2", "10.33.0", "10.34.0", "10.35.0", "10.35.1", "10.35.2", "10.35.3", "11.0.0", "11.1.0", "11.2.0", "11.3.0"}:
         conditional = data["output_conditional_shift"]
         if (not isinstance(conditional, dict)
                 or set(conditional) != {"path", "candidate_sha256", "current_ranges",
@@ -319,7 +320,8 @@ def approved_source_span_migrations(path: Path | None, *, source_root: Path | No
                 or conditional["path"] != "core/output_contract.yaml"
                 or conditional["candidate_sha256"] != data["output_read_shift"]["candidate_sha256"]
                 or conditional["current_ranges"] != [[1, (
-                    637 if data.get("scope") in {"v11_1_0_w3_proposition_cap_source_spans",
+                    639 if data.get("scope") == "v11_3_0_r1_contest_continuity_source_spans"
+                    else 637 if data.get("scope") in {"v11_1_0_w3_proposition_cap_source_spans",
                                                    "v11_2_0_release_writing_source_spans"}
                     else (634 if data.get("scope") == "v11_1_0_w2_numeric_display_source_spans"
                           else (635 if candidate_profile else 634))
@@ -331,10 +333,10 @@ def approved_source_span_migrations(path: Path | None, *, source_root: Path | No
                     "two_carrier_legacy_protected", "explicit_figure_scope"
                 ]):
             raise ValueError("conditional output source migration must match four historical reads")
-    if data.get("version") in {"10.34.0", "10.35.0", "10.35.1", "10.35.2", "10.35.3", "11.0.0", "11.1.0", "11.2.0"}:
+    if data.get("version") in {"10.34.0", "10.35.0", "10.35.1", "10.35.2", "10.35.3", "11.0.0", "11.1.0", "11.2.0", "11.3.0"}:
         paths = ["core/user_execution_contract.yaml",
                  "core/numerical_verification_contract.yaml"]
-        if data["version"] in {"10.35.0", "10.35.1", "10.35.2", "10.35.3", "11.0.0", "11.1.0", "11.2.0"}:
+        if data["version"] in {"10.35.0", "10.35.1", "10.35.2", "10.35.3", "11.0.0", "11.1.0", "11.2.0", "11.3.0"}:
             paths.append("core/workbook_schema.yaml")
         declared = data["pqs_full_source_spans"]
         if (not isinstance(declared, list)
@@ -359,18 +361,22 @@ def approved_source_span_migrations(path: Path | None, *, source_root: Path | No
         _validate_legacy_profile_shifts(
             data["legacy_profile_read_shifts"], root,
             w3_proposition_cap=data["scope"] in {"v11_1_0_w3_proposition_cap_source_spans",
-                                                  "v11_2_0_release_writing_source_spans"},
+                                                  "v11_2_0_release_writing_source_spans",
+                                                  "v11_3_0_r1_contest_continuity_source_spans"},
+            r1_continuity=data["scope"] == "v11_3_0_r1_contest_continuity_source_spans",
             writing_draft=data["scope"] in {
                 "v11_1_0_writing_draft_legacy_stage_scoped_spans",
                 "v11_1_0_w2_numeric_display_source_spans",
                 "v11_1_0_w3_proposition_cap_source_spans",
                 "v11_2_0_release_writing_source_spans",
+                "v11_3_0_r1_contest_continuity_source_spans",
             },
         )
     return data
 
 
-def _validate_legacy_profile_shifts(rules, root, *, writing_draft=False, w3_proposition_cap=False):
+def _validate_legacy_profile_shifts(rules, root, *, writing_draft=False, w3_proposition_cap=False,
+                                    r1_continuity=False):
     """Only physical ranges of these additional legacy-profile reads can move."""
     paths = ["core/bootstrap.yaml", "core/global_preprocessing_contract.yaml",
              "core/hsk_core_policy.md", "core/state_transition_contract.yaml",
@@ -383,6 +389,8 @@ def _validate_legacy_profile_shifts(rules, root, *, writing_draft=False, w3_prop
         # Exact writing candidate changes only; released source manifests remain frozen.
         paths.extend(("modules/05_writing/ai_cleanup.md",
                       "core/writing_reasoning_contract.yaml"))
+    if r1_continuity:
+        paths.append("packs/artifact/review.md")
     if not isinstance(rules, list) or [
         rule.get("path") for rule in rules if isinstance(rule, dict)
     ] != paths or len(rules) != len(paths):

@@ -2,7 +2,7 @@
 
 > 本文件只保留**当前有效项目事实、选择、状态与证据位置**。历史由 Git 保存。
 > 通用写作规则不在这里重复：推理与证据治理见 `core/writing_reasoning_contract.yaml`，正文结构与表达见 `modules/05_writing/paper_writing_protocol.md`，LaTeX 载体接口见 `modules/05_writing/latex.md`。
-> 具体数值必须回到已验收标准工作簿复核；semantic revision、semantic identity/text provenance 与 stale 以 `state/project_state.yaml` 为准。
+> 具体数值从实际标准工作簿按 `core/user_execution_contract.yaml#result_handoff` 核对；机器身份与校验状态记录在 `state/project_state.yaml`。
 
 - 项目：`__PROJECT__`
 - 竞赛与题号：`__COMPETITION_AND_PROBLEM__`
@@ -253,7 +253,7 @@
 
 #### 当前模型口径
 
-<!-- SIB SLOT：进入当前模型的正式 Semantic Identity Block 槽位。模型设计阶段必须先完整填充并通过 `scripts/semantic_identity.py` 校验，再把完整 SIB 写入此处；模板本身不得放置带占位符或半成品 marker 的 live SIB。旧项目只读时可暂时没有 SIB，但重新进入 model_design / data_preprocessing / solve_validate 或重新生成主代码前必须完成迁移。 -->
+<!-- SIB SLOT（Semantic Identity Block）：填写当前模型的完整结构化定义。显式机器验收时用 scripts/semantic_identity.py 校验；普通接续按模型批准合同读取当前模型与批准记录。 -->
 
 **题意口径（Problem Contract）**
 
@@ -378,6 +378,8 @@ $$
 - Model Reviewer verdict 与 required actions：
 - Devil's Advocate verdict、核心反例/风险与 required actions：
 - Residual warnings：
+- 批准小问与 semantic revision：
+- 用户批准原话与来源：
 - Model Approval Brief：研究对象、selected model、标准模型类型、核心变量、objective、关键约束、Model Construction Rationale、applicability boundary、preprocessing_decision、结构化简与 provenance、solver/validator 角色、solver preconditions、algorithm presentation、关键数值参数证据、被否决路线理由、下一阶段实现范围；若机理/几何结构有效性适用，摘要暴露真正改变求解语义的判据、事件边界、缩域 evidence level、组合算子、条件式 solver 分支和 original-model 回算要求。
 - 当前模型状态：`proposed_model_spec / locked_model_spec / stale`
 
@@ -488,7 +490,7 @@ $$
 
 #### 03B比较计划与证据
 
-仅选用 `model_comparison / algorithm_comparison` 时登记；规则见 Module 03B、模型批准与执行 Authorities。比较规范置于独立 `HSK_ANALYSIS_COMPARISON_BEGIN/END Qn` marker，不能复制主 SIB marker，也不能改变上方主语义区。未激活时不填写占位批准或结果。
+选用 `model_comparison / algorithm_comparison` 时，在本节记录比较范围、双审与批准，规则见 Module 03B。显式机器验收使用独立 `HSK_ANALYSIS_COMPARISON_BEGIN/END Qn` marker；比较记录留在主语义区之后。
 
 - 当前范围引用／审查与批准：
 - 共同评价与保持／改变条件：
@@ -633,7 +635,7 @@ $$
 - [ ] 影响结论的数值参数有作用说明、候选范围/来源、精度/收敛/验证证据和选择规则；
 - [ ] 复杂度异常信号已经解释；
 - [ ] semantic revision 与 stale 传播正确；
-- [ ] 需要进入新预处理/主求解代码交付的小问均已有完整 current Semantic Identity Block，`semantic_identity_hash = validated_semantic_identity_hash = approved_semantic_identity_hash`；legacy hash 只保留历史只读兼容；
+- [ ] 交付范围内小问的当前模型、双审结论与用户批准对应，按 `core/model_approval_contract.yaml#human_approval` 接续；
 - [ ] Paper Fragment Dependency Map 只传播真实依赖，未把无关章节机械 stale；模块化 LaTeX 项目中的 current/stale fragment 已记录可追踪的源码文件；
 - [ ] 已求解小问均有 current 结果摘要，具体数值已回工作簿复核；
 - [ ] Headline Claim Evidence Level / Scope 与摘要和正文措辞一致；
