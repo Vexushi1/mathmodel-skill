@@ -60,7 +60,7 @@ backend_migration_history:
   unreferenced_archive: May remain after a failed state commit; do not remove existing history automatically.
   current_implementation_boundary: 原始字节归档、只读全题预览和显式project select/migrate协调写侧已开放；完全未选且无数值历史走select，不能用migrate生成无意义归档；有历史数值阶段或更换已锁后端时migrate须绑定原始state哈希、代际、预览及影响摘要并显式确认，同事务持久登记归档和报告引用；不会自动迁移任何具体项目，迁移后仍须通过当前执行与验收门。
 writing_policy:
-  role: 写作契约只保存权威指针与运行时开关，不复制正文规则。
+  role: 写作权威指针与运行时开关。
   default_mode: latex_first
   default_sequence:
   - figure_evidence
@@ -125,7 +125,7 @@ writing_policy:
     latex: packs/artifact/latex.md
     proposition_proof: packs/artifact/proposition_proof.md
     algorithm_flow: packs/artifact/algorithm_flow.md
-  consumer_rule: modules、packs、checklists与review只引用Authority，不重新定义正文规则。
+  consumer_rule: modules、packs、checklists与review引用写作Authority。
 delivery_attestation:
   latex_audit_role: 正式LaTeX项目审计证明必须绑定当前active source bundle与当前模型论文框架哈希；显式1.3.0/1.4.0 Figure链及1.5.0选定LaTeX载体使用v2审计报告和项目根相对图片输入；template_smoke证明不得用于正式项目交付。
   compile_role: 旧策略v4、显式1.3.0/1.4.0 Figure链及1.5.0选定LaTeX载体的v5 compile_report均须绑定正式审计报告哈希、当前compile-profile fingerprint、实际编译序列、有效日志、source bundle、实际recorder输入与PDF哈希。

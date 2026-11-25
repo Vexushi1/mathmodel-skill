@@ -1,6 +1,6 @@
 version: 1.0.0
 status: active_opt_in
-purpose: Consume current C1 receipts for an explicitly declared gate and question scope without granting another authority's qualification.
+purpose: Consume current C1 receipts for an explicitly declared gate and question scope.
 authority:
   activation_and_shape: core/project_state.schema.yaml#/$defs/review_receipt_policy
   receipt_shape_and_snapshot: core/review_receipt_contract.yaml

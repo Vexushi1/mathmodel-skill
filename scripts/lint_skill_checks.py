@@ -1260,7 +1260,7 @@ def check_templates(errors: list[str]) -> None:
     for token in ("LaTeX Adapter", "template_manifest.yaml", "paper_writing_protocol.md", "目标函数不得为了大括号整齐而塞进约束系统", "audit_latex_project.py"):
         if token not in latex_adapter:
             errors.append(f"LaTeX adapter lacks current rendering token: {token}")
-    for token in ("not_needed", "stepwise", "pseudocode", "控制流伪代码版", "分阶段数学步骤版", "不把求解源码改写成缩进版论文", "Algorithm Trace 不替代 Formula Trace"):
+    for token in ("not_needed", "stepwise", "pseudocode", "控制流伪代码版", "分阶段数学步骤版", "不把求解源码改写成缩进版论文", "公式回答“关系为何成立以及去哪里”", "算法 Trace 回答“这些关系以什么顺序、状态和判定被计算”"):
         if token not in algorithm_pack:
             errors.append(f"algorithm-flow pack lacks adaptive presentation token: {token}")
     for text_name, text in (("review module", review_module), ("review pack", review_pack)):
@@ -1455,7 +1455,10 @@ def check_editable_mechanism_diagrams(errors: list[str]) -> None:
     ):
         if token not in pack:
             errors.append(f"figure pack lacks v8.3 adapter token: {token}")
-    if "不是第二套 Figure Authority" not in patterns:
+    if not all(token in patterns for token in (
+        "modules/04_figure_evidence.md",
+        "是否需要机理图、画什么以及图能否入文",
+    )):
         errors.append("mechanism patterns must delegate decisions to Module 04")
 
     if str(spec.get("spec_version")) != "1.0.0" or spec.get("backend") != "drawio":

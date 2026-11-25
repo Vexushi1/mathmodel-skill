@@ -1,7 +1,5 @@
 # Python 科研 Figure Evidence：继承 MATLAB 绘图 Skill
 
-**这是相同的科研绘图能力在 Python 中的实现，不是一套降级版规则。**
-
 唯一科学判断 Authority 是 [Module 04](../../../modules/04_figure_evidence.md)，模式与增强手法参阅 [Figure Enhancement Patterns](../../figure/figure_enhancement_patterns.md)；原 [MATLAB 科研绘图模板说明](../../matlab/README.md) 的所有科学判断同样适用。`q1_plot.py` 的 line/point 只是工作簿读取与绘图调用的示例，**不得当成全题默认图型**。
 
 ## MATLAB → Python 的能力对应（必须全部继承其判断规则）
@@ -21,7 +19,7 @@
 
 ### Python 实现示例：不是新 Authority
 
-`figure_patterns.py` 提供常用科研视觉模式的 **可选实现参考**。选图由上面的 Module 04 决定，绝不由这个文件或绘图库 API 决定：
+`figure_patterns.py` 提供常用科研视觉模式的 **可选实现参考**。选图由上面的 Module 04 决定，下列函数仅供实现：
 
 - C1 分布：`box_with_raw_points`，箱线+真实样本散点，jitter 只改变横向显示位置。
 - C3 动态/区间：`line_with_recorded_interval`，线+**真实记录的**上下界，缺测保持断开。

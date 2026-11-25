@@ -1,6 +1,5 @@
-# Copy this draft to figures/source/qX_<slug>.mechanism.yaml and replace every
-# REPLACE_* value before generation. The generator intentionally rejects this
-# untouched skeleton; it must not invent problem objects or semantic relations.
+# Copy to figures/source/qX_<slug>.mechanism.yaml. Fill every REPLACE_* with
+# actual problem objects and relations. The generator rejects the unfilled skeleton.
 spec_version: 1.0.0
 figure_id: REPLACE_FIGURE_ID
 question_id: REPLACE_QUESTION_ID

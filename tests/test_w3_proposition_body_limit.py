@@ -69,6 +69,28 @@ class W3PropositionBodyLimitTests(unittest.TestCase):
         self.assertIn("正文正式命题最多 4 个", (ROOT / "packs/artifact/proposition_proof.md").read_text(encoding="utf-8"))
         self.assertIn("核心证明", reasoning["proof_placement_rule"])
 
+    def test_word_and_latex_consumers_follow_the_current_body_limit(self):
+        for relative in (
+            "modules/05_writing/docx.md",
+            "packs/artifact/docx.md",
+            "packs/artifact/latex.md",
+        ):
+            with self.subTest(relative=relative):
+                text = (ROOT / relative).read_text(encoding="utf-8")
+                self.assertIn("core/writing_reasoning_contract.yaml", text)
+                self.assertNotIn("超过默认预算时已有必要性说明", text)
+                self.assertNotIn("超过默认 0--4 预算", text)
+                self.assertNotIn("超过预算时按实际数学作用说明必要性，不自动否决", text)
+        checklist = (ROOT / "templates/writing/docx_check.md").read_text(encoding="utf-8")
+        self.assertIn("全文正文正式命题总数是否不超过 4 个", checklist)
+        self.assertIn("核心证明是否未因篇幅、难度或分页需要被移附录", checklist)
+        preamble = (ROOT / "templates/latex/cumcm/hsk/config/preamble.tex").read_text(encoding="utf-8")
+        self.assertIn("全文正文正式命题总数不超过 4 个", preamble)
+        manifest = yaml.safe_load((ROOT / "core/module_manifest.yaml").read_text(encoding="utf-8"))
+        plan = manifest["artifact_catalog"]["proposition_plan"]
+        self.assertIn("正文正式命题总数不超过4个", plan)
+        self.assertIn("core/writing_reasoning_contract.yaml#proposition_governance", plan)
+
     def test_state_count_rejects_five_even_with_legacy_justification(self):
         for count in (0, 1, 4):
             with self.subTest(count=count):

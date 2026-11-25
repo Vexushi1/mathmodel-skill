@@ -47,14 +47,12 @@ The canonical `index.json` is written only by
 repository's GitHub `refresh-generated` workflow. Commit source changes and let
 that workflow rebuild the index, navigation and MANIFEST. Its groups merge shared
 source origins and identical decision cores after text whitespace/case
-normalization. The representative is the smallest case ID. This bounded rule does
-not establish general semantic duplicate detection; uncertain near duplicates
-require a curator to resolve origin groups before setting a candidate to reviewed.
+normalization. Use the smallest case ID as group representative. Curators resolve
+the origin groups of uncertain near duplicates before marking a candidate reviewed.
 
 State, evidence, rights, publication screening, finite resource budgets and
-withdrawal behavior are defined in `schema.yaml`. A state change does not make
-private material safe for a public repository: keep real private candidates
-outside this repository. Automated screening checks explicit path, account and
+withdrawal behavior are defined in `schema.yaml`. Keep real private candidates
+outside this repository in every state. Automated screening checks explicit path, account and
 credential patterns; it cannot certify the absence of every personal name or
 sensitive fact. Synthetic authorship and rights fields remain curator declarations,
 not independent authorization proof. D1 rejects real-source admission even when a

@@ -5,13 +5,13 @@
 ## 查询与判断
 
 1. 给出本题的 objective、structures、capabilities 和明确的数据制度、变量类型、信息边界及必要条件。缺少的信息填 `unknown`，不能凭题名或模型名称推断已经具备数据。
-2. 实际调用 `scripts/case_memory_retrieve.py` 获取少量当前准入案例、匹配依据、差异、缺少条件和不可迁移项。工具导航或读取计划不证明检索已执行。
+2. 实际调用 `scripts/case_memory_retrieve.py` 获取少量当前准入案例、匹配依据、差异、缺少条件和不可迁移项。
 3. `conditional` 表示仍有条件待核对；`no_match` 是合法结果。关闭或索引不可用时保留原有建模工作流，不能编造历史经验。分数仅用于排序，不是模型适用概率。
 4. 首批资料都是明确合成案例，其验证建议、参数和数字不能成为当前题结果或“原作者已经验证”的事实。
 
 ## 采用、拒绝与复核
 
-adopt 至少声明一项采用内容和一项经当前位置/哈希核验的本题依据；reference/reject 可以明确没有这类依据。定位核验不证明条件语义，报告始终保留 `project_condition_semantics=not_assessed`。
+adopt 至少声明一项采用内容和一项经当前位置/哈希核验的本题依据；reference/reject 可以明确没有这类依据。定位核验后仍报告 `project_condition_semantics=not_assessed`。
 
 使用 `scripts/case_references.py` 先 preview 当前已有 Qn 决策，记录具体采用/拒绝部分、理由和真实本题来源引用；明确 record 写入使用原有项目事务。预览和 inspect 默认只读。
 

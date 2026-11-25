@@ -19,6 +19,7 @@ from writing_slimming_reference import prior_writing_slimming_text
 from w2_numeric_display_reference import prior_w2_numeric_display_text
 from w3_proposition_reference import prior_w3_proposition_text
 from r1_continuity_reference import prior_r1_text
+from r3_concision_reference import prior_r3_text
 
 ROOT = Path(__file__).resolve().parents[1]
 PROTOCOL = "modules/05_writing/paper_writing_protocol.md"
@@ -97,7 +98,7 @@ class WritingReasoningScopeTests(unittest.TestCase):
         sections = {m[1]: m[0] for m in re.finditer(
             r"^## ([^\n]+)\n(.*?)(?=^## |\Z)",
             prior_writing_slimming_text(
-                PROTOCOL, prior_w2_numeric_display_text(PROTOCOL, prior_r1_text(PROTOCOL, read(PROTOCOL)))
+                PROTOCOL, prior_w2_numeric_display_text(PROTOCOL, prior_r1_text(PROTOCOL, prior_r3_text(PROTOCOL, read(PROTOCOL))))
             ),
             re.M | re.S
         )}
@@ -151,13 +152,13 @@ class WritingReasoningScopeTests(unittest.TestCase):
 
         for path, digest in frozen.items():
             with self.subTest(path=path):
-                self.assertEqual(git_blob_sha1(prior_w3_proposition_text(path, read(path))), digest)
+                self.assertEqual(git_blob_sha1(prior_w3_proposition_text(path, prior_r3_text(path, read(path)))), digest)
 
         # v8.7.1 R6 intentionally reopens only active release-label/provenance lines.
         # Normalize those exact lines back to the pre-R6 representation, then keep the
         # old whole-file snapshot as a guard against unrelated Adapter/template drift.
         adapter_path = "modules/05_writing/latex.md"
-        adapter = prior_checker_adapter(prior_r1_text(adapter_path, read(adapter_path)))
+        adapter = prior_checker_adapter(prior_r1_text(adapter_path, prior_r3_text(adapter_path, read(adapter_path))))
         self.assertTrue(adapter.startswith("# Module 05B：LaTeX Adapter\n"))
         self.assertIn("Template-First adapter architecture introduced in v8.0.1", adapter)
         self.assertIn("当前 Skill release 版本只由活动 release carriers", adapter)

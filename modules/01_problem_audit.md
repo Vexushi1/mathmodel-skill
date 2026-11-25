@@ -2,7 +2,7 @@
 
 ## 目标
 
-从题干和附件建立不遗漏、可执行的需求地图，并在进入模型设计前形成可审查的 `problem_contract`。本模块的核心任务不是选模型，而是确认“题目到底要求研究什么、允许改变什么、哪些关系能够从题面推出”。
+从题干和附件建立不遗漏、可执行的需求地图，并在进入模型设计前形成可审查的 `problem_contract`。确认研究目标、允许调整的条件和题面可推出的关系。
 
 ## 执行步骤
 
@@ -72,7 +72,7 @@
 - 每问 `problem_contract` 与 `problem_contract_status=frozen`；
 - 每问 classification、置信度、capability 与兼容 Pack；
 - data schema、附件清单和关键风险；
-- 下一阶段所需输入，包括归属于既有 requirement map / risks 的研究疑问候选（若有）；它们不是已执行检索或已确认模型的证据。
+- 下一阶段所需输入，包括归属于既有 requirement map / risks 的研究疑问候选（若有）。
 
 ## 阶段门槛
 

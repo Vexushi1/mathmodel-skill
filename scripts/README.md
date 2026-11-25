@@ -15,7 +15,7 @@ python scripts/resolve_runtime.py problem_analysis --objective explanation
 
 默认 `python` 命中 WindowsApps 别名或另一个缺依赖的解释器时，先明确选择已有可用环境；不要把命令名当成版本证据，也不要为修复读取问题自动改全局 PATH、安装依赖或调整执行别名。仓库维护使用 `requirements-dev.txt`，用户数值阶段依赖来自 `templates/code/requirements.txt` 及实际交付代码；两者不能混为系统全局安装要求。
 
-从外部 cwd 调用时传入脚本的完整路径，并保留其所属完整资源根。根 `SKILL.md` 与打包入口 `skills/mathmodel-skill/SKILL.md` 依赖上层 `core/`、`scripts/`、`templates/` 等资源；仅安装嵌套 SKILL 子目录不能证明可执行读取链完整。需要确认 Skill 安装或会话读取身份时，核对入口根、bootstrap version、plugin metadata、MANIFEST 与所选 tag/commit，再核对会话实际读取；安装位置或会话证据未获取时报告 unknown。这属于 Skill 身份确认，**不要求用户每次运行赛题代码前重复检查本地 Python/MATLAB 环境**。上述按需排障命令不安装 Skill、不修改用户项目、不授权数值执行；正式工作流仍按 `SKILL.md` 解析并执行既有交付、回执和数值验收门禁。
+从外部 cwd 调用时传入脚本的完整路径，并保留其所属完整资源根。根 `SKILL.md` 与打包入口 `skills/mathmodel-skill/SKILL.md` 依赖上层 `core/`、`scripts/`、`templates/` 等资源；仅安装嵌套 SKILL 子目录不能证明可执行读取链完整。需要确认 Skill 安装或会话读取身份时，核对入口根、bootstrap version、plugin metadata、MANIFEST 与所选 tag/commit，再核对会话实际读取；安装位置或会话证据未获取时报告 unknown。上述按需排障命令不安装 Skill、不修改用户项目、不授权数值执行；正式工作流仍按 `SKILL.md` 解析并执行既有交付、回执和数值验收门禁。
 
 `measure_e1_resources.py --repeats 1 --output e1-resources.json` 是 GitHub 仓库维护度量：固定普通路由/关闭检索/显式合成检索，记录真实调用的耗时、Python 分配峰值、文件打开观察和返回字节。它不运行赛题、不授予资格，也不以未经预冻的时间阈值判 PASS；范围与证据映射见 [E1 计划](../docs/modeling_intelligence_e1_execution_plan.md) 和 [52 场景矩阵](../docs/modeling_intelligence_e1_acceptance_matrix.md)。
 
@@ -68,7 +68,7 @@ python scripts/read_stage.py --root <同版本Skill根> --plan <当前resolver.y
 
 按返回的 `chunk_count` 逐块取得，并核对 `required_ranges` 与全部已返回块的累计覆盖、源身份及 `coverage_issues`；单个块的 `remaining_ranges` 只描述该次返回的缺口。`writing_stage` 还需传入现有写作阶段的 `--stage-id`，`conditional` 需传入已按当前事实裁决的 `--condition`；未知条件仍为未解决。接口只返回正文，不执行门禁，也不以退出码 0 证明整个阶段通过。
 
-当前资源根的 reader 先核对计划版本、reading schema、现有 Authority fingerprint（含 resolver/reader 实现）及 canonical 写作阶段声明；旧计划或来源失配由助手重新运行 resolver，不能只改 YAML 的版本字段。单来源完整不代表整个阶段通过。已登记但缺失的可选竞赛 Pack 回退实际存在的通用来源，并报告 `resource_fallbacks`；必需 Authority、坏配置和越界路径仍阻断。
+当前资源根的 reader 先核对计划版本、reading schema、现有 Authority fingerprint（含 resolver/reader 实现）及 canonical 写作阶段声明；旧计划或来源失配由助手重新运行 resolver，不能只改 YAML 的版本字段。已登记但缺失的可选竞赛 Pack 回退实际存在的通用来源，并报告 `resource_fallbacks`；必需 Authority、坏配置和越界路径仍阻断。
 
 读取 `origin=project` 的框架、状态或当前绘图源码时，另传 `--project-root <项目根>`；可用 `--origin project` 消除同路径歧义。项目根和当前状态字节/generation 必须与 `reading_plan.project_snapshot` 一致，读取前后重检来源。项目正文用 project snapshot 和文件摘要标识，`selected_commit` 为 null，`skill_source_commit` 仅标识规则来源；不能把 Skill commit 当作项目文件的 commit。没有唯一项目映射的符号别名继续报告 unresolved。接口不写文件或恢复未完成事务。
 

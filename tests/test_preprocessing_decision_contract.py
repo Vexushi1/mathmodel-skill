@@ -214,8 +214,11 @@ class TestPreprocessingDecisionContract(unittest.TestCase):
 
     def test_seismic_operations_are_conditional_domain_example_not_default(self):
         seismic = self.contract["seismic_guidance"]
-        self.assertIn("领域专项示例", seismic["role"])
-        self.assertIn("不得反向成为其他赛题的默认预处理模板", seismic["role"])
+        self.assertIn("地震数据应用通用判定框架的示例", seismic["role"])
+        self.assertIn(
+            "任何方法都由数据结构、题意机制和模型需求共同决定，不从某一赛题的固定操作模板迁移到其他题目。",
+            self.contract["judgment_framework"]["general_rules"],
+        )
         self.assertIn("先审计后处理", seismic["principle"])
         self.assertIn("默认带通滤波", seismic["forbidden_defaults"])
         self.assertIn("默认插值坏道", seismic["forbidden_defaults"])

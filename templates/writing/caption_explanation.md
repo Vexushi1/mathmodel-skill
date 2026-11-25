@@ -1,6 +1,6 @@
 # HSK 论文图注、表题与正文解释规范
 
-本文件是 Writing Reasoning Authority / Paper Writing Protocol 的执行模板，不建立第二套图表语义。正式论文图的整体标题由 DOCX/LaTeX caption 承担；MATLAB 正式图内不重复设置整体 `title` / `sgtitle`。多面板按需保留 a/b/c/d 等 panel label，坐标轴、单位、图例、阈值和必要直接标注继续服务读图。正文解释负责把图表证据连接到模型机制与题目判断。三者不得机械重复，也不要全篇重复“由图X可知”“这一结果说明”“为后文提供依据”等固定套话。
+本文件是 Writing Reasoning Authority / Paper Writing Protocol 的执行模板。正式论文图的整体标题由 DOCX/LaTeX caption 承担；MATLAB 正式图内不重复设置整体 `title` / `sgtitle`。多面板按需保留 a/b/c/d 等 panel label，坐标轴、单位、图例、阈值和必要直接标注继续服务读图。正文解释负责把图表证据连接到模型机制与题目判断。三者不得机械重复，也不要全篇重复“由图X可知”“这一结果说明”“为后文提供依据”等固定套话。
 
 ## 1. 图片排布：严格图下
 
@@ -84,7 +84,7 @@
 
 ## 4. 正文解释的语言风格
 
-正文解释属于证据链，不是图表旁的套话。终稿执行 `modules/05_writing/paper_writing_protocol.md` 的科研初学者式学术表达：语言认真、克制、略显朴素，但保持规范学术语。
+终稿执行 `modules/05_writing/paper_writing_protocol.md` 的科研初学者式学术表达：语言认真、克制、略显朴素，但保持规范学术语。
 
 推荐按证据自然组织：
 

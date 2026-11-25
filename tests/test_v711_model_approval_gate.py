@@ -58,7 +58,7 @@ class ModelApprovalContractTests(unittest.TestCase):
         field_semantics = contract["human_approval"]["approval_brief_field_semantics"]
         self.assertIn("minimal-sufficiency rationale", field_semantics["structural_simplification"])
         self.assertIn("may be not_applicable", field_semantics["rejected_route_reason"])
-        self.assertIn("fixed two-route comparison", field_semantics["rejected_route_reason"])
+        self.assertIn("When alternatives or comparators exist", field_semantics["rejected_route_reason"])
 
     def test_both_passes_cover_each_required_answer_from_independent_directions(self):
         contract = yaml.safe_load((ROOT / "core/model_approval_contract.yaml").read_text(encoding="utf-8"))

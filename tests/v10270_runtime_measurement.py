@@ -15,6 +15,8 @@ from typing import Any
 
 import yaml
 
+from r3_concision_reference import R3_ADDITIONAL_READ_SHIFTS
+
 BASELINE = "5b7828ec0ae41dc97c095cd62d43f889596bd646"
 SCHEMA = 1
 CASE_KEYS = {"id", "request", "intents", "competition", "objective", "solver_backend"}
@@ -213,6 +215,7 @@ def approved_source_span_migrations(path: Path | None, *, source_root: Path | No
         ("v11_2_0_release_writing_source_spans", "11.2.0"),
         ("v11_3_0_r1_contest_continuity_source_spans", "11.3.0"),
         ("v11_4_0_r2_answer_completeness_source_spans", "11.4.0"),
+        ("v11_4_0_r3_rule_concision_source_spans", "11.4.0"),
     }
     model_intake_carrier = candidate_profile or (data.get("scope"), data.get("version")) in {
         ("v10.29.0_p2_exact_literature_intake_migration", "10.29.0"),
@@ -322,7 +325,8 @@ def approved_source_span_migrations(path: Path | None, *, source_root: Path | No
                 or conditional["candidate_sha256"] != data["output_read_shift"]["candidate_sha256"]
                 or conditional["current_ranges"] != [[1, (
                     639 if data.get("scope") in {"v11_3_0_r1_contest_continuity_source_spans",
-                                                "v11_4_0_r2_answer_completeness_source_spans"}
+                                                "v11_4_0_r2_answer_completeness_source_spans",
+                                                "v11_4_0_r3_rule_concision_source_spans"}
                     else 637 if data.get("scope") in {"v11_1_0_w3_proposition_cap_source_spans",
                                                    "v11_2_0_release_writing_source_spans"}
                     else (634 if data.get("scope") == "v11_1_0_w2_numeric_display_source_spans"
@@ -365,9 +369,12 @@ def approved_source_span_migrations(path: Path | None, *, source_root: Path | No
             w3_proposition_cap=data["scope"] in {"v11_1_0_w3_proposition_cap_source_spans",
                                                   "v11_2_0_release_writing_source_spans",
                                                   "v11_3_0_r1_contest_continuity_source_spans",
-                                                  "v11_4_0_r2_answer_completeness_source_spans"},
+                                                  "v11_4_0_r2_answer_completeness_source_spans",
+                                                  "v11_4_0_r3_rule_concision_source_spans"},
             r1_continuity=data["scope"] in {"v11_3_0_r1_contest_continuity_source_spans",
-                                            "v11_4_0_r2_answer_completeness_source_spans"},
+                                            "v11_4_0_r2_answer_completeness_source_spans",
+                                            "v11_4_0_r3_rule_concision_source_spans"},
+            r3_concision=data["scope"] == "v11_4_0_r3_rule_concision_source_spans",
             writing_draft=data["scope"] in {
                 "v11_1_0_writing_draft_legacy_stage_scoped_spans",
                 "v11_1_0_w2_numeric_display_source_spans",
@@ -375,13 +382,14 @@ def approved_source_span_migrations(path: Path | None, *, source_root: Path | No
                 "v11_2_0_release_writing_source_spans",
                 "v11_3_0_r1_contest_continuity_source_spans",
                 "v11_4_0_r2_answer_completeness_source_spans",
+                "v11_4_0_r3_rule_concision_source_spans",
             },
         )
     return data
 
 
 def _validate_legacy_profile_shifts(rules, root, *, writing_draft=False, w3_proposition_cap=False,
-                                    r1_continuity=False):
+                                    r1_continuity=False, r3_concision=False):
     """Only physical ranges of these additional legacy-profile reads can move."""
     paths = ["core/bootstrap.yaml", "core/global_preprocessing_contract.yaml",
              "core/hsk_core_policy.md", "core/state_transition_contract.yaml",
@@ -396,6 +404,8 @@ def _validate_legacy_profile_shifts(rules, root, *, writing_draft=False, w3_prop
                       "core/writing_reasoning_contract.yaml"))
     if r1_continuity:
         paths.append("packs/artifact/review.md")
+    if r3_concision:
+        paths.extend(row["path"] for row in R3_ADDITIONAL_READ_SHIFTS)
     if not isinstance(rules, list) or [
         rule.get("path") for rule in rules if isinstance(rule, dict)
     ] != paths or len(rules) != len(paths):
@@ -409,6 +419,11 @@ def _validate_legacy_profile_shifts(rules, root, *, writing_draft=False, w3_prop
             raise ValueError("legacy profile baseline identity invalid")
         if digest(raw) != rule["candidate_sha256"]:
             raise ValueError("legacy profile candidate bytes changed: " + rule["path"])
+        if r3_concision:
+            additional = next((row for row in R3_ADDITIONAL_READ_SHIFTS
+                               if row["path"] == rule["path"]), None)
+            if additional is not None and rule != additional:
+                raise ValueError("R3 additional source shift differs from its exact declaration")
         spans = rule["spans"]
         if not isinstance(spans, list) or not spans:
             raise ValueError("legacy profile ranges missing")

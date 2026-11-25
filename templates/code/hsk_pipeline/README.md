@@ -14,7 +14,7 @@
 
 ## 推荐复制结构
 
-优先使用自包含入口；确有复用需要时，可只复制工作簿 IO，而不是默认复制整套 legacy runner。精确产物与阶段入口名称由 `core/output_contract.yaml` 定义。以下只展示可选 IO helper 在入口目录内的布局，不代表每问必需新增这些文件：
+优先使用自包含入口；确有复用需要时，可只复制工作簿 IO，而不是默认复制整套 legacy runner。精确产物与阶段入口名称由 `core/output_contract.yaml` 定义。可选 IO helper 在入口目录内的布局：
 
 ```text
 问题一求解/

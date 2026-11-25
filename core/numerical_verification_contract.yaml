@@ -3,10 +3,7 @@ introduced_in_skill_version: 7.14.0
 skill_compatibility: '>=7.14.0,<12.0.0'
 purpose: >-
   Define the single field-level authority for intrinsic numerical validity of one
-  primary computation before its solution workbook may be accepted. This contract
-  strengthens evidence checking without moving post-acceptance sensitivity,
-  robustness, alternative-method comparison, or claim-stability analysis into the
-  primary solve stage.
+  primary computation before its solution workbook may be accepted.
 
 authority_boundary:
   owns:
@@ -115,7 +112,7 @@ strict_v714_trace:
   allowed_relations: ['<=', '>=', 'abs<=', '==', bool_true]
   rules:
   - Verification ID must be unique and match primary_quality_specification.id_pattern.
-  - Strict mode requires at least one substantive verification row; a header-only quality gate cannot pass.
+  - Strict mode requires at least one substantive verification row.
   - Evidence sheet must exist and contain at least one substantive data row.
   - Threshold source must be one canonical tag declared by primary_quality_specification.threshold_sources for every strict v7.14 verification row.
   - Machine-verifiable relations are recomputed by the validator; the workbook Boolean is not trusted by itself.

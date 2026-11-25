@@ -11,7 +11,7 @@
 
 - 正式论文图不设置整体 `title` / `sgtitle`；DOCX/LaTeX 图注承担正式图号、图名和必要统计口径，多面板按需只保留 a/b/c/d 等 panel label；
 - 主结果图优先绑定 `问题X求解结果.xlsx`；需要深化证据的图仅在 Analysis Necessity Gate=`required` 且 03B 已验收时绑定 `问题X结果深化分析.xlsx`。Gate=`not_required` 不强制存在第二本工作簿，也不表示已验证稳定性；
-- 字段按 `core/workbook_schema.yaml#matlab_handoff.field_resolution` 的精确唯一表头规则定位，表内示例须替换为真实表头；期望列位置仅作漂移警告。单位及实际存在的记录键、配对/排序依据复用框架中的 Figure Contract，不复制第二份字段合同；
+- 字段按 `core/workbook_schema.yaml#matlab_handoff.field_resolution` 的精确唯一表头规则定位，表内示例须替换为真实表头；期望列位置仅作漂移警告。单位及实际存在的记录键、配对/排序依据复用框架中的 Figure Contract；
 - 若 `preprocessing_decision=project_level` 且图需要公共底层数据，按 Figure Contract 读取已验收 `数据预处理结果.xlsx`，不得绕回被覆盖的共享原始附件；
 - 框架、工作簿、图表和正文结论必须一致；正式入文时以同一 Figure ID 核对实际图片、caption、邻近正文编号引用及框架中的支撑判断与适用范围；
 - 现有“状态”列分别据实说明静态检查、所选 Python/MATLAB 实际运行、人工外观确认和实际导出情况；例如“静态检查通过；绘图脚本未运行，待用户调整”。这些是交接说明，不是新增状态枚举；未完成事项复用框架“待办与缺口”，不要求用户提交截图或另填审美表单；

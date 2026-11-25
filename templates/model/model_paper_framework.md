@@ -45,7 +45,7 @@
 
 ### Terminology Registry
 
-> 只登记本项目真正会反复使用、容易混淆或与符号强绑定的技术术语；不建立通用词典。
+> 只登记本项目真正会反复使用、容易混淆或与符号强绑定的技术术语。
 
 | Term ID | 标准术语 | 定义 | 量纲/单位 | 允许简称 | 不建议别名 | 易混术语 | 对应符号 | 适用范围 | 状态 |
 |---|---|---|---|---|---|---|---|---|---|
@@ -138,7 +138,7 @@
 
 ### 逐问写作能力预检
 
-> 只记录本项目每一问在正式写正文前的能力裁决与激活结果，不复制通用规则。`missing` 不得静默解释为 `not_applicable/not_needed`；若上游事实变化，应将受影响预检状态标为 `stale` 并重新裁决。
+> 只记录本项目每一问在正式写正文前的能力裁决与激活结果。`missing` 不得静默解释为 `not_applicable/not_needed`；若上游事实变化，应将受影响预检状态标为 `stale` 并重新裁决。
 
 | 小问 | Formula Roles | Core Model Summary | Proposition / Proof | Algorithm Presentation | 需加载的条件资源 | Full Reasoning | Preflight Status |
 |---|---|---|---|---|---|---|---|

@@ -37,7 +37,8 @@ class TestV713FigureEnhancement(unittest.TestCase):
             "Composite Diagnostic",
             "Conditional 3D",
             "Data Honesty",
-            "不建立第二套绘图决策权威",
+            "modules/04_figure_evidence.md",
+            "数据来源和视觉预算仍由 Module 04 决定",
         ):
             self.assertIn(token, text)
 
@@ -75,7 +76,7 @@ class TestV713FigureEnhancement(unittest.TestCase):
         pack = (ROOT / "packs/artifact/figure.md").read_text(encoding="utf-8")
         chart = (ROOT / "templates/figure/chart_selection.md").read_text(encoding="utf-8")
         self.assertIn("唯一权威为 `modules/04_figure_evidence.md`", pack)
-        self.assertIn("只提供实现参考，不拥有独立决策权", pack)
+        self.assertIn("templates/figure/figure_enhancement_patterns.md", pack)
         self.assertIn("## Figure Enhancement 快速索引", chart)
         self.assertIn("全局尺度压缩关键差异", chart)
         self.assertIn("多条曲线大量交叉", chart)

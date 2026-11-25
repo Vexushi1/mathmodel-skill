@@ -361,7 +361,7 @@ s.t. constraints
 
 核心模型汇总只负责让评委快速恢复 solver 实际消费的最终模型，不能替代前面对变量、目标函数现实含义、约束来源和关键推导的说明。
 
-汇总内容以 `final_model_relation` 为主体；如果某个 `key_bridge_relation` 不出现就无法恢复关键边界、充分性、变量消元或 solver precondition，可在 recap 中保留它。`supporting_derivation` 与 `routine_algebra` 默认不重复进入汇总。这样既避免“把所有中间式再抄一遍”，也避免把真正承担逻辑桥梁的公式收束得过狠。
+汇总内容以 `final_model_relation` 为主体；如果某个 `key_bridge_relation` 不出现就无法恢复关键边界、充分性、变量消元或 solver precondition，可在 recap 中保留它。`supporting_derivation` 与 `routine_algebra` 默认不重复进入汇总。
 
 核心模型汇总应当自适应而非机械必设。先由 Writing Reasoning Authority 的 `semantic_summary_mode` 判断数学叙事上是 `required / inline / not_applicable`，再由 CUMCM Template Manifest 的 `rendering_mode` 决定最终呈现为 `displayed / inline / omitted`；两层只通过 Authority 中的唯一映射连接。旧 `modes` 与 `old_to_new_modes` 仅作 v8.x 只读兼容，不应被 consumer 当作新的独立规则。
 

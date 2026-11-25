@@ -7,6 +7,7 @@ from pathlib import Path
 import yaml
 
 from tests.r1_continuity_reference import prior_r1_text
+from tests.r3_concision_reference import prior_r3_text
 
 ROOT = Path(__file__).resolve().parents[1]
 INVENTORY_PATH = ROOT / "tests/fixtures/v900_phase_i_writer_retirement_inventory.yaml"
@@ -123,7 +124,7 @@ class PhaseII2WriterRetirementTests(unittest.TestCase):
         self.assertIn("historical provenance only", semantic_text)
 
     def test_schema_and_historical_reader_boundaries_match_post_i2_inventory(self):
-        schema_text = prior_r1_text("core/project_state.schema.yaml", SCHEMA_PATH.read_text(encoding="utf-8"))
+        schema_text = prior_r1_text("core/project_state.schema.yaml", prior_r3_text("core/project_state.schema.yaml", SCHEMA_PATH.read_text(encoding="utf-8")))
         schema = yaml.safe_load(schema_text)
         schema_contract = INVENTORY["current_schema_contract"]
         for key in (

@@ -43,7 +43,8 @@ class ModelDesignCapabilityPreservationV931Tests(unittest.TestCase):
         self.assertIn("mechanism_contracts", section)
         self.assertIn("Formula / Constraint / Proposition anchor", section)
         self.assertIn("不直接生成正式机理图", section)
-        self.assertIn("不新增独立 Gate", section)
+        self.assertIn("Figure Evidence 选择、draw.io 生成/验证及正式图形审查", section)
+        self.assertIn("modules/04_figure_evidence.md", section)
 
         manifest = yaml.safe_load(read("core/module_manifest.yaml"))
         outputs = manifest["modules"]["model_design"]["outputs"]

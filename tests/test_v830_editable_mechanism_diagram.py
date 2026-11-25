@@ -29,10 +29,11 @@ from w3_proposition_reference import (
 from v1120_release_reference import prior_v1120_release_bytes
 from r1_continuity_reference import prior_r1_text
 from r2_answer_reference import prior_r2_text
+from r3_concision_reference import prior_r3_text
 
 
 def accepted_w3_source_text(relative: str) -> str:
-    text = prior_r1_text(relative, prior_r2_text(relative, (ROOT / relative).read_text(encoding="utf-8")))
+    text = prior_r1_text(relative, prior_r2_text(relative, prior_r3_text(relative, (ROOT / relative).read_text(encoding="utf-8"))))
     raw = text.encode("utf-8")
     if relative == "core/output_contract.yaml":
         raw = prior_v1120_release_bytes(relative, raw)
@@ -172,7 +173,7 @@ def write_spec(path: Path, payload: dict) -> None:
 
 
 def git_blob_sha(path: Path) -> str:
-    data = path.read_bytes()
+    data = prior_r3_text(path.relative_to(ROOT).as_posix(), path.read_text(encoding="utf-8")).encode("utf-8")
     return hashlib.sha1(b"blob " + str(len(data)).encode("ascii") + b"\0" + data).hexdigest()
 
 
@@ -1553,7 +1554,7 @@ class ContractAndDriftTests(unittest.TestCase):
                         b"blob " + str(len(data)).encode("ascii") + b"\0" + data
                     ).hexdigest()
                 elif relative == competition_profiles:
-                    text = path.read_text(encoding="utf-8")
+                    text = prior_r3_text(relative, path.read_text(encoding="utf-8"))
                     current_2026_rules = (
                         "    edition_rules:\n"
                         "      edition: \"2026\"\n"
@@ -1635,7 +1636,7 @@ class ContractAndDriftTests(unittest.TestCase):
                     from claim_schema_reference import previous_d2_schema
 
                     source_text = path.read_text(encoding="utf-8")
-                    text = prior_w3_proposition_text(relative, prior_r1_text(relative, source_text))
+                    text = prior_w3_proposition_text(relative, prior_r1_text(relative, prior_r3_text(relative, source_text)))
                     # Revert only the optional Figure schema extension, byte-for-byte.
                     # Keep every original pinned predecessor hash and assertion.
                     edition_addition = (
@@ -1737,7 +1738,7 @@ class ContractAndDriftTests(unittest.TestCase):
 
     def test_writing_slimming_projection_preserves_existing_authority_guards(self):
         for relative, replacements in WRITING_SLIMMING_REWRITES.items():
-            source = (ROOT / relative).read_text(encoding="utf-8")
+            source = prior_r3_text(relative, (ROOT / relative).read_text(encoding="utf-8"))
             predecessor = prior_writing_slimming_text(relative, source)
             extra = "\nunauthorized unrelated authority change\n"
             self.assertEqual(
@@ -1807,7 +1808,7 @@ class ContractAndDriftTests(unittest.TestCase):
 
     def test_p5_compatibility_projection_accepts_only_the_reviewed_lines(self):
         for relative, blocks in P5_COMPATIBILITY_BLOCKS.items():
-            source = (ROOT / relative).read_text(encoding="utf-8")
+            source = prior_r3_text(relative, (ROOT / relative).read_text(encoding="utf-8"))
             expected = source
             for first, _, _, previous in blocks:
                 line = first + "\n"

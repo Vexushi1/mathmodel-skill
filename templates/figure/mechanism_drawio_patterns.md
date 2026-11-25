@@ -1,6 +1,6 @@
 # Mechanism draw.io 实现参考
 
-本文件只提供 `templates/figure/mechanism_drawio_spec.yaml` 的实现模式。是否需要机理图、画什么以及图能否入文，由 `modules/04_figure_evidence.md` 决定；本文件不是第二套 Figure Authority。
+本文件只提供 `templates/figure/mechanism_drawio_spec.yaml` 的实现模式。是否需要机理图、画什么以及图能否入文，由 `modules/04_figure_evidence.md` 决定。
 
 ## 1. 使用顺序
 

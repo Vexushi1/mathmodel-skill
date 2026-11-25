@@ -3,6 +3,8 @@ from copy import deepcopy
 import hashlib
 import json
 
+from r3_concision_reference import prior_r3_schema
+
 B1_DEFINITIONS = (
     'claim_selector_unit', 'claim_selector', 'claim_source', 'claim_derivation',
     'claim_assertion', 'claim_record', 'claim_evidence',
@@ -131,7 +133,7 @@ def previous_r1_continuity_schema(schema):
 
 def previous_comparison_schema(schema):
     """Remove only reviewed schema leaves; retain every pinned predecessor check."""
-    schema = previous_w3_proposition_schema(previous_r1_continuity_schema(schema))
+    schema = previous_w3_proposition_schema(previous_r1_continuity_schema(prior_r3_schema(schema)))
     schema = previous_plotting_schema(schema) if "plotting" in schema["properties"] else deepcopy(schema)
     assert schema['version'] == '8.16.0'
     fields = schema['properties']['subproblems']['additionalProperties']['properties']

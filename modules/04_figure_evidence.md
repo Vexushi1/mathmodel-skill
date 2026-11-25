@@ -105,7 +105,7 @@ current Framework + Mechanism Contract
 
 新增、删除或替换对象/状态/变量，改变边的 source、target、direction、relation type，改变公式、约束、假设、阈值、判定条件、反馈或可行侧，必须与 current Framework 和模型 Authority 比较。若 Framework 正确而图画错，只修图并刷新 Figure Evidence；若图暴露模型/Framework 冲突，则按现有 semantic change category 回退模型设计或求解。draw.io 工具不得自行裁决数学语义。
 
-具体字段、基础图元和 CLI 参考 `templates/figure/mechanism_drawio_spec.yaml` 与 `templates/figure/mechanism_drawio_patterns.md`；它们只实现本节，不拥有独立 Figure 决策权。
+具体字段、基础图元和 CLI 参考 `templates/figure/mechanism_drawio_spec.yaml` 与 `templates/figure/mechanism_drawio_patterns.md`。
 
 ## B 类：项目级预处理证据图
 
@@ -326,11 +326,11 @@ Figure Enhancement 发生在 Synthesis、Rendering Profile 和基础布局确定
 
 ## Publication Rendering Grammar：成熟论文图实现层
 
-Scientific Figure Synthesis、Scientific Rendering Profile、Figure Layout 与 Figure Enhancement 决定“应该表达什么”；**Publication Rendering Grammar 只决定选定结构以后怎样稳定渲染成成熟论文图**。它不得反向创造证据、改变 Figure Contract 的 Primary question，也不得成为第二套图型 Authority。
+Scientific Figure Synthesis、Scientific Rendering Profile、Figure Layout 与 Figure Enhancement 决定“应该表达什么”；**Publication Rendering Grammar 只决定选定结构以后怎样稳定渲染成成熟论文图**。它不得反向创造证据、改变 Figure Contract 的 Primary question。
 
 ### 1. Palette Profile Selection
 
-数据驱动正式 Figure **不设默认配色或默认 palette profile**。完成对象与变量语义映射后，按当前图的比较任务、对象数量、图型密度、最终栏宽和输出介质选择颜色。可以参考具体 SCI 期刊或 Nature 论文中的配色与排版，但“SCI 配色”“Nature 配色”不是一套官方统一色板，也不能代替当前图的可读性判断。
+数据驱动正式 Figure **不设默认配色或默认 palette profile**。完成对象与变量语义映射后，按当前图的比较任务、对象数量、图型密度、最终栏宽和输出介质选择颜色。可以参考具体 SCI 期刊或 Nature 论文中的配色与排版，并检查当前图的可读性。
 
 颜色先服从变量类型：
 
@@ -344,7 +344,7 @@ Scientific Figure Synthesis、Scientific Rendering Profile、Figure Layout 与 F
 旧的三个显式 profile 保留为兼容候选，使用时仍须确认当前对象与颜色的映射：
 
 - `competition_high_contrast`：需要鲜明区分时可显式选用的既有候选，不再是默认值；
-- `journal_balanced`：另一组既有配色候选，不代表任何期刊的统一标准；
+- `journal_balanced`：既有配色候选；
 - `monochrome_print`：灰阶候选，仍需按对象数量辅以线型、marker 等区分。
 
 不指定 profile 时只请求基础排版，不隐式选择上述候选，也不把 MATLAB 的默认颜色循环视为已完成配色。脚本在集中参数区显式给出当前图使用的 RGB / colormap；显式选用旧 profile 时，也须由脚本把其 RGB 赋给对应绘图对象。
@@ -405,7 +405,7 @@ Dedicated Legend Tile 只解决共享语义与空间冲突，不得成为装饰�
 
 默认行为仍是保留可见图窗、不自动导出。只有用户明确要求正式导出时，优先 vector-first（PDF/SVG/EPS，视 MATLAB/目标格式支持情况），PNG 用于预览或明确要求；普通 raster 以约 300 DPI 为起点，极密集 matrix/bar/scatter 在确有需要时可提高到 600 DPI。导出前必须检查 legend、annotation、tick label 与 colorbar 未被裁剪，不批量生成无用途格式。
 
-具体 MATLAB pattern 与 API 只放在 `templates/figure/figure_enhancement_patterns.md` / `templates/matlab/`；本节只拥有高层渲染准入与诚实性规则。
+具体 MATLAB pattern 与 API 只放在 `templates/figure/figure_enhancement_patterns.md` / `templates/matlab/`。
 
 ## 视觉注意力预算
 
@@ -443,9 +443,9 @@ end
 
 数据驱动结果图的颜色与排版按前述 Publication Rendering Grammar 逐图选择；没有默认色板、蓝红优先或强制中高饱和要求。中文坐标轴、单位、图例与必要直接标注保持清晰，实际颜色、字号、线宽、网格和边框由脚本集中配置。A 类正式机理/推导图仍遵循前述 monochrome-first 规则。
 
-外观由用户在项目选定的绘图工具中人工调整和确认；静态代码检查只核对接口、参数与契约，不代表已确认图形美观，也不新增自动视觉检查。
+外观由用户在项目选定的绘图工具中人工调整和确认；静态代码检查只核对接口、参数与契约。
 
-脚本静态交付、用户实际运行、人工外观确认和正式图片入文分别据实记录。只完成静态检查时明确写“仅静态检查，未验证实际绘图运行”；确知尚未运行时注明“绘图脚本未运行”。可交付已完成静态检查的脚本并保留待办；不得据此声称运行通过、图形已验收或将其列为 `approved_figures`。用户在 MATLAB 中打开图窗、手动调整并按需导出，不要求提交截图或填写额外审美表单。现有项目状态字段和待办记录的用法见框架模板，不另建图形状态体系。
+脚本静态交付、用户实际运行、人工外观确认和正式图片入文分别据实记录。只完成静态检查时明确写“仅静态检查，未验证实际绘图运行”；确知尚未运行时注明“绘图脚本未运行”。可交付已完成静态检查的脚本并保留待办；不得据此声称运行通过、图形已验收或将其列为 `approved_figures`。用户在 MATLAB 中打开图窗、手动调整并按需导出，不要求提交截图或填写额外审美表单。现有项目状态字段和待办记录的用法见框架模板。
 
 图窗默认可见，不批量自动导出。
 

@@ -23,8 +23,7 @@ scope:
 
 rule_governance:
   authority_principle: >-
-    同一规则只在其权威文件定义一次。consumer、artifact pack、checklist 与 review 模块只引用、执行或检查，
-    不复制为第二套正文规范。
+    每条写作规则只在权威文件定义一次；consumer、artifact pack、checklist 与 review 模块引用、执行或检查。
   levels:
     hard:
       meaning: 违反后会造成答案、数学语义、事实来源、可复现性或正式交付错误。
@@ -1690,11 +1689,11 @@ authority_boundaries:
   prose_and_section_authority: modules/05_writing/paper_writing_protocol.md
   latex_adapter: modules/05_writing/latex.md
   compact_runtime: core/writing_runtime_contract.yaml
-  docx_role: 只定义 Word 审阅载体与排版差异，不复制正文规则。
-  ai_cleanup_role: 只识别模板化、空泛、重复、推理呈现风险，不建立第二套正文规则。
-  review_role: 只映射 Authority 到检查级别与交付判定，不重新定义写作规范。
-  artifact_pack_role: 只定义加载条件、输入、输出、编译或载体特有验收，不复制正文规范。
-  project_framework_role: 只保存当前项目事实、选择、状态和证据位置，不保存跨项目写作手册。
+  docx_role: 只定义 Word 审阅载体与排版差异。
+  ai_cleanup_role: 只识别模板化、空泛、重复、推理呈现风险。
+  review_role: 只映射 Authority 到检查级别与交付判定。
+  artifact_pack_role: 只定义加载条件、输入、输出、编译或载体特有验收。
+  project_framework_role: 只保存当前项目事实、选择、状态和证据位置。
 
 v8_compatibility:
   legacy_latex_structure_authority:

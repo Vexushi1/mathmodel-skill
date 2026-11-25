@@ -11,6 +11,7 @@ import re
 from pathlib import Path
 
 from r1_continuity_reference import prior_r1_text
+from r3_concision_reference import prior_r3_text
 from writing_slimming_reference import prior_writing_slimming_text
 
 
@@ -88,7 +89,7 @@ def historical_review_text(root: Path = ROOT) -> str:
     for path in CANONICAL_PATHS:
         text = (root / path).read_text(encoding="utf-8")
         try:
-            text = prior_r1_text(path, text)
+            text = prior_r1_text(path, prior_r3_text(path, text))
         except ValueError as exc:
             raise ValueError("canonical review business text differs from the R1 predecessor") from exc
         documents[path] = split_sections(prior_writing_slimming_text(path, text))

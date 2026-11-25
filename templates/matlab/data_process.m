@@ -6,7 +6,7 @@
 % Composite Encoding 仅在真实互补信息和可读性增益同时存在时使用；没有实际区间就不画带，不因额外维度存在而强制组合。
 % 选定视觉结构后进入对应 Scientific Rendering Profile，再通过 Figure Layout Gate 与 Figure Enhancement Gate。
 % 视觉结构确定后再进入 Publication Rendering Grammar：palette profile / open-axis / adaptive canvas / legend strategy；样式不得改变预处理证据语义。
-% Enhancement 的实现模式参考 templates/figure/figure_enhancement_patterns.md，不得在本模板建立第二套绘图决策规则。
+% Enhancement 的实现模式参考 templates/figure/figure_enhancement_patterns.md。
 % 正式论文图不设置整体 title/sgtitle；正式图题由 LaTeX/DOCX caption 承担，多面板按需只保留 a/b/c/d 等 panel label。
 
 clearvars;

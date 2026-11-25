@@ -1,7 +1,7 @@
 version: 1.4.0
 introduced_in_skill_version: 7.4.2
 skill_compatibility: '>=7.4.2,<12.0.0'
-purpose: 约束条件启用的项目级数据预处理、题目专属Python/MATLAB主求解与结果深化分析代码的规模、可读性、反过度工程和静态工程质量；不替代Problem Contract、模型语义正确性、preprocessing_decision、预处理质量门、论文预处理证据与数值结果质量门。
+purpose: 约束条件启用的项目级数据预处理、题目专属Python/MATLAB主求解与结果深化分析代码的规模、可读性、反过度工程和静态工程质量。
 scope:
 - 数据预处理/数据预处理.py
 - 问题X求解/问题X求解.py
@@ -22,7 +22,7 @@ language_checks:
     analyzer_message_policy: classify_by_supported_message_id_and_severity_not_localized_message_text
     rules:
     - Never execute or import task code to extract config; use the execution Authority's restricted literal representation.
-    - Apply common size and complexity budgets to the active implementation and declared helpers; splitting files cannot evade quality checks.
+    - Apply common size and complexity budgets to the active implementation and declared helpers.
     - The assistant runs native analysis automatically when available. Required static checks may authorize code delivery when native coverage is unverified; report its reasons without asking the user to run another checker.
     - Overall delivery passed covers the required checks only; it does not promote native_analysis_status or numerical acceptance. Native errors, hard complexity limits and source drift still block delivery; explicit internal require_native=true calls retain mandatory native verification.
     - Input readers obey preprocessing_decision and covered_raw_sources; unsupported dynamic paths do not count as verified safe reads.
@@ -68,7 +68,7 @@ principles:
 - preprocessing_decision=not_needed时，主求解和深化分析允许直接读取原始数据并做非破坏性检查，不得为了流程完整虚构数据处理。
 - preprocessing_decision=question_local时，主求解和深化分析允许从原始数据构造本问数学层已经定义的局部变换，但不得把本问变换升级为全局清洗；实质变换必须输出足够的验证/绘图底层数据供论文与所选qX_plot.py或qX_plot.m使用。
 - preprocessing_decision=project_level时，主求解和结果深化分析脚本不得直接读取对应共享原始数据源，不得重复项目级去缺失、异常处理、单位换算、统一滤波、统一重采样或坐标修正。
-- 缺失填补、预测填补、异常删除、插值、平滑、滤波、去噪、去趋势、标准化、归一化和重采样等操作必须在数学/数据语义层有必要性证据；有缺失不等于必须插值，任何学习型填补必须遵守训练验证边界并防止信息泄漏。
+- 缺失填补、预测填补、异常删除、插值、平滑、滤波、去噪、去趋势、标准化、归一化和重采样等操作必须在数学/数据语义层有必要性证据；任何学习型填补必须遵守训练验证边界并防止信息泄漏。
 - 赛题本身要求预测未来值、未知类别、需求、风险或其他最终结果时，该预测属于核心模型，不得写入数据预处理脚本提前生成答案。
 - 主求解脚本只保留当前数据事实源读取与字段检查、模型求解、约束/残差或题型质量检查、主结果整理、主工作簿输出和主入口。
 - 结果深化分析脚本只保留当前数据事实源和已核对主结果读取、题目专属深化分析、稳定性判定、深化工作簿输出和主入口；不得复制主求解主链。

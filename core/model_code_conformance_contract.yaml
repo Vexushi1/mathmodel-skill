@@ -52,8 +52,7 @@ activation:
       specifications owned by Module 03B. An explicitly A2-enabled analysis stage
       using the new comparison protocol reports needs_review and blocks structural
       qualification until comparator coverage is supported; it cannot reuse a
-      primary-only structure_verified result as comparator verification. This does
-      not enable A2 for projects without its explicit policy.
+      primary-only structure_verified result as comparator verification.
   report_persistence: stdout_only
   default_project_files_added: []
   integration_boundary: A2 adds one opted-in prerequisite inside existing consumers; A1 reports and bindings never replace model approval or numerical quality.
@@ -98,7 +97,7 @@ result_semantics:
   inventory_role: observed_inputs_and_candidates_only_not_a_verified_mapping
 rules:
 - Enumerate required model selectors from the actual SIB, not from the author's own list.
-- Reuse current project backend, source bundle and semantic lock readers; do not invent an alternative identity root.
+- Reuse current project backend, source bundle and semantic lock readers.
 - Require exact question/stage/entry/bundle/revision binding; do not use an analysis record for a primary source.
 - Keep unknown MATLAB structures, dynamic references and unresolved source scope as needs_review rather than silently accepting.
 - A matching symbol or syntactic expression does not prove constraint activation, solver correctness or mathematical equivalence.

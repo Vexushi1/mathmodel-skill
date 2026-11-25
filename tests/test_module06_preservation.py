@@ -13,6 +13,7 @@ from module06_sources import (
     split_sections,
 )
 from r1_continuity_reference import prior_r1_text
+from r3_concision_reference import prior_r3_text
 from writing_slimming_reference import prior_writing_slimming_text
 
 
@@ -49,7 +50,7 @@ class Module06PreservationTests(unittest.TestCase):
                 self.assertEqual(live.count(matches[0]), 1)
         combined = "\n".join(
             prior_writing_slimming_text(
-                path, prior_r1_text(path, (ROOT / path).read_text(encoding="utf-8"))
+                path, prior_r1_text(path, prior_r3_text(path, (ROOT / path).read_text(encoding="utf-8")))
             )
             for path in CANONICAL_PATHS
         ) + "\n"

@@ -2,7 +2,7 @@
 """HSK Figure Evidence Python example: one question, one workbook-driven plot.
 
 Instantiate this file from the accepted workbook and its Figure Contract.
-It is a rendering example, not a model selection, data processing, or solver.
+Rendering only; select models, preprocess and solve upstream.
 """
 from __future__ import annotations
 

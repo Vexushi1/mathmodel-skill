@@ -164,7 +164,6 @@ human_approval:
     rejected_route_reason: >-
       Compatibility field; it may be not_applicable. When alternatives or comparators exist, use it
       for why an alternative was rejected or why a comparator did not become the current main model.
-      It must not imply that every question requires a rejected route or a fixed two-route comparison.
   identity_mode_selection:
     principle: structured_identity_preferred_legacy_only_when_absent
     structured_when: any semantic_identity_* field is present for the current question
