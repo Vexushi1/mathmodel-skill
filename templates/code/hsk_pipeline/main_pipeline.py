@@ -12,12 +12,12 @@ import pandas as pd
 # Use the actual sibling in a package; do not mask its dependency errors.
 if __package__:
     from .result_io import (
-        find_project_root, load_workbook_schema, validate_answer_sheet_names,
+        find_project_root, load_workbook_schema, validate_answer_sheet_names, validate_answer_tables,
         workbook_paths, write_workbook,
     )
 else:  # Explicit historical flat-module imports.
     from result_io import (
-        find_project_root, load_workbook_schema, validate_answer_sheet_names,
+        find_project_root, load_workbook_schema, validate_answer_sheet_names, validate_answer_tables,
         workbook_paths, write_workbook,
     )
 
@@ -311,6 +311,7 @@ def build_solution_tables(
     tables, missing = _assemble_solution_tables(solution, constraints, quality_report, audit, answer_sheets)
     if missing:
         raise ValueError(f"缺少必答结果表: {missing}")
+    validate_answer_tables(tables, answer_sheets)
     return tables
 
 
@@ -359,6 +360,7 @@ def run_primary_pipeline(
     tables, missing = _assemble_solution_tables(solution, constraints, quality_report, audit, answers)
     if missing and not failures:
         raise ValueError(f"缺少必答结果表: {missing}")
+    validate_answer_tables(tables, tuple(name for name in answers if name in tables))
     solution_path, _ = workbook_paths(config.project_root, config.problem_name)
     write_workbook(
         solution_path,
@@ -368,7 +370,6 @@ def run_primary_pipeline(
         structures=config.structures,
         capabilities=config.capabilities,
         require_quality_passed=False,
-        answer_sheets=tuple(name for name in answers if name in tables),
     )
     primary = PrimarySolveResult(context, solution_path, quality_report, constraints)
     if failures:

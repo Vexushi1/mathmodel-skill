@@ -238,6 +238,19 @@ def validate_answer_sheet_names(answer_sheets: Sequence[str]) -> tuple[str, ...]
     return names
 
 
+def validate_answer_tables(tables: Mapping[str, Any], answer_sheets: Sequence[str]) -> None:
+    """Check declared answers against the names that Excel will receive."""
+    answers = validate_answer_sheet_names(answer_sheets)
+    if not answers:
+        return
+    missing = [name for name in answers if name not in tables]
+    if missing:
+        raise ValueError(f"缺少必答结果表: {missing}")
+    final_names = [_sheet_name(name) for name in tables]
+    if len({name.lower() for name in final_names}) != len(final_names):
+        raise ValueError("工作表最终名称存在不区分大小写的冲突")
+
+
 def _schema_candidates(explicit: Path | None) -> list[Path]:
     candidates: list[Path] = []
     if explicit is not None:
@@ -336,13 +349,8 @@ def write_workbook(
     analysis_methods: Sequence[str] = (),
     comparison_plan: Mapping[str, Any] | None = None,
     ordinary_experiments: Sequence[Mapping[str, Any]] | None = None,
-    answer_sheets: Sequence[str] = (),
 ) -> Path:
     path = Path(path)
-    answers = validate_answer_sheet_names(answer_sheets)
-    missing = [name for name in answers if name not in tables]
-    if missing:
-        raise ValueError(f"缺少必答结果表: {missing}")
     kind = workbook_kind or _infer_workbook_kind(path)
     if kind is None and ordinary_experiments is not None:
         kind = "result_analysis"
@@ -357,12 +365,6 @@ def write_workbook(
             analysis_methods=analysis_methods, comparison_plan=comparison_plan,
             ordinary_experiments=ordinary_experiments,
         )
-    if answers:
-        final_names = [name for name, _ in prepared]
-        if len({name.lower() for name in final_names}) != len(final_names):
-            raise ValueError("工作表最终名称存在不区分大小写的冲突")
-        if any(name not in final_names for name in answers):
-            raise ValueError("答案工作表最终名称与声明不一致")
     path.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile(prefix=f".{path.stem}.", suffix=".xlsx", dir=path.parent, delete=False) as handle:
         temporary = Path(handle.name)

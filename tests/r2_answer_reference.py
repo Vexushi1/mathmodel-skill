@@ -20,7 +20,7 @@ R2_SOURCE_IDENTITIES = {'core/bootstrap.yaml': ['08ffb1a0c6b6c63bd3fed1f838b7a66
  'modules/02_model_design.md': ['e3d35bc272c51603264637ba74a8df60674074767ced96de90e12e5faee33eeb',
                                 '8410825521e19cbc6d20c592e71ffecc26a62413e12a605cd15bff39698c6c51'],
  'modules/03_solve_validate.md': ['a02caf891c2f2f94ef3b72a685802a29b5d375c5ec7cb05534067dcb97a3f83a',
-                                  'c28d23bdb60bb423d3ebb1286c0d8956b92076aeae992261099b71fbb53af9fc']}
+                                  '09ae401383b4352b0616bf16aa2abc9e5353aa7210a21618f39a2642d66fef6d']}
 
 R2_RANGE_TRANSITIONS = {'core/model_approval_contract.yaml': [[[[1, 318]], [[1, 332]]]],
  'modules/02_model_design.md': [[[[1, 715]], [[1, 718]]]]}
@@ -248,7 +248,7 @@ R2_APPROVED_REWRITES = {'core/bootstrap.yaml': [['skill_version: 11.4.0\nbootstr
                                    '03B 方法表落实。\n'
                                    '\n'
                                    '生成代码时逐项检查“计算 → 返回 → 组表 → 写出”。使用完整 Python 管线时，以 '
-                                   '`answer_sheets=("站点峰值", ...)` 声明答案表；直接调用共享 writer 时使用同名参数；自包含入口和 '
+                                   '`answer_sheets=("站点峰值", ...)` 声明答案表；直接使用 IO 包时，先调用 `validate_answer_tables(tables, answer_sheets)`，再调用 `write_workbook`；自包含入口和 '
                                    'MATLAB 的 `sheets` 列表逐项列入实际答案。表名、字段、对象键与单位对应框架中的预期输出。\n'
                                    '\n'
                                    '返回后回读实际工作簿，按题面独立确定的对象集合、字段和数值核对；逐站答案同时检查峰值与时刻，保留全部并列解。事件未触发时记录状态与原因。题面提供提交模板时，对照其行键、列名和显示精度填写。完整轨迹已保存而汇总遗漏时补导出；缺少必要状态时重跑受影响的计算，并把实际证据位置更新到框架结果摘要。\n'

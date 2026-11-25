@@ -19,7 +19,7 @@ from hsk_pipeline import (  # noqa: E402
     REQUIRED_CAPABILITIES,
     run_primary_pipeline,
 )
-from hsk_pipeline.result_io import read_workbook_tables, write_workbook  # noqa: E402
+from hsk_pipeline.result_io import read_workbook_tables, validate_answer_tables, write_workbook  # noqa: E402
 # Explicit historical in-memory adapter, not the current package-level 03B API.
 from hsk_pipeline.main_pipeline import AuditLog, build_solution_tables, run_result_analysis_pipeline  # noqa: E402
 
@@ -158,7 +158,8 @@ class TestSplitPipelineRuntime(unittest.TestCase):
             self.assertEqual(list(events["状态"]), ["未触发", "未触发"])
             self.assertEqual(list(events["原因"]), ["未达到阈值10", "未达到阈值10"])
             direct = root / "direct.xlsx"
-            write_workbook(direct, tables, workbook_kind="solution", answer_sheets=("站点峰值", "站点事件"))
+            validate_answer_tables(tables, ("站点峰值", "站点事件"))
+            write_workbook(direct, tables, workbook_kind="solution")
             pd.testing.assert_frame_equal(read_workbook_tables(direct)["站点峰值"], tables["站点峰值"])
 
     def test_all_tied_peak_times_are_retained(self):
